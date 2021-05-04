@@ -1,0 +1,24 @@
+# SEO
+title: PepperCord
+author: regulad
+
+# Jekyll
+remote_theme: regulad/crust-tastic@v4.0
+
+# Plugins
+plugins:
+  - github-pages
+  - jekyll-redirect-from
+
+# crust-tastic
+crust_tastic:
+  addons:
+    gtag: G-YN9EE1LSN6
+    pin_header: true
+    jump_to_top: true
+    google_translate: true
+  header:
+    title: true
+    github_desc: true
+  footer:
+    github_link: true

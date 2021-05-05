@@ -112,3 +112,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# repl.it Online IDE
+.replit
+*.draw
+
+# Poetry Packager
+poetry.lock
+
+# Configuration
+config.yml

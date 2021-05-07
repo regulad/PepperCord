@@ -115,10 +115,7 @@ dmypy.json
 
 # repl.it Online IDE
 .replit
-*.draw
+*.draw\
 
 # Poetry Packager
 poetry.lock
-
-# Configuration
-config.yml

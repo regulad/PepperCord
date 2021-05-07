@@ -1,12 +1,11 @@
 # PepperCord
- General Discord bot for small servers.
+"Whatever goes" bot. Has a ton of worthless garbage commands, and some cool things. Use it if you dare. Spaghetti monsters beyond.
 
-## Setup
-Create an environment variable named `BOT_TOKEN` with your token. That's all, as of now.
 ## Config
-PepperCord uses `config.yml` for configuration, and environment variables for secrets like tokens.
+PepperCord uses MongoDB for data, and environment variables for secrets like tokens.
 
 ## Secrets
 | Name | Reccomended/Default | Values | Use |
 | --- | --- | --- | --- |
 | `BOT_TOKEN` | ***Required*** | `123456123456.abcdefabcdef` | Needed for authentication with Discord. |
+| `MONGO_URI` | ***Required*** | `mongodb://localhost:27017` | Connection string to the MongoDB database. |

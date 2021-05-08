@@ -19,7 +19,7 @@
     },
     "db": {
       "type": "object",
-      "properties" : {
+      "properties": {
         "uri": { "type": "string", "format": "uri" }
       }
     }

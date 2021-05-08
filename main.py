@@ -1,10 +1,8 @@
-import os
-from extensionManager import extensionManager
+from bot import bot, activeConfigManager
+from tools.managers import extensionManager
 from art import tprint
-from bot import bot
 
-extensionPath = 'extensions/'
-activeExtensionManager = extensionManager(extensionPath)
+activeExtensionManager = extensionManager(bot)
 
 @bot.event
 async def on_ready():
@@ -14,4 +12,4 @@ async def on_ready():
 if __name__ == '__main__':
   print(activeExtensionManager.loadExtension())
   print(activeExtensionManager.listExtensions())
-  bot.run(os.environ['BOT_TOKEN'])
+  bot.run(activeConfigManager.readKey('discord.api.token'))

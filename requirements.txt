@@ -1,0 +1,6 @@
+discord.py
+# aiohttp # For asyncronous HTTP requests
+# motor # For asyncronous MongoDB requests
+art # Ascii art library
+pyyaml # Parses YAML
+jsonschema # Validates schema

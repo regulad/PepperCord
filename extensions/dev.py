@@ -37,23 +37,38 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
   @extension.command(name='load', brief='Loads extension or directory of extensions', description='Loads extension or directory of extensions present in the extensions folder.', usage='[Path]')
   async def loadExtension(self, ctx, *, extension: str = ''):
     try:
-      await ctx.send(activeExtensionManager.loadExtension(extension))
+      extensionLoader = activeExtensionManager.loadExtension(extension)
     except Exception as e:
       await ctx.send(f'Failed to load extension: ```{e}```')
+    else:
+      if len(extensionLoader) > 0:
+        await ctx.send(f'Finished loading extension(s). {extensionLoader} failed to load.')
+      else:
+        await ctx.send(f'Successfully loaded extension(s).')
   
   @extension.command(name='unload', brief='Unloads extension or directory of extensions', description='Unloads extension or directory of extensions present in the extensions folder.', usage='[Path]')
   async def unloadExtension(self, ctx, *, extension: str = ''):
     try:
-      await ctx.send(activeExtensionManager.unloadExtension(extension))
+      extensionLoader = activeExtensionManager.unloadExtension(extension)
     except Exception as e:
       await ctx.send(f'Failed to unload extension: ```{e}```')
+    else:
+      if len(extensionLoader) > 0:
+        await ctx.send(f'Finished unloading extension(s). {extensionLoader} failed to load.')
+      else:
+        await ctx.send(f'Successfully unloaded extension(s).')
   
   @extension.command(name='reload', brief='Reloads extension or directory of extensions', description='Reloads extension or directory of extensions present in the extensions folder.', usage='[Path]')
   async def reloadExtension(self, ctx, *, extension: str = ''):
     try:
-      await ctx.send(activeExtensionManager.reloadExtension(extension))
+      extensionLoader = activeExtensionManager.reloadExtension(extension)
     except Exception as e:
       await ctx.send(f'Failed to reload extension: ```{e}```')
+    else:
+      if len(extensionLoader) > 0:
+        await ctx.send(f'Finished reloading extension(s). {extensionLoader} failed to load.')
+      else:
+        await ctx.send(f'Successfully reloaded extension(s).')
   
   @commands.group(invoke_without_command=True, case_insensitive=True, name='config', aliases=['configuration', 'yaml'], brief='Manages configuration.', description='Manages bot configuration using the active configManager instance.')
   async def config(self, ctx):

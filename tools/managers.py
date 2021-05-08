@@ -35,43 +35,50 @@ class extensionManager:
   def loadExtension(self, extensionPath: str = ''):
     pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
     if pathlib.Path(self.extensionBaseDir + extensionPath).is_dir():
-      totalE = 0
+      totalE = []
       for file in os.listdir(self.extensionBaseDir + extensionPath):
         if file.endswith('.py'):
           try:
             self.loadSingleExtension(extensionPath + file)
           except Exception as e:
-            totalE += 1
+            totalE.append(file)
             print(f'{e}\nContinuing recursively')
-      return f'Finished loading {self.extensionBaseDir}. {totalE} extensions failed to load.'
+      if len(totalE) > 0:
+        return totalE
     else:
       self.loadSingleExtension(extensionPath)
-      return f'Finished loading {extensionPath}'
 
   def unloadExtension(self, extensionPath: str = ''):
     pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
     if pathValidator:
-      totalE = 0
+      totalE = []
       for file in os.listdir(self.extensionBaseDir + extensionPath):
         if file.endswith('.py'):
           try:
             self.unloadSingleExtension(extensionPath + file)
           except Exception as e:
-            totalE += 1
+            totalE.append(file)
             print(f'{e}\nContinuing recursively')
-      return f'Finished unloading {self.extensionBaseDir}. {totalE} extensions failed to unload.'
+      if len(totalE) > 0:
+        return totalE
     else:
       self.unloadSingleExtension(extensionPath)
-      return f'Finished unloading {extensionPath}'
 
   def reloadExtension(self, extensionPath: str = ''):
     pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
-    self.unloadExtension(extensionPath)
-    self.loadExtension(extensionPath)
     if pathValidator:
-      return f'Finished reloading {self.extensionBaseDir}. Individual extensions may have failed to load, check the console.'
+      totalE = []
+      unloadExtension = copy.deepcopy(self.unloadExtension(extensionPath))
+      loadExtension = copy.deepcopy(self.loadExtension(extensionPath))
+      if len(unloadExtension) > 0:
+        totalE.append(unloadExtension)
+      if len(loadExtension) > 0:
+        totalE.append(loadExtension)
+      if len(totalE) > 0:
+        return totalE
     else:
-      return f'Finished reloading {extensionPath}'
+      self.unloadExtension(extensionPath)
+      self.loadExtension(extensionPath)
   
 class configManager:
   def __init__(self, configFile: str = 'config/config.yml', configSchemaFile: str = 'resources/configSchema.json'):

@@ -3,7 +3,7 @@ title: PepperCord
 author: regulad
 
 # Jekyll
-remote_theme: regulad/crust-tastic@v4.0
+remote_theme: regulad/crust-tastic@main
 
 # Plugins
 plugins:
@@ -20,3 +20,5 @@ crust_tastic:
   header:
     title: true
     github_desc: true
+  footer:
+    github_link: true

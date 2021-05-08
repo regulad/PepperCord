@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build image
-        run: docker build . --file Dockerfile --tag $IMAGE_NAME -o type=tar,dest=image.tar
+        run: docker build . --file Dockerfile -o type=tar,dest=image.tar
         
       - name: Upload image
         uses: actions/upload-artifact@v2.2.3
@@ -40,13 +40,13 @@ jobs:
 
     steps:
       - name: Download image
-        uses: actions/download-artifact@v2.0.
+        uses: actions/download-artifact@v2.0.9
         with:
           name: ${{ github.repository }}:${{ env.IMAGE_NAME }}
-          path: .
+          path: artifact
       
       - name: Import image
-        run: docker image import image.tar $IMAGE_NAME
+        run: docker image import artifact/image.tar $IMAGE_NAME
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin

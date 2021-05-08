@@ -2,57 +2,51 @@ name: Docker
 
 on:
   push:
-    # Publish `main` as Docker `latest` image.
     branches:
       - main
-
-    # Publish `v1.2.3` tags as releases.
     tags:
       - v*
-
-  # Run tests for any PRs.
-  pull_request:
+  workflow_dispatch:
 
 env:
-  # TODO: Change variable to your image's name.
-  IMAGE_NAME: PepperCord
+  # Enter your image name here
+  IMAGE_NAME: peppercord
 
 jobs:
-  # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Run tests
-        run: |
-          if [ -f docker-compose.test.yml ]; then
-            docker-compose --file docker-compose.test.yml build
-            docker-compose --file docker-compose.test.yml run sut
-          else
-            docker build . --file Dockerfile
-          fi
-
-  # Push image to GitHub Packages.
-  # See also https://docs.docker.com/docker-hub/builds/
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME -o type=tar,dest=image.tar
+        
+      - name: Upload image
+        uses: actions/upload-artifact@v2.2.3
+        with:
+          name: ${{ github.repository }}:${{ env.IMAGE_NAME }}
+          path: image.tar
+        
   push:
-    # Ensure test job passes before pushing image.
-    needs: test
+    needs: build
 
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' 
 
     permissions:
       contents: read
       packages: write
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Build image
-        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+      - name: Download image
+        uses: actions/download-artifact@v2.0.
+        with:
+          name: ${{ github.repository }}:${{ env.IMAGE_NAME }}
+          path: .
+      
+      - name: Import image
+        run: docker image import image.tar $IMAGE_NAME
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin

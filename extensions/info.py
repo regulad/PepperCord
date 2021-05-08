@@ -5,7 +5,18 @@ class info(commands.Cog, name='Metrics', description='Shows data on the bot, ser
   def __init__(self, bot):
     self.bot = bot
   
-  @commands.command(name='serverInfo', brief='Displays information about the server the bot is in.', brief='Get server info.', usage='[Guild ID]')
+    self.activityUpdate.start()
+  
+  def cog_unload(self):
+    self.activityUpdate.stop()
+  
+  @tasks.loop(seconds=60)
+  async def activityUpdate(self):
+    watchingString = f'with {len(self.bot.users)} users in {len(self.bot.guilds)} servers.'
+    await self.bot.change_presence(activity=discord.Game(name=watchingString))
+
+  @commands.command(name='serverInfo', aliases=['guildInfo', 'server', 'guild'], description='Displays information about the server the bot is in.', brief='Get server info.', usage='[Guild ID]')
+  @commands.guild_only()
   async def serverInfo(self, ctx, *, guild: discord.Guild = None):
     try:
       if not guild:

@@ -33,38 +33,43 @@ class extensionManager:
       return 'No extensions are loaded.'
   
   def loadExtension(self, extensionPath: str = ''):
+    pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
     if pathlib.Path(self.extensionBaseDir + extensionPath).is_dir():
       totalE = 0
       for file in os.listdir(self.extensionBaseDir + extensionPath):
-        try:
-          self.loadSingleExtension(extensionPath + file)
-        except Exception as e:
-          totalE += 1
-          print(f'{e}\nContinuing recursively')
-      return f'Finished loading {extensionPath}. {totalE} extensions failed to load.'
+        if file.endswith('.py'):
+          try:
+            self.loadSingleExtension(extensionPath + file)
+          except Exception as e:
+            totalE += 1
+            print(f'{e}\nContinuing recursively')
+      return f'Finished loading {self.extensionBaseDir}. {totalE} extensions failed to load.'
     else:
       self.loadSingleExtension(extensionPath)
       return f'Finished loading {extensionPath}'
 
   def unloadExtension(self, extensionPath: str = ''):
-    if pathlib.Path(self.extensionBaseDir + extensionPath).is_dir():
+    pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
+    if pathValidator:
       totalE = 0
       for file in os.listdir(self.extensionBaseDir + extensionPath):
-        try:
-          self.unloadSingleExtension(extensionPath + file)
-        except Exception as e:
-          totalE += 1
-          print(f'{e}\nContinuing recursively')
-      return f'Finished unloading extension directory. {totalE} extensions failed to unload.'
+        if file.endswith('.py'):
+          try:
+            self.unloadSingleExtension(extensionPath + file)
+          except Exception as e:
+            totalE += 1
+            print(f'{e}\nContinuing recursively')
+      return f'Finished unloading {self.extensionBaseDir}. {totalE} extensions failed to unload.'
     else:
       self.unloadSingleExtension(extensionPath)
       return f'Finished unloading {extensionPath}'
 
   def reloadExtension(self, extensionPath: str = ''):
+    pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
     self.unloadExtension(extensionPath)
     self.loadExtension(extensionPath)
-    if pathlib.Path(extensionPath).is_dir():
-      return f'Finished reloading {extensionPath}. Individual extensions may have failed to load, check the console.'
+    if pathValidator:
+      return f'Finished reloading {self.extensionBaseDir}. Individual extensions may have failed to load, check the console.'
     else:
       return f'Finished reloading {extensionPath}'
   

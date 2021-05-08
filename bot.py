@@ -1,4 +1,4 @@
-from tools.managers import configManager
+from tools.managers.configManager import configManager
 from discord import Colour
 from discord.ext import commands
 from pretty_help import PrettyHelp

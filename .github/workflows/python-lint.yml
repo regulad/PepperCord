@@ -1,17 +1,23 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python application
+name: Python linter
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - "scripts/**.py"
+      - ".github/workflows/python-lint.yml"
   pull_request:
     branches: [ main ]
+    paths:
+      - "scripts/**.py"
+      - ".github/workflows/python-lint.yml"
   workflow_dispatch:
 
 jobs:
-  build:
+  link:
 
     runs-on: ubuntu-latest
   
@@ -40,6 +46,3 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        pytest -v main.py

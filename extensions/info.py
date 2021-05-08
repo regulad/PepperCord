@@ -5,7 +5,7 @@ class info(commands.Cog, name='Metrics', description='Shows data on the bot, ser
   def __init__(self, bot):
     self.bot = bot
   
-  @commands.command(name='serverInfo', description='Displays information about the server the bot is in.',breif='Get server info.', usage='[Guild ID]')
+  @commands.command(name='serverInfo', brief='Displays information about the server the bot is in.', brief='Get server info.', usage='[Guild ID]')
   async def serverInfo(self, ctx, *, guild: discord.Guild = None):
     try:
       if not guild:
@@ -16,7 +16,7 @@ class info(commands.Cog, name='Metrics', description='Shows data on the bot, ser
     embed = discord.Embed(title=f'Info for {guild.name}\n({guild.id})').set_thumbnail(url=guild.icon_url).add_field(name=f'{len}')
     await ctx.send(embed=embed)
   
-  @commands.command(name='userInfo', description='Displays information about a user.',breif='Get user info.', usage='[User (ID/Mention/Name)]')
+  @commands.command(name='userInfo', brief='Displays information about a user.',brief='Get user info.', usage='[User (ID/Mention/Name)]')
   async def userInfo(self, ctx, *, user: discord.User = None):
     if not user:
       user = ctx.author

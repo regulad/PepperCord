@@ -13,7 +13,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
   async def evalCode(self, ctx, *, code: str = ''):
     if code.startswith('```') and code.endswith('```'):
       code = code.strip('```')
-    discordOut = io.StringIO()
+    # discordOut = io.StringIO()
     try:
       perfBefore = copy.deepcopy(time.perf_counter())
       with contextlib.redirect_stdout(discordOut):
@@ -24,7 +24,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
       await ctx.send(f'Code ran successfully.')
     perfAfter = copy.deepcopy(time.perf_counter())
     totalTime = perfAfter - perfBefore
-    await ctx.send(f'Total time: {totalTime}s\nConsole output: ```{discordOut.getvalue()}```')
+    # await ctx.send(f'Total time: {totalTime}s\nConsole output: ```{discordOut.getvalue()}```')
   
   @commands.group(invoke_without_command=True, case_insensitive=True, name='extension', aliases=['extensions','cog', 'cogs'], brief='Manages extensions.', description='Manages discord.ext extensions.')
   async def extension(self, ctx):

@@ -8,7 +8,10 @@ class textDecoration(commands.Cog, name='Art', description='Convert text into ar
   @commands.command(name='asciiArt', aliases=['ascii'], description='Turn any text into ascii art!', usage='<Text>')
   async def asciiArt(self, ctx, *, text):
     art = text2art(text, font='rnd-medium')
-    await ctx.send(f'```{art}```')
+    if (len(art) + 6) > 2000:
+      await ctx.send(f'Art was {len(art) - 2000} characters over the limit. Try with a shorter word.')
+    else:
+      await ctx.send(f'```{art}```')
 
 def setup(bot):
   bot.add_cog(textDecoration(bot))

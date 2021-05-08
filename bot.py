@@ -1,3 +1,5 @@
+from tools.managers import configManager
 from discord.ext import commands
 
-bot = commands.Bot(command_prefix='?', case_insensitive=True)
+activeConfigManager = configManager()
+bot = commands.Bot(command_prefix=activeConfigManager.readKey('discord.prefix'), case_insensitive=True)

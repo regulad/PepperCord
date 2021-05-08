@@ -95,6 +95,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# Virual Environments
+pyvenv.cfg
+bin/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -113,9 +117,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# repl.it Online IDE
-.replit
-*.draw\
-
-# Poetry Packager
-poetry.lock
+# Visual Studio Code
+.vscode/

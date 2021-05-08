@@ -1,5 +1,5 @@
 import time, copy, io, contextlib
-from main import activeExtensionManager
+from main import activeConfigManager, activeExtensionManager
 from discord.ext import commands
 
 class dev(commands.Cog, name='Development', description='Dev-only commands. Users cannot execute these commands.'):
@@ -35,25 +35,38 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
     await ctx.send(activeExtensionManager.listExtensions())
 
   @extension.command(name='load', description='Loads extension or directory of extensions', usage='[Path]')
-  async def loadExtension(self, ctx, *, extension: str = None):
+  async def loadExtension(self, ctx, *, extension: str = ''):
     try:
       await ctx.send(activeExtensionManager.loadExtension(extension))
     except Exception as e:
       await ctx.send(f'Failed to load extension: ```{e}```')
   
   @extension.command(name='unload', description='Loads extension or directory of extensions', usage='[Path]')
-  async def unloadExtension(self, ctx, *, extension: str = None):
+  async def unloadExtension(self, ctx, *, extension: str = ''):
     try:
       await ctx.send(activeExtensionManager.unloadExtension(extension))
     except Exception as e:
-      await ctx.send(f'Failed to load unextension: ```{e}```')
+      await ctx.send(f'Failed to unload extension: ```{e}```')
   
   @extension.command(name='reload', description='Reloads extension or directory of extensions', usage='[Path]')
-  async def reloadExtension(self, ctx, *, extension: str = None):
+  async def reloadExtension(self, ctx, *, extension: str = ''):
     try:
       await ctx.send(activeExtensionManager.reloadExtension(extension))
     except Exception as e:
       await ctx.send(f'Failed to reload extension: ```{e}```')
+  
+  @commands.group(invoke_without_command=True, case_insensitive=True, name='config', aliases=['configuration', 'yaml'], description='Manages extensions.')
+  async def config(self, ctx):
+    await ctx.send('You must execute a valid command.')
+  
+  @config.command(name='readKey', aliases=['read'], description='Reads YAML key present in the config.')
+  async def readKey(self, ctx, key: str = ''):
+    try:
+      readKey = activeConfigManager.readKey(key)
+    except Exception as e:
+      await ctx.send(f'```{e}```')
+    else:
+      await ctx.send(f'```{readKey}```')
 
 def setup(bot):
   bot.add_cog(dev(bot))

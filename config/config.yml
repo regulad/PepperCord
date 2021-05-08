@@ -1,0 +1,6 @@
+discord:
+  api:
+    token: ODM5MjY0MDM1NzU2MzEwNTg5.YJHHig.Iq0sRxYOZl3zmTyQ6ymgJn3_dl8
+  prefix: '?'
+db:
+  uri: mongodb+srv://PepperCord:z69CxpXZPVQoETky@peppercord.3h0r7.mongodb.net/?retryWrites=true&w=majority

@@ -1,4 +1,5 @@
 discord.py
+discord-pretty-help
 # aiohttp # For asyncronous HTTP requests
 # motor # For asyncronous MongoDB requests
 art # Ascii art library

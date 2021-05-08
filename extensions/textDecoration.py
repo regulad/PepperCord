@@ -5,7 +5,7 @@ class textDecoration(commands.Cog, name='Art', description='Convert text into ar
   def __init__(self, bot):
     self.bot = bot
 
-  @commands.command(name='asciiArt', aliases=['ascii'], description='Turn any text into ascii art!', usage='<Text>')
+  @commands.command(name='asciiArt', aliases=['ascii', 'art'], brief='Turn any text into ascii art!', description='Turn text into ascii art using art from PyPI.', usage='<Text>')
   async def asciiArt(self, ctx, *, text):
     art = text2art(text, font='rnd-medium')
     if (len(art) + 6) > 2000:

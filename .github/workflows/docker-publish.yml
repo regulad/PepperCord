@@ -28,7 +28,7 @@ jobs:
       - name: Upload image
         uses: actions/upload-artifact@v2.2.3
         with:
-          name: ${{ github.repository }}-${{ env.IMAGE_NAME }}
+          name: ${{ env.IMAGE_NAME }}
           path: image.tar
         
   push:
@@ -45,7 +45,7 @@ jobs:
       - name: Download image
         uses: actions/download-artifact@v2.0.9
         with:
-          name: ${{ github.repository }}:${{ env.IMAGE_NAME }}
+          name: ${{ env.IMAGE_NAME }}
           path: artifact
       
       - name: Import image

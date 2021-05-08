@@ -6,12 +6,18 @@ name: Python linter
 on:
   push:
     branches: [ main ]
+    paths:
+      - "scripts/**.py"
+      - ".github/workflows/python-lint.yml"
   pull_request:
     branches: [ main ]
+    paths:
+      - "scripts/**.py"
+      - ".github/workflows/python-lint.yml"
   workflow_dispatch:
 
 jobs:
-  build:
+  link:
 
     runs-on: ubuntu-latest
   

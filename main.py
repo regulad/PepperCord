@@ -1,3 +1,4 @@
+import copy
 from bot import bot, activeConfigManager
 from tools.managers import extensionManager
 from art import tprint
@@ -10,6 +11,8 @@ async def on_ready():
   print(f'Logged in as {bot.user.name}#{bot.user.discriminator} ({bot.user.id})')
 
 if __name__ == '__main__':
-  print(activeExtensionManager.loadExtension())
+  extensionLoader = copy.deepcopy(activeExtensionManager.loadExtension())
+  if len(extensionLoader) > 0:
+    print(f'{extensionLoader} failed to load.')
   print(activeExtensionManager.listExtensions())
   bot.run(activeConfigManager.readKey('discord.api.token'))

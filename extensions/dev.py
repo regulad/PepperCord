@@ -53,7 +53,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
     except Exception as e:
       await ctx.send(f'Failed to unload extension: ```{e}```')
     else:
-      if extensionLoader (len(extensionLoader) > 0):
+      if extensionLoader and (len(extensionLoader) > 0):
         await ctx.send(f'Finished unloading extension(s). {extensionLoader} failed to load.')
       else:
         await ctx.send(f'Successfully unloaded extension(s).')

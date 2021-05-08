@@ -41,7 +41,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
     except Exception as e:
       await ctx.send(f'Failed to load extension: ```{e}```')
     else:
-      if len(extensionLoader) > 0:
+      if extensionLoader and (len(extensionLoader) > 0):
         await ctx.send(f'Finished loading extension(s). {extensionLoader} failed to load.')
       else:
         await ctx.send(f'Successfully loaded extension(s).')
@@ -53,7 +53,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
     except Exception as e:
       await ctx.send(f'Failed to unload extension: ```{e}```')
     else:
-      if len(extensionLoader) > 0:
+      if extensionLoader (len(extensionLoader) > 0):
         await ctx.send(f'Finished unloading extension(s). {extensionLoader} failed to load.')
       else:
         await ctx.send(f'Successfully unloaded extension(s).')
@@ -65,7 +65,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
     except Exception as e:
       await ctx.send(f'Failed to reload extension: ```{e}```')
     else:
-      if len(extensionLoader) > 0:
+      if extensionLoader and (len(extensionLoader) > 0):
         await ctx.send(f'Finished reloading extension(s). {extensionLoader} failed to load.')
       else:
         await ctx.send(f'Successfully reloaded extension(s).')

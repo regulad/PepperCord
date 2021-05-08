@@ -82,6 +82,13 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
       await ctx.send(f'```{e}```')
     else:
       await ctx.send(f'```{readKey}```')
+  
+  @commands.command(name='rateLimited', aliases=['rate', 'limited'], brief='Checks if the bot is currently rate-limited.', description='Checks if the bot\'s websocket is currently rate-limited')
+  async def rateLimited(self, ctx):
+    if self.bot.is_ws_ratelimited():
+      await ctx.message.add_reaction('\N{check mark}')
+    else:
+      await ctx.message.add_reaction('\N{cross mark}')
 
 def setup(bot):
   bot.add_cog(dev(bot))

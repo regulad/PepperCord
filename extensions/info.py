@@ -12,8 +12,12 @@ class info(commands.Cog, name='Metrics', description='Shows data on the bot, ser
   
   @tasks.loop(seconds=60)
   async def activityUpdate(self):
-    watchingString = f'with {len(self.bot.users)} users in {len(self.bot.guilds)} servers.'
+    watchingString = f'with {len(self.bot.users)} users in {len(self.bot.guilds)} servers'
     await self.bot.change_presence(activity=discord.Game(name=watchingString))
+  
+  @activityUpdate.before_loop
+  async def beforeActivyUpdate(self):
+    await self.bot.wait_until_ready()
 
   @commands.command(name='serverInfo', aliases=['guildInfo', 'server', 'guild'], description='Displays information about the server the bot is in.', brief='Get server info.', usage='[Guild ID]')
   @commands.guild_only()

@@ -20,7 +20,7 @@
             "cooldown": {
               "type": "object",
               "properties": {
-                "rate": { "type": "number", "default": "4" },
+                "rate": { "type": "number", "default": "6" },
                 "per": { "type": "number", "default": "10" }
               }
             }

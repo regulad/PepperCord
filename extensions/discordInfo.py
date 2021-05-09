@@ -1,7 +1,7 @@
-import discord, psutil, typing, sys, platform
+import discord, psutil, typing, sys, platform, time
 from discord.ext import commands, tasks
 
-class info(commands.Cog, name='Info', description='Shows information on the bot, servers, and users.'):
+class discordInfo(commands.Cog, name='Discord Info', description='Shows information about things on Discord.'):
   def __init__(self, bot):
     self.bot = bot
 
@@ -55,12 +55,11 @@ class info(commands.Cog, name='Info', description='Shows information on the bot,
     else:
       await ctx.send(embed=embed)
     await self.sendUserEmbed(ctx, guildOwner)
-
   
-  @commands.command(name='botInfo', aliases=['bot', 'invite', 'donate', 'bug', 'bugreport'], description='Displays information about the bot', brief='Get bot info.')
+  @commands.command(name='botInfo', aliases=['bot', 'invite', 'donate', 'bug', 'bugreport', 'support'], description='Displays information about the bot', brief='Get bot info.')
   async def botInfo(self, ctx):
     try:
-      embed = discord.Embed(colour=discord.Colour.orange(), title=f'Hi, I\'m {self.bot.user.name}! Nice to meet you!', description='[Website](https://www.regulad.xyz/PepperCord) | [Invite](https://www.regulad.xyz/PepperCord/invite) | [Donate](https://www.regulad.xyz/donate)\n[Repository](https://github.com/regulad/PepperCord) | [Issues](https://github.com/regulad/PepperCord/issues) | [Pull Requests](https://github.com/regulad/PepperCord/pulls)').set_thumbnail(url=self.bot.user.avatar_url).add_field(name='Bot status:', value=f'Online, servicing {len(self.bot.users)} users in {len(self.bot.guilds)} servers').add_field(name='System resources:', value=f'Memory: {round(psutil.virtual_memory().used / 1073741824, 1)}GB/{round(psutil.virtual_memory().total / 1073741824, 1)}GB ({psutil.virtual_memory().percent}%)\nCPU: {platform.processor()} running at {round(psutil.cpu_freq().current) / 1000}GHz, {psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, {psutil.cpu_count(logical=False)} physcial cores').add_field(name='Versions:', value=f'OS: {platform.system()} ({platform.release()})\nPython: {sys.version}\nDiscord.py: {discord.__version__}', inline=False)
+      embed = discord.Embed(colour=discord.Colour.orange(), title=f'Hi, I\'m {self.bot.user.name}! Nice to meet you!', description='**Important Links**: [Website](https://www.regulad.xyz/PepperCord) | [Invite](https://www.regulad.xyz/PepperCord/invite) | [Server](https://www.regulad.xyz/discord) | [Donate](https://www.regulad.xyz/donate)\n **GitHub**: [Repository](https://github.com/regulad/PepperCord) | [Issues](https://github.com/regulad/PepperCord/issues) | [Pull Requests](https://github.com/regulad/PepperCord/pulls)\n*For support, please make a GitHub issue. The server isn\'t for support!*').set_thumbnail(url=self.bot.user.avatar_url).add_field(name='Bot status:', value=f'Online, servicing {len(self.bot.users)} users in {len(self.bot.guilds)} servers').add_field(name='System resources:', value=f'Memory: {round(psutil.virtual_memory().used / 1073741824, 1)}GB/{round(psutil.virtual_memory().total / 1073741824, 1)}GB ({psutil.virtual_memory().percent}%)\nCPU: {platform.processor()} running at {round(psutil.cpu_freq().current) / 1000}GHz, {psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, {psutil.cpu_count(logical=False)} physcial cores').add_field(name='Versions:', value=f'OS: {platform.system()} ({platform.release()})\nPython: {sys.version}\nDiscord.py: {discord.__version__}', inline=False)
     except:
       await ctx.send('Had trouble fetching information about the bot. Try again later.')
     else:
@@ -70,6 +69,14 @@ class info(commands.Cog, name='Info', description='Shows information on the bot,
   async def snowflakeLookup(self, ctx, *, snowflake: int):
     snowflakeTime = discord.utils.snowflake_time(snowflake)
     await ctx.send(f'Snowflake was created at {snowflakeTime} UTC.')
+  
+  @commands.command(name='ping', aliases=['pong'], description='Gets ping time to the Discord API.', brief='Gets ping.')
+  async def ping(self, ctx):
+    startTime = time.perf_counter()
+    sentMessage = await ctx.send('Pinging API...')
+    endTime = time.perf_counter()
+    duration = endTime - startTime
+    await sentMessage.edit(content=f'Response obtained. Took {round(duration * 1000, 2)}ms.')
 
 def setup(bot):
-  bot.add_cog(info(bot))
+  bot.add_cog(discordInfo(bot))

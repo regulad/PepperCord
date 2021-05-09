@@ -5,3 +5,4 @@ discord-pretty-help
 art # Ascii art library
 pyyaml # Parses YAML
 jsonschema # Validates schema
+psutil # System status

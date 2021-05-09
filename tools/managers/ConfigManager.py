@@ -1,6 +1,6 @@
 import yaml, json, copy, jsonschema
   
-class configManager:
+class ConfigManager:
   def __init__(self, configFile: str = 'config/config.yml', configSchemaFile: str = 'resources/configSchema.json'):
     configSchemaData = json.load(open(configSchemaFile))
     configData = yaml.load(open(configFile), Loader=yaml.FullLoader)

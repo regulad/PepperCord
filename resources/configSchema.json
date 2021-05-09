@@ -13,7 +13,19 @@
           },
           "required": ["token"]
         },
-        "prefix": { "type": "string", "default": "?" }
+        "commands": {
+          "type": "object",
+          "properties": {
+            "prefix": { "type": "string", "default": "?" },
+            "cooldown": {
+              "type": "object",
+              "properties": {
+                "rate": { "type": "number", "default": "4" },
+                "per": { "type": "number", "default": "10" }
+              }
+            }
+          }
+        }
       },
       "required": ["api"]
     },

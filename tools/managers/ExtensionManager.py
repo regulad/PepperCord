@@ -1,6 +1,6 @@
 import pathlib, os, copy
 
-class extensionManager:
+class ExtensionManager:
   def __init__(self, bot, extensionBaseDir: str = 'extensions/', loadedExtensions: list = []):
     self.bot = bot
     self.extensionBaseDir = extensionBaseDir

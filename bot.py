@@ -22,4 +22,8 @@ async def on_command_error(ctx, e):
   if isinstance(e, commands.CommandOnCooldown):
     await ctx.send(f'Slow the brakes, speed racer! We don\'t want any rate limiting... Try executing your command again in `{round(e.retry_after, 1)}` seconds.')
   elif isinstance(e, commands.CommandNotFound):
-    await ctx.send(e)
+    await ctx.send(f'{e}.')
+  elif isinstance(e, commands.BadArgument) or isinstance(e, commands.BadUnionArgument):
+    await ctx.send(f'Your arguments are invalid. Try `{ctx.prefix}help {ctx.command}`')
+  else:
+    await ctx.send('An error occured processing your command.')

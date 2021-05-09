@@ -1,9 +1,10 @@
 import copy
 from bot import bot, activeConfigManager
-from tools.managers.extensionManager import extensionManager
+from tools.managers import ExtensionManager
 from art import tprint
 
-activeExtensionManager = extensionManager(bot)
+activeExtensionManager = ExtensionManager(bot)
+
 
 @bot.event
 async def on_ready():

@@ -5,23 +5,6 @@ class discordInfo(commands.Cog, name='Discord Info', description='Shows informat
   def __init__(self, bot):
     self.bot = bot
 
-    async def sendUserEmbed(ctx, user: typing.Union[discord.Member, discord.User]):
-      try:
-        embed = discord.Embed(colour=user.colour,title=f'All about {user.name}#{user.discriminator}\n({user.id})').set_thumbnail(url=user.avatar_url).add_field(name='Account creation date:', value=f'{user.created_at} UTC')
-        if isinstance(user, discord.Member):
-          embed = embed.insert_field_at(0, name='Status:', value=f'{user.status}')
-          if user.name != user.display_name:
-            embed = embed.insert_field_at(0, name='Also known as:', value=user.display_name)
-          embed = embed.add_field(name='Server join date:', value=f'{user.joined_at} UTC')
-          if user.premium_since:
-            embed = embed.add_field(name='Server boosting since:', value=f'{user.premium_since} UTC')
-      except:
-        await ctx.send('Couldn\'t find information on the user.')
-      else:
-        await ctx.send(embed=embed)
-
-    self.sendUserEmbed = sendUserEmbed
-
     self.activityUpdate.start()
   
   def cog_unload(self):
@@ -40,21 +23,33 @@ class discordInfo(commands.Cog, name='Discord Info', description='Shows informat
   async def whoIs(self, ctx, *, user: typing.Union[discord.Member, discord.User] = None):
     if not user:
       user = ctx.author
-    await self.sendUserEmbed(ctx, user)
+    try:
+      embed = discord.Embed(colour=user.colour,title=f'All about {user.name}#{user.discriminator}\n({user.id})').set_thumbnail(url=user.avatar_url).add_field(name='Account creation date:', value=f'{user.created_at} UTC')
+      if isinstance(user, discord.Member):
+        embed = embed.insert_field_at(0, name='Status:', value=f'{user.status}')
+        if user.name != user.display_name:
+          embed = embed.insert_field_at(0, name='Also known as:', value=user.display_name)
+        embed = embed.add_field(name='Server join date:', value=f'{user.joined_at} UTC')
+        if user.premium_since:
+          embed = embed.add_field(name='Server boosting since:', value=f'{user.premium_since} UTC')
+    except:
+      await ctx.send('Couldn\'t find information on the user.')
+    else:
+      await ctx.send(embed=embed)
 
   @commands.command(name='serverInfo', aliases=['guildInfo', 'server', 'guild'], description='Displays information about the server the bot is in.', brief='Get server info.', usage='[Guild ID]')
   @commands.guild_only()
   async def serverInfo(self, ctx, *, guild: discord.Guild = None):
     if not guild:
       guild = ctx.guild
-    guildOwner: discord.Member = guild.owner
+    guildOwner = guild.owner
     try:
       embed = discord.Embed(colour=discord.Colour.random(), title=f'Info for {guild.name}\n({guild.id})').set_thumbnail(url=guild.icon_url).add_field(name='Server Owner:', value=guildOwner.display_name).add_field(name='Created at:', value=f'{guild.created_at} UTC').add_field(name='Roles:', value=len(guild.roles)).add_field(name='Emojis:',value=f'{len(guild.emojis)}/{guild.emoji_limit}').add_field(name='Total channels:',value=f'{len(guild.channels)} channels, {len(guild.categories)} categories.').add_field(name='Total members:',value=guild.member_count)
     except:
       await ctx.send('Couldn\'t find information on your guild.')
     else:
       await ctx.send(embed=embed)
-    await self.sendUserEmbed(ctx, guildOwner)
+    await ctx.invoke(self.whoIs, **{'user': guildOwner})
   
   @commands.command(name='botInfo', aliases=['bot', 'invite', 'donate', 'bug', 'bugreport', 'support'], description='Displays information about the bot', brief='Get bot info.')
   async def botInfo(self, ctx):

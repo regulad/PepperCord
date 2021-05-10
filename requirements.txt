@@ -7,3 +7,4 @@ pyyaml # Parses YAML
 jsonschema # Validates schema
 psutil # System status
 pycoingecko # Gets crypto data (Blocking, not optimal)
+nekos.py # For nekos.life

@@ -6,25 +6,9 @@ class ExtensionManager:
     self.extensionBaseDir = extensionBaseDir
     self.loadedExtensions = loadedExtensions
 
-    def extensionPathChanger(extensionPath: str):
-      extensionName = extensionPath.strip('.py').replace('/','.')
-      return extensionName
-
-    def loadSingleExtension(extensionPath: str):
-      extensionName = extensionPathChanger(extensionPath)
-      fullExtensionName = extensionPathChanger(extensionBaseDir + extensionName)
-      self.bot.load_extension(fullExtensionName)
-      self.loadedExtensions.append(extensionName)
-
-    def unloadSingleExtension(extensionPath: str):
-      extensionName = extensionPathChanger(extensionPath)
-      fullExtensionName = extensionPathChanger(extensionBaseDir + extensionName)
-      self.bot.unload_extension(fullExtensionName)
-      self.loadedExtensions.remove(extensionName)
-
-    self.extensionPathChanger = extensionPathChanger
-    self.loadSingleExtension = loadSingleExtension
-    self.unloadSingleExtension = unloadSingleExtension
+  def extensionPathChanger(self, extensionPath: str):
+    extensionName = extensionPath.strip('.py').replace('/','.')
+    return extensionName
 
   def listExtensions(self):
     if len(self.loadedExtensions) > 0:
@@ -33,49 +17,63 @@ class ExtensionManager:
       return 'No extensions are loaded.'
   
   def loadExtension(self, extensionPath: str = ''):
+    def loadSingleExtension(extensionPath: str):
+      extensionName = self.extensionPathChanger(extensionPath)
+      fullExtensionName = self.extensionPathChanger(self.extensionBaseDir + extensionName)
+      self.bot.load_extension(fullExtensionName)
+      self.loadedExtensions.append(extensionName)
     pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
     if pathlib.Path(self.extensionBaseDir + extensionPath).is_dir():
       totalE = []
       for file in os.listdir(self.extensionBaseDir + extensionPath):
         if file.endswith('.py'):
           try:
-            self.loadSingleExtension(extensionPath + file)
+            loadSingleExtension(extensionPath + file)
           except Exception as e:
             totalE.append(file)
             print(f'{e}\nContinuing recursively')
       if len(totalE) > 0:
         return totalE
     else:
-      self.loadSingleExtension(extensionPath)
+      loadSingleExtension(extensionPath)
 
   def unloadExtension(self, extensionPath: str = ''):
+    def unloadSingleExtension(extensionPath: str):
+      extensionName = self.extensionPathChanger(extensionPath)
+      fullExtensionName = self.extensionPathChanger(self.extensionBaseDir + extensionName)
+      self.bot.unload_extension(fullExtensionName)
+      self.loadedExtensions.remove(extensionName)
     pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
     if pathValidator:
       totalE = []
       for file in os.listdir(self.extensionBaseDir + extensionPath):
         if file.endswith('.py'):
           try:
-            self.unloadSingleExtension(extensionPath + file)
+            unloadSingleExtension(extensionPath + file)
           except Exception as e:
             totalE.append(file)
             print(f'{e}\nContinuing recursively')
       if len(totalE) > 0:
         return totalE
     else:
-      self.unloadSingleExtension(extensionPath)
+      unloadSingleExtension(extensionPath)
 
   def reloadExtension(self, extensionPath: str = ''):
+    def reloadSingleExtension(extensionPath: str):
+      extensionName = self.extensionPathChanger(extensionPath)
+      fullExtensionName = self.extensionPathChanger(self.extensionBaseDir + extensionName)
+      self.bot.reload_extension(fullExtensionName)
     pathValidator = pathlib.Path(self.extensionBaseDir + extensionPath).is_dir()
     if pathValidator:
       totalE = []
-      unloadExtension = copy.deepcopy(self.unloadExtension(extensionPath))
-      loadExtension = copy.deepcopy(self.loadExtension(extensionPath))
-      if len(unloadExtension) > 0:
-        totalE.append(unloadExtension)
-      if len(loadExtension) > 0:
-        totalE.append(loadExtension)
+      for file in os.listdir(self.extensionBaseDir + extensionPath):
+        if file.endswith('.py'):
+          try:
+            reloadSingleExtension(extensionPath + file)
+          except Exception as e:
+            totalE.append(file)
+            print(f'{e}\nContinuing recursively')
       if len(totalE) > 0:
         return totalE
     else:
-      self.unloadExtension(extensionPath)
-      self.loadExtension(extensionPath)
+      reloadSingleExtension(extensionPath)

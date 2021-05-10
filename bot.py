@@ -1,4 +1,5 @@
 from tools.managers import ConfigManager
+from tools.errors import SubcommandNotFound
 import discord
 from discord.ext import commands
 from pretty_help import PrettyHelp
@@ -32,8 +33,10 @@ async def on_command_error(ctx, e):
     await ctx.send(f'Command is valid, but input is invalid. Try `{ctx.prefix}help {ctx.command}`.')
   elif isinstance(e, commands.CheckFailure):
     await ctx.send('You cannot run this command.')
+  elif isinstance(e, SubcommandNotFound):
+    await ctx.send(f'You need to specify a subcommand. Try `{ctx.prefix}help`.')
   elif isinstance(e, commands.CommandNotFound):
-    await ctx.send(f'{e}. Try `{ctx.prefix}help`.')
+    await ctx.send(f'Couldn\'t find {ctx.command}. Try `{ctx.prefix}help`.')
   elif isinstance(e, commands.CommandError):
     await ctx.send('An error occured processing your command. Try again.')
   else:

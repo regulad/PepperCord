@@ -1,5 +1,6 @@
 import time, copy, io, contextlib
 from main import activeConfigManager, activeExtensionManager
+from tools.errors import SubcommandNotFound
 from discord.ext import commands
 
 class dev(commands.Cog, name='Development', description='Dev-only commands. Users cannot execute these commands.'):
@@ -28,7 +29,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
   
   @commands.group(invoke_without_command=True, case_insensitive=True, name='extension', aliases=['extensions','cog', 'cogs'], brief='Manages extensions.', description='Manages discord.ext extensions.')
   async def extension(self, ctx):
-    await ctx.send('You must execute a valid command.')
+    raise SubcommandNotFound()
 
   @extension.command(name='list', brief='Lists loaded extensions', description='Lists all extensions loaded by the main extensionManager instance.')
   async def listExtensions(self, ctx):
@@ -72,7 +73,7 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
   
   @commands.group(invoke_without_command=True, case_insensitive=True, name='config', aliases=['configuration', 'yaml'], brief='Manages configuration.', description='Manages bot configuration using the active configManager instance.')
   async def config(self, ctx):
-    await ctx.send('You must execute a valid command.')
+    raise SubcommandNotFound()
   
   @config.command(name='readKey', aliases=['read'], brief='Reads YAML key.', description='Reads YAML key present in configuration.')
   async def readKey(self, ctx, key: str = ''):

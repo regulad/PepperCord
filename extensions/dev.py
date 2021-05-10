@@ -142,9 +142,26 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
   @commands.command(name='rateLimited', aliases=['rate', 'limited'], brief='Checks if the bot is currently rate-limited.', description='Checks if the bot\'s websocket is currently rate-limited')
   async def rateLimited(self, ctx):
     if self.bot.is_ws_ratelimited():
-      await ctx.message.add_reaction('\N{check mark}')
+      await ctx.message.add_reaction('✅')
     else:
-      await ctx.message.add_reaction('\N{cross mark}')
+      await ctx.message.add_reaction('❌')
+  
+  @commands.group(invoke_without_command=True, case_insensitive=True, name='sudo', aliases=['doAs'], brief='Do something as somebody else.', description='Do a task as somebody else.')
+  async def sudo(self, ctx):
+    raise SubcommandNotFound()
+  
+  @sudo.command(name='message', aliases=['bot'], brief='Send a message as the bot.', description='Send a message as the bot in any channel that you want.', usage='<Channel> <Message>')
+  async def doMessage(self, ctx, channel: discord.TextChannel, *, text: str):
+    channel = self.bot.get_channel(channel.id)
+    await channel.send(text)
+  
+  @sudo.command(name='user', aliases=['superuser'], brief='Execute a command as another person.', description='Emulate sending a command as another user.', usage='<User> <Command>')
+  async def doUser(self, ctx, user: typing.Union[discord.Member, discord.User], *, command: str):
+    msg = copy.copy(ctx.message)
+    msg.author = user
+    msg.content = ctx.prefix + command
+    newCtx = await self.bot.get_context(msg, cls=type(ctx))
+    await self.bot.invoke(newCtx)
 
 def setup(bot):
   bot.add_cog(dev(bot))

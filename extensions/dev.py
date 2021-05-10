@@ -162,6 +162,10 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
     msg.content = ctx.prefix + command
     newCtx = await self.bot.get_context(msg, cls=type(ctx))
     await self.bot.invoke(newCtx)
+  
+  @commands.command(name='nick', aliases=['nickname'], brief='Set bot\'s username.', description='Sets the bot\'s username itself.', usage='<Nickname>')
+  async def nick(self, ctx, *, nick: str):
+    await ctx.guild.me.edit(nick=nick)
 
 def setup(bot):
   bot.add_cog(dev(bot))

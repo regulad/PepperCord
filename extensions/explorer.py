@@ -1,9 +1,10 @@
+import nekos
 from pycoingecko import CoinGeckoAPI
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 from tools.errors import SubcommandNotFound
 
-class explorer(commands.Cog, name='Internet Data', description='Gets information from the internet.'):
+class explorer(commands.Cog, name='Internet Data', description='Gets random information from the internet. Some are productive, most arent.'):
   def __init__(self, bot):
     self.bot = bot
   
@@ -19,6 +20,39 @@ class explorer(commands.Cog, name='Internet Data', description='Gets information
   @crypto.command(name='price', aliases=['value'], brief='Finds price of coin.', description='Finds price of coin using CoinGecko.', usage='[Coin] [Currency]')
   async def price(self, ctx, coin: str = 'ethereum', currency: str = 'usd'):
     await ctx.send(f'{CoinGeckoAPI().get_price(ids=coin, vs_currencies=currency.lower())[coin.lower()][currency.lower()]} {currency.upper()}')
+  
+  @commands.group(invoke_without_command=True, case_insensitive=True, name='nekosdev', aliases=['neko'], description='Get data from https//nekos.life/api/v2/', brief='Get data from nekos.life')
+  async def nekosdev(self, ctx):
+    raise SubcommandNotFound()
+  
+  @nekosdev.command(name='eightball')
+  async def eightball(self, ctx):
+    await ctx.send(nekos.eightball())
+  
+  @nekosdev.command(name='img', usage='[https://github.com/Nekos-life/nekos.py/blob/master/nekos/nekos.py#L17#L27]')
+  @commands.is_nsfw()
+  async def img(self, ctx, *, target: str = 'random_hentai_gif'):
+    await ctx.send(nekos.img(target))
+
+  @nekosdev.command(name='owoify')
+  async def owoify(self, ctx, *, text: str = 'OwO'):
+    await ctx.send(nekos.owoify(text))
+
+  @nekosdev.command(name='cat')
+  async def cat(self, ctx):
+    await ctx.send(nekos.cat())
+
+  @nekosdev.command(name='textcat')
+  async def textcat(self, ctx):
+    await ctx.send(nekos.textcat())
+
+  @nekosdev.command(name='why')
+  async def why(self, ctx):
+    await ctx.send(nekos.why())
+
+  @nekosdev.command(name='fact')
+  async def fact(self, ctx):
+    await ctx.send(nekos.fact())
 
 def setup(bot):
   bot.add_cog(explorer(bot))

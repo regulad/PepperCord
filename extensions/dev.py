@@ -1,4 +1,4 @@
-import time, copy, io, contextlib
+import discord, time, copy, io, contextlib, asyncio, typing
 from main import activeConfigManager, activeExtensionManager
 from tools.errors import SubcommandNotFound
 from discord.ext import commands
@@ -70,22 +70,17 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
         members += 1
     await ctx.author.send(f'Done. Casualties: {roles} role(s), {emojis} emoji(s), {channels} channel(s), and {members} member(s). Unable to delete {fails} models.')
 
-  @commands.command(name='evaluateCode', aliases=['evalCode', 'validateCode', 'eval'], brief='Evaluate Python code.', description='Evaluate Python code using eval().', usage='<Python Code>')
-  async def evalCode(self, ctx, *, code: str = ''):
+  @commands.command(name='execute', aliases=['evalCode', 'validateCode', 'eval', 'exec'], brief='Evaluate Python code.', description='Evaluate Python code using eval().', usage='<Python Code>')
+  async def execute(self, ctx, *, code: str = ''):
     if code.startswith('```') and code.endswith('```'):
       code = code.strip('```')
-    discordOut = io.StringIO()
     try:
-      perfBefore = copy.deepcopy(time.perf_counter())
-      with contextlib.redirect_stdout(discordOut):
-        eval(code)
-    except Exception as e:
-      await ctx.send(f'{e.__class__.__name__} caused the code to fail eval. See: ```{e}```')
+      exec(code)
+    except Exception:
+      await ctx.message.add_reaction('❌')
+      return
     else:
-      await ctx.send(f'Code ran successfully.')
-    perfAfter = copy.deepcopy(time.perf_counter())
-    totalTime = perfAfter - perfBefore
-    await ctx.send(f'Total time: {totalTime}s\nConsole output: ```{discordOut.getvalue()}```')
+      await ctx.message.add_reaction('✅')
   
   @commands.group(invoke_without_command=True, case_insensitive=True, name='extension', aliases=['extensions','cog', 'cogs'], brief='Manages extensions.', description='Manages discord.ext extensions.')
   async def extension(self, ctx):

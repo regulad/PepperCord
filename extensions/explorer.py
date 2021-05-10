@@ -1,4 +1,5 @@
-import nekos
+import nekos, discord
+from mcstatus import MinecraftServer
 from pycoingecko import CoinGeckoAPI
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
@@ -53,6 +54,17 @@ class explorer(commands.Cog, name='Internet Data', description='Gets random info
   @nekosdev.command(name='fact')
   async def fact(self, ctx):
     await ctx.send(nekos.fact())
+  
+  @commands.command(name='minecraft', aliases=['mcstatus'], description='Gets Minecraft Server status using mcstatus.', brief='Gets Minecraft Server.')
+  async def minecraft(self, ctx, *, server: str = 'play.regulad.xyz'):
+    serverLookup = MinecraftServer.lookup(server)
+    try:
+      status = serverLookup.status()
+    except:
+      await ctx.send('Couldn\'t get information from the server. Is it online?')
+    else:
+      embed = discord.Embed(colour=discord.Colour.dark_gold(), title=server).add_field(name='Ping:', value=f'{status.latency}ms').add_field(name='Players:', value=f'{status.players.online} players')
+      await ctx.send(embed=embed)
 
 def setup(bot):
   bot.add_cog(explorer(bot))

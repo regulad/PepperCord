@@ -1,6 +1,7 @@
 from pycoingecko import CoinGeckoAPI
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
+from tools.errors import SubcommandNotFound
 
 class explorer(commands.Cog, name='Internet Data', description='Gets information from the internet.'):
   def __init__(self, bot):
@@ -9,7 +10,7 @@ class explorer(commands.Cog, name='Internet Data', description='Gets information
   @commands.group(invoke_without_command=True, case_insensitive=True, name='crypto', aliases=['blockchain'], brief='Looks up data on the crypto blockchain.', description='Finds cryptocurrency blockchain information using CoinGecko.')
   @commands.cooldown(100, 55, BucketType.default)
   async def crypto(self, ctx):
-    await ctx.send('You must execute a valid command.')
+    raise SubcommandNotFound()
   
   @crypto.command(name='status', aliases=['ping'], brief='Gets status from API.', description='Gets status from the CoinGeckoAPI.')
   async def ping(self, ctx):

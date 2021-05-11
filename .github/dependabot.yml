@@ -1,20 +1,10 @@
-# Basic dependabot.yml file with
-# minimum configuration for two package managers
-
 version: 2
 updates:
-  # Enable version updates for pip
   - package-ecosystem: "pip"
-    # Look for `requirements.txt` in the `root` directory
     directory: "/"
-    # Check the pypi registry for updates every day (weekdays)
     schedule:
       interval: "daily"
-
-  # Enable version updates for Docker
   - package-ecosystem: "docker"
-    # Look for a `Dockerfile` in the `root` directory
     directory: "/"
-    # Check the Dockerfile for updates every day (weekdays)
     schedule:
       interval: "weekly"

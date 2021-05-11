@@ -1,5 +1,6 @@
 import yaml, json, copy, jsonschema, os, pathlib, shutil
   
+# Lets you get information from a validated config file using yaml-style keys.
 class ConfigManager:
   def __init__(self, configFile: str = 'config/config.yml', configSchemaFile: str = 'resources/configSchema.json'):
     if not pathlib.Path(configFile).exists():

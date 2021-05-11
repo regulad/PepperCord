@@ -3,13 +3,12 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 '''
 
-import copy, discord, os, managers, errors
+import copy, discord, os, errors
+from instances import activeConfigManager
 from pretty_help import PrettyHelp
 from discord.ext import commands
 from art import tprint
 
-extensionPath = 'cogs/'
-activeConfigManager = managers.ConfigManager()
 bot = commands.Bot(command_prefix=commands.when_mentioned_or(activeConfigManager.readKey('discord.commands.prefix')), case_insensitive=True, intents=discord.Intents.all())
 bot.help_command = PrettyHelp(color=discord.Colour.orange())
 cooldown = commands.CooldownMapping.from_cooldown(activeConfigManager.readKey('discord.commands.cooldown.rate'), activeConfigManager.readKey('discord.commands.cooldown.per'), commands.BucketType.user)
@@ -54,9 +53,9 @@ async def on_command_error(ctx, e):
 
 if __name__ == '__main__':
   bot.load_extension('jishaku')
-  for file in os.listdir(extensionPath):
+  for file in os.listdir(activeConfigManager.readKey('extensions.dir')):
     if file.endswith('.py'):
-      fullPath = extensionPath + file
+      fullPath = activeConfigManager.readKey('extensions.dir') + file
       try:
         bot.load_extension(fullPath.strip('.py').replace('/','.'))
       except Exception as e:

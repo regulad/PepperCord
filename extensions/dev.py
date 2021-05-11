@@ -132,13 +132,9 @@ class dev(commands.Cog, name='Development', description='Dev-only commands. User
   
   @config.command(name='readKey', aliases=['read'], brief='Reads YAML key.', description='Reads YAML key present in configuration.')
   async def readKey(self, ctx, key: str = ''):
-    try:
-      readKey = activeConfigManager.readKey(key)
-    except Exception as e:
-      await ctx.send(f'```{e}```')
-    else:
-      await ctx.send(f'```{readKey}```')
-  
+    readKey = activeConfigManager.readKey(key)
+    await ctx.send(f'```{readKey}```')
+
   @commands.command(name='rateLimited', aliases=['rate', 'limited'], brief='Checks if the bot is currently rate-limited.', description='Checks if the bot\'s websocket is currently rate-limited')
   async def rateLimited(self, ctx):
     if self.bot.is_ws_ratelimited():

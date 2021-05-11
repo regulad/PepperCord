@@ -7,7 +7,7 @@ from pretty_help import PrettyHelp
 activeConfigManager = ConfigManager()
 bot = commands.Bot(command_prefix=commands.when_mentioned_or(activeConfigManager.readKey('discord.commands.prefix')), case_insensitive=True, intents=discord.Intents.all())
 bot.help_command = PrettyHelp(color=discord.Colour.orange())
-cooldown = commands.CooldownMapping.from_cooldown(6.0, 10.0, commands.BucketType.user)
+cooldown = commands.CooldownMapping.from_cooldown(activeConfigManager.readKey('discord.commands.cooldown.rate'), activeConfigManager.readKey('discord.commands.cooldown.per'), commands.BucketType.user)
 
 @bot.check_once
 async def bot_check_once(ctx):

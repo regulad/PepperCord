@@ -34,6 +34,12 @@
       "properties": {
         "uri": { "type": "string", "format": "uri" }
       }
+    },
+    "extensions": {
+      "type": "object",
+      "properties": {
+        "dir": { "type": "string" }
+      }
     }
   },
   "required": ["discord", "db"]

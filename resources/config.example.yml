@@ -8,3 +8,5 @@ discord:
     cooldown:
       rate: 6 # Amount of commands that can be executed every per
       per: 10
+extensions:
+  dir: cogs/ # Directory where extensions like cogs are stored.

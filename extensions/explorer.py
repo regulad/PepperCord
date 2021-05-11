@@ -22,36 +22,38 @@ class explorer(commands.Cog, name='Internet Data', description='Gets random info
   async def price(self, ctx, coin: str = 'ethereum', currency: str = 'usd'):
     await ctx.send(f'{CoinGeckoAPI().get_price(ids=coin, vs_currencies=currency.lower())[coin.lower()][currency.lower()]} {currency.upper()}')
   
-  @commands.group(invoke_without_command=True, case_insensitive=True, name='nekosdev', aliases=['neko'], description='Get data from https//nekos.life/api/v2/', brief='Get data from nekos.life')
-  async def nekosdev(self, ctx):
+  @commands.group(invoke_without_command=True, case_insensitive=True, name='neko', aliases=['nekos'], description='Get data from https//nekos.life/api/v2/', brief='Get data from nekos.life')
+  async def neko(self, ctx):
     raise SubcommandNotFound()
   
-  @nekosdev.command(name='eightball')
+  @neko.command(name='eightball', aliases=['8ball'])
   async def eightball(self, ctx):
-    await ctx.send(nekos.eightball())
+    eightball = nekos.eightball()
+    embed = discord.Embed(colour=discord.Colour.blurple(), title=eightball.text).set_image(url=eightball.image)
+    await ctx.send(embed=embed)
   
-  @nekosdev.command(name='img', usage='[https://github.com/Nekos-life/nekos.py/blob/master/nekos/nekos.py#L17#L27]')
+  @neko.command(name='img', usage='[https://github.com/Nekos-life/nekos.py/blob/master/nekos/nekos.py#L17#L27]')
   @commands.is_nsfw()
   async def img(self, ctx, *, target: str = 'random_hentai_gif'):
     await ctx.send(nekos.img(target))
 
-  @nekosdev.command(name='owoify')
+  @neko.command(name='owoify')
   async def owoify(self, ctx, *, text: str = 'OwO'):
     await ctx.send(nekos.owoify(text))
 
-  @nekosdev.command(name='cat')
+  @neko.command(name='cat')
   async def cat(self, ctx):
     await ctx.send(nekos.cat())
 
-  @nekosdev.command(name='textcat')
+  @neko.command(name='textcat')
   async def textcat(self, ctx):
     await ctx.send(nekos.textcat())
 
-  @nekosdev.command(name='why')
+  @neko.command(name='why')
   async def why(self, ctx):
     await ctx.send(nekos.why())
 
-  @nekosdev.command(name='fact')
+  @neko.command(name='fact')
   async def fact(self, ctx):
     await ctx.send(nekos.fact())
   

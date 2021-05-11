@@ -30,11 +30,7 @@ jobs:
       continue-on-error: true
       run: black --check -l 127 .
     - name: Reformat with black
-<<<<<<< HEAD:.github/workflows/python.yml
       if: steps.black-check.outcome != 'success'
-=======
-       if: steps.black-check.outcome != 'success'
->>>>>>> 1f6ce64b305848a5de6e3a0009ad333e174c9f94:.github/workflows/python-lint.yml
       run: black -l 127 .
     - name: Push changes
       if: steps.black-check.outcome != 'success'

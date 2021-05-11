@@ -34,8 +34,11 @@ class explorer(commands.Cog, name='Internet Data', description='Gets random info
   
   @neko.command(name='img', usage='[https://github.com/Nekos-life/nekos.py/blob/master/nekos/nekos.py#L17#L27]')
   @commands.is_nsfw()
-  async def img(self, ctx, *, target: str = 'random_hentai_gif'):
-    await ctx.send(nekos.img(target))
+  async def img(self, ctx, *, target: str = 'hentai'):
+    try:
+      await ctx.send(nekos.img(target))
+    except nekos.errors.InvalidArgument:
+      await ctx.send('Couldn\'t find that type of image.')
 
   @neko.command(name='owoify')
   async def owoify(self, ctx, *, text: str = 'OwO'):

@@ -3,7 +3,7 @@ from mcstatus import MinecraftServer
 from pycoingecko import CoinGeckoAPI
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
-from tools.errors import SubcommandNotFound
+from errors import SubcommandNotFound
 
 class explorer(commands.Cog, name='Internet Data', description='Gets random information from the internet. Some are productive, most arent.'):
   def __init__(self, bot):

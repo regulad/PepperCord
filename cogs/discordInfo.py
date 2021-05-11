@@ -64,14 +64,6 @@ class discordInfo(commands.Cog, name='Discord Info', description='Shows informat
   async def snowflakeLookup(self, ctx, *, snowflake: int):
     snowflakeTime = discord.utils.snowflake_time(snowflake)
     await ctx.send(f'Snowflake was created at {snowflakeTime} UTC.')
-  
-  @commands.command(name='ping', aliases=['pong'], description='Gets ping time to the Discord API.', brief='Gets ping.')
-  async def ping(self, ctx):
-    startTime = time.perf_counter()
-    sentMessage = await ctx.send('Pinging API...')
-    endTime = time.perf_counter()
-    duration = endTime - startTime
-    await sentMessage.edit(content=f'Response obtained. Took {round(duration * 1000, 2)}ms.')
 
 def setup(bot):
   bot.add_cog(discordInfo(bot))

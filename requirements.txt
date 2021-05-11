@@ -1,5 +1,6 @@
-discord.py
-discord-pretty-help
+discord.py # It.
+discord-pretty-help # Makes the help command look nice.
+jishaku  # Useful development tools.
 # aiohttp # For asyncronous HTTP requests
 # motor # For asyncronous MongoDB requests
 art # Ascii art library

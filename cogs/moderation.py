@@ -1,6 +1,7 @@
 import discord
+import instances
+from utils import checks, errors, managers
 from discord.ext import commands
-from utils.checks import has_permission_level
 
 
 class moderation(
@@ -12,7 +13,7 @@ class moderation(
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return has_permission_level(ctx, 2)
+        return checks.has_permission_level(ctx, 2)
 
     @commands.command(
         name="purge",
@@ -36,6 +37,52 @@ class moderation(
     async def ban(self, ctx, member: discord.Member, *, reason: str):
         try:
             await member.ban(reason=reason)
+        except:
+            await ctx.message.add_reaction(emoji="\U0000274c")
+        else:
+            await ctx.message.add_reaction(emoji="\U00002705")
+
+    @commands.command(
+        name="mute",
+        brief="Mutes user from typing in text channels.",
+        description="Mutes user from typing in text channels. Must be configured first.",
+    )
+    async def mute(self, ctx, *, member: discord.Member):
+        try:
+            mute_role_id = managers.GuildConfigManager(
+                ctx.guild,
+                instances.activeDatabase["servers"],
+                "mute_role",
+                "",
+            ).read()
+            mute_role = ctx.guild.get_role(int(mute_role_id))
+        except:
+            raise errors.NotConfigured()
+        try:
+            await member.add_roles(mute_role)
+        except:
+            await ctx.message.add_reaction(emoji="\U0000274c")
+        else:
+            await ctx.message.add_reaction(emoji="\U00002705")
+
+    @commands.command(
+        name="unmute",
+        brief="Unmutes user from typing in text channels.",
+        description="Unmutes user from typing in text channels. Must be configured first.",
+    )
+    async def unmute(self, ctx, *, member: discord.Member):
+        try:
+            mute_role_id = managers.GuildConfigManager(
+                ctx.guild,
+                instances.activeDatabase["servers"],
+                "mute_role",
+                "",
+            ).read()
+            mute_role = ctx.guild.get_role(int(mute_role_id))
+        except:
+            raise errors.NotConfigured()
+        try:
+            await member.remove_roles(mute_role)
         except:
             await ctx.message.add_reaction(emoji="\U0000274c")
         else:

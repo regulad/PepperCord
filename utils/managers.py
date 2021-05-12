@@ -1,8 +1,8 @@
-from os import write
 import copy
 import typing
 
 import discord
+from discord import message
 import pymongo
 
 
@@ -67,8 +67,19 @@ class GuildPermissionManager(GuildConfigManager):
 
     def write(self, role: discord.Role, level: int):
         working_key = copy.deepcopy(self.active_key)
-        working_dict = copy.deepcopy(self.guild_dict)
         working_key.update({str(role.id): str(level)})
-        working_dict["permissions"].update(working_key)
-        write_query = {"$set": working_dict}
-        self.collection.update_one({"_id": str(self.guild.id)}, write_query)
+        super().write(working_key)
+
+
+class GuildMessageManager(GuildConfigManager):
+    def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
+        super().__init__(guild, collection, "messages", {})
+
+    def read(self, message_type: str):
+        return_dict = self.active_key[message_type]
+        return return_dict
+
+    def write(self, message_type: str, channel: discord.TextChannel, message: str):
+        working_key = copy.deepcopy(self.active_key)
+        working_key.update({message_type: {str(channel.id): message}})
+        super().write(working_key)

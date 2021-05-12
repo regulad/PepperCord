@@ -13,7 +13,7 @@ from discord.ext import commands
 from pretty_help import PrettyHelp
 
 import instances
-import utils
+from utils import errors, managers
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.INFO)
@@ -28,7 +28,7 @@ async def get_prefix(bot, message):
     if message.guild is None:
         return commands.when_mentioned_or(instances.config_instance["discord"]["commands"]["prefix"])(bot, message)
     else:
-        guild_prefix = utils.managers.GuildConfigManager(
+        guild_prefix = managers.GuildConfigManager(
             message.guild,
             instances.activeDatabase["servers"],
             "prefix",
@@ -93,8 +93,10 @@ async def on_command_error(ctx, e):
         await ctx.send(f"Command is valid, but input is invalid. Try `{ctx.prefix}help {ctx.command}`.")
     elif isinstance(e, commands.CheckFailure):
         await ctx.send("You cannot run this command.")
-    elif isinstance(e, utils.errors.SubcommandNotFound):
+    elif isinstance(e, errors.SubcommandNotFound):
         await ctx.send(f"You need to specify a subcommand. Try `{ctx.prefix}help`.")
+    elif isinstance(e, errors.NotConfigured):
+        await ctx.send("This command must be configured first. Ask an admin.")
     elif isinstance(e, commands.CommandNotFound):
         await ctx.send(f"{e}. Try `{ctx.prefix}help`.")
     elif isinstance(e, commands.CommandError):

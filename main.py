@@ -10,18 +10,18 @@ from art import tprint
 from discord.ext import commands
 from pretty_help import PrettyHelp
 
-from instances import activeConfigManager
+from instances import config_instance
 from utils import errors
 
 bot = commands.Bot(
-    command_prefix=commands.when_mentioned_or(activeConfigManager.readKey("discord.commands.prefix")),
+    command_prefix=commands.when_mentioned_or(config_instance["discord"]["commands"]["prefix"]),
     case_insensitive=True,
     intents=discord.Intents.all(),
 )
 bot.help_command = PrettyHelp(color=discord.Colour.orange())
 cooldown = commands.CooldownMapping.from_cooldown(
-    activeConfigManager.readKey("discord.commands.cooldown.rate"),
-    activeConfigManager.readKey("discord.commands.cooldown.per"),
+    config_instance["discord"]["commands"]["cooldown"]["rate"],
+    config_instance["discord"]["commands"]["cooldown"]["per"],
     commands.BucketType.user,
 )
 
@@ -73,11 +73,11 @@ async def on_command_error(ctx, e):
 
 if __name__ == "__main__":
     bot.load_extension("jishaku")
-    for file in os.listdir(activeConfigManager.readKey("extensions.dir")):
+    for file in os.listdir(config_instance["extensions"]["dir"]):
         if file.endswith(".py"):
-            fullPath = activeConfigManager.readKey("extensions.dir") + file
+            full_path = config_instance["extensions"]["dir"] + file
             try:
-                bot.load_extension(fullPath.strip(".py").replace("/", "."))
+                bot.load_extension(full_path.strip(".py").replace("/", "."))
             except Exception as e:
                 print(f"{e}\nContinuing recursively")
-    bot.run(activeConfigManager.readKey("discord.api.token"))
+    bot.run(config_instance["discord"]["api"]["token"])

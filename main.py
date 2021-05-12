@@ -62,7 +62,7 @@ async def on_command_error(ctx, e):
     elif isinstance(e, errors.SubcommandNotFound):
         await ctx.send(f"You need to specify a subcommand. Try `{ctx.prefix}help`.")
     elif isinstance(e, commands.CommandNotFound):
-        await ctx.send(f"Couldn't find {ctx.command}. Try `{ctx.prefix}help`.")
+        await ctx.send(f"{e}. Try `{ctx.prefix}help`.")
     elif isinstance(e, commands.CommandError):
         await ctx.send("An error occured processing your command. Try again.")
     else:

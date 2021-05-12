@@ -123,6 +123,7 @@ dmypy.json
 
 # Configuration
 config/
+logs/
 
 # Black
 *.bak

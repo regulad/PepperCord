@@ -1,4 +1,3 @@
-import json
 import pathlib
 import shutil
 
@@ -11,14 +10,14 @@ class ConfigManager:
     def __init__(
         self,
         configFile: str = "config/config.yml",
-        configSchemaFile: str = "resources/configSchema.json",
+        configSchemaFile: str = "resources/configSchema.yaml",
     ):
         if not pathlib.Path(configFile).exists():
             shutil.copyfile("resources/config.example.yml", configFile)
 
         jsonschema.validate(
             instance=yaml.load(open(configFile), Loader=yaml.FullLoader),
-            schema=json.load(open(configSchemaFile)),
+            schema=yaml.load(open(configSchemaFile), Loader=yaml.FullLoader),
         )
 
         self.configFile = configFile

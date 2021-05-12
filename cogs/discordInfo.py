@@ -120,7 +120,7 @@ class discordInfo(
                 )
                 .add_field(
                     name="Versions:",
-                    value=f"OS: {platform.system()} ({platform.release()})\nPython: {sys.version}\nDiscord.py: {discord.__version__}",
+                    value=f"OS: {platform.system()} (`{platform.release()}`)\nPython: `{sys.version}`\nDiscord.py: `{discord.__version__}`",
                     inline=False,
                 )
             )

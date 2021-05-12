@@ -1,6 +1,4 @@
-import time
 import discord
-
 from discord.ext import commands
 from utils.checks import has_permission_level
 
@@ -14,7 +12,7 @@ class moderation(
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return (has_permission_level(ctx, 2)) and (commands.guild_only())
+        return has_permission_level(ctx, 2)
 
     @commands.command(
         name="purge",

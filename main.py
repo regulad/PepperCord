@@ -8,8 +8,7 @@ import os
 import pathlib
 
 import discord
-from art import tprint
-from discord import guild
+from art import text2art
 from discord.ext import commands
 from pretty_help import PrettyHelp
 
@@ -18,11 +17,9 @@ import utils
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.INFO)
-if not pathlib.Path("logs/peppecord.log").exists():
-    if not pathlib.Path("logs/").exists():
-        os.mkdir("logs/")
-    os.mknod("logs/peppercord.log")
-handler = logging.FileHandler(filename="logs/peppercord.log", encoding="utf-8", mode="w")
+if not pathlib.Path("logs/").exists():
+    os.mkdir("logs/")
+handler = logging.FileHandler(filename="logs/peppercord.log", encoding="utf-8", mode="a+")
 handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
 logger.addHandler(handler)
 
@@ -65,8 +62,9 @@ def load_extensions(path: str):
 
 @bot.event
 async def on_ready():
-    tprint("PepperCord", font="xsans")
-    print(f"Logged in as {bot.user.name}#{bot.user.discriminator} ({bot.user.id})")
+    print(
+        f"{text2art(text=bot.user.name, font='rnd-large')}\nLogged in as {bot.user.name}#{bot.user.discriminator} ({bot.user.id})"
+    )
 
 
 @bot.check_once
@@ -82,7 +80,6 @@ async def bot_check_once(ctx):
 @bot.event
 async def on_command_error(ctx, e):
     if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await bot.is_owner(ctx.author):
-        await ctx.send("You shouldn't be able to execute this command, but since you are the owner you get a free pass.")
         await ctx.reinvoke()
     elif isinstance(e, commands.BotMissingPermissions):
         await ctx.send(f"I'm missing permissions I need to function. To re-invite me, see `{ctx.prefix}invite`.")

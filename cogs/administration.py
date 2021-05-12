@@ -1,13 +1,12 @@
 import typing
 
-from discord import utils
-
-import instances
 import discord
+import instances
+import utils.managers
+from discord import utils
 from discord.ext import commands
 from discord.guild import Guild
 from utils.checks import has_permission_level
-import utils.managers
 from utils.errors import SubcommandNotFound
 
 
@@ -20,7 +19,17 @@ class administration(
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return (has_permission_level(ctx, 3)) and (commands.guild_only())
+        return has_permission_level(ctx, 3)
+
+    @commands.command(
+        name="message",
+        brief="Send a message as the bot.",
+        description="Send a message as the bot in any channel that you want.",
+        usage="<Channel> <Message>",
+    )
+    async def doMessage(self, ctx, channel: discord.TextChannel, *, text: str):
+        channel = self.bot.get_channel(channel.id)
+        await channel.send(text)
 
     @commands.group(
         invoke_without_command=True,

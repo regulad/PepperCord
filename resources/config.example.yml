@@ -1,5 +1,5 @@
 db:
-  uri: mongodb://localhost:27017 # Connection URI to your MongoDB Server
+  uri: mongodb://mongo:27017 # Connection URI to your MongoDB Server
 discord:
   api:
     token: UghqQolQCODamh1fS7B7DKkE.tJEE4u.TnJJbmoBbyscPFViH4OSOCX2Fyf # Token for your bot. Self bots don't work.

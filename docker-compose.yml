@@ -4,5 +4,11 @@ services:
     image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
     volumes:
       - 'config:/app/config'
+  mongo:
+    image: mongo
+  mongo-express:
+    image: mongo-express
+    ports:
+      - 8081:8081
 volumes:
   config:

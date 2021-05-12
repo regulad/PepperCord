@@ -39,7 +39,7 @@ class GuildConfigManager(GuildManager):
 
     def write(self, key_value: typing.Union[str, dict]):
         working_dict = copy.deepcopy(self.guild_dict)
-        working_dict.update({self.key_name: key_value})
+        working_dict.update({str(self.key_name): key_value})
         write_query = {"$set": working_dict}
         self.collection.update_one({"_id": str(self.guild.id)}, write_query)
 

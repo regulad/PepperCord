@@ -68,6 +68,20 @@ class administration(
     async def config(self, ctx):
         raise SubcommandNotFound()
 
+    @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
+    async def prefix(self, ctx, *, prefix: str):
+        try:
+            utils.managers.GuildConfigManager(
+                ctx.guild,
+                instances.activeDatabase["servers"],
+                "prefix",
+                instances.config_instance["discord"]["commands"]["prefix"],
+            ).write(prefix)
+        except:
+            await ctx.message.add_reaction(emoji="\U0000274c")
+        else:
+            await ctx.message.add_reaction(emoji="\U00002705")
+
 
 def setup(bot):
     bot.add_cog(administration(bot))

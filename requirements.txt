@@ -10,4 +10,4 @@ jsonschema # Validates schema
 psutil # System status
 pycoingecko # Gets crypto data (Blocking, not optimal)
 nekos.py # For nekos.life
-mcstatus # Minecraft Server (Can be made asyncronous, cannot be bothered)
+mcstatus # Minecraft Server

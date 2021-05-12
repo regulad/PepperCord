@@ -3,27 +3,64 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 """
 
+import logging
 import os
+import pathlib
 
 import discord
 from art import tprint
+from discord import guild
 from discord.ext import commands
 from pretty_help import PrettyHelp
 
-from instances import config_instance
-from utils import errors
+import instances
+import utils
+
+logger = logging.getLogger("discord")
+logger.setLevel(logging.INFO)
+if not pathlib.Path("logs/peppecord.log").exists():
+    if not pathlib.Path("logs/").exists():
+        os.mkdir("logs/")
+    os.mknod("logs/peppercord.log")
+handler = logging.FileHandler(filename="logs/peppercord.log", encoding="utf-8", mode="w")
+handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
+logger.addHandler(handler)
+
+
+async def get_prefix(bot, message):
+    if message.guild is None:
+        return commands.when_mentioned_or(instances.config_instance["discord"]["commands"]["prefix"])(bot, message)
+    else:
+        guild_prefix = utils.managers.GuildConfigManager(
+            message.guild,
+            instances.activeDatabase["servers"],
+            "prefix",
+            instances.config_instance["discord"]["commands"]["prefix"],
+        ).read()
+        return commands.when_mentioned_or(guild_prefix)(bot, message)
+
 
 bot = commands.Bot(
-    command_prefix=commands.when_mentioned_or(config_instance["discord"]["commands"]["prefix"]),
+    command_prefix=get_prefix,
     case_insensitive=True,
     intents=discord.Intents.all(),
+    help_command=PrettyHelp(color=discord.Colour.orange()),
 )
-bot.help_command = PrettyHelp(color=discord.Colour.orange())
 cooldown = commands.CooldownMapping.from_cooldown(
-    config_instance["discord"]["commands"]["cooldown"]["rate"],
-    config_instance["discord"]["commands"]["cooldown"]["per"],
+    instances.config_instance["discord"]["commands"]["cooldown"]["rate"],
+    instances.config_instance["discord"]["commands"]["cooldown"]["per"],
     commands.BucketType.user,
 )
+
+
+def load_extensions(path: str):
+    for file in os.listdir(path):
+        if file.endswith(".py"):
+            full_path = path + file
+            try:
+                bot.load_extension(full_path.strip(".py").replace("/", "."))
+            except Exception as e:
+                print(f"{e}\nContinuing recursively")
 
 
 @bot.event
@@ -59,7 +96,7 @@ async def on_command_error(ctx, e):
         await ctx.send(f"Command is valid, but input is invalid. Try `{ctx.prefix}help {ctx.command}`.")
     elif isinstance(e, commands.CheckFailure):
         await ctx.send("You cannot run this command.")
-    elif isinstance(e, errors.SubcommandNotFound):
+    elif isinstance(e, utils.errors.SubcommandNotFound):
         await ctx.send(f"You need to specify a subcommand. Try `{ctx.prefix}help`.")
     elif isinstance(e, commands.CommandNotFound):
         await ctx.send(f"{e}. Try `{ctx.prefix}help`.")
@@ -73,11 +110,5 @@ async def on_command_error(ctx, e):
 
 if __name__ == "__main__":
     bot.load_extension("jishaku")
-    for file in os.listdir(config_instance["extensions"]["dir"]):
-        if file.endswith(".py"):
-            full_path = config_instance["extensions"]["dir"] + file
-            try:
-                bot.load_extension(full_path.strip(".py").replace("/", "."))
-            except Exception as e:
-                print(f"{e}\nContinuing recursively")
-    bot.run(config_instance["discord"]["api"]["token"])
+    load_extensions(instances.config_instance["extensions"]["dir"])
+    bot.run(instances.config_instance["discord"]["api"]["token"])

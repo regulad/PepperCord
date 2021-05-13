@@ -1,50 +1,49 @@
 import copy
+import time
 import typing
 
 import discord
-from discord import message
 import pymongo
 
 
-class GuildManager:
-    def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
-        self.guild = guild
-        self.collection = collection
-
-        guild_dict = collection.find_one({"_id": str(guild.id)})
-        if not guild_dict:
-            self.guild_dict = {"_id": str(guild.id)}
-            collection.insert_one(self.guild_dict)
-        else:
-            self.guild_dict = collection.find_one({"_id": str(guild.id)})
-
-
-class GuildConfigManager(GuildManager):
+class CommonConfigManager:
     def __init__(
         self,
-        guild: discord.Guild,
+        model: typing.Union[discord.Guild, discord.Member, discord.User],
         collection: pymongo.collection.Collection,
         key_name: str,
-        key_value: typing.Union[str, dict],
+        key_value,
     ):
-        super().__init__(guild, collection)
+        self.model = model
+        self.collection = collection
+
+        active_dict = collection.find_one({"_id": str(model.id)})
+        if not active_dict:
+            self.active_dict = {"_id": str(model.id)}
+            collection.insert_one(self.active_dict)
+        else:
+            self.active_dict = collection.find_one({"_id": str(model.id)})
 
         self.key_name = key_name
         self.key_value = key_value
 
-        self.active_key = self.guild_dict.setdefault(key_name, key_value)
+        self.active_key = self.active_dict.setdefault(key_name, key_value)
 
     def read(self):
         return self.active_key
 
-    def write(self, key_value: typing.Union[str, dict]):
-        working_dict = copy.deepcopy(self.guild_dict)
-        working_dict.update({str(self.key_name): key_value})
+    def write(self, key_value):
+        working_dict = {str(self.key_name): key_value}
         write_query = {"$set": working_dict}
-        self.collection.update_one({"_id": str(self.guild.id)}, write_query)
+        self.collection.update_one({"_id": self.active_dict["_id"]}, write_query)
+
+    def delete(self, key_value):
+        working_dict = {str(self.key_name): key_value}
+        write_query = {"$unset": working_dict}
+        self.collection.update_one({"_id": self.active_dict["_id"]}, write_query)
 
 
-class GuildPermissionManager(GuildConfigManager):
+class GuildPermissionManager(CommonConfigManager):
     def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
         super().__init__(guild, collection, "permissions", {})
 
@@ -52,7 +51,7 @@ class GuildPermissionManager(GuildConfigManager):
         if isinstance(entity, discord.Member):
             entity = entity.top_role
         below_roles = []
-        for role in self.guild.roles:
+        for role in self.model.roles:
             if role <= entity:
                 below_roles.append(role)
         permission_levels = []
@@ -67,11 +66,11 @@ class GuildPermissionManager(GuildConfigManager):
 
     def write(self, role: discord.Role, level: int):
         working_key = copy.deepcopy(self.active_key)
-        working_key.update({str(role.id): str(level)})
+        working_key.update({str(role.id): level})
         super().write(working_key)
 
 
-class GuildMessageManager(GuildConfigManager):
+class GuildMessageManager(CommonConfigManager):
     def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
         super().__init__(guild, collection, "messages", {})
 
@@ -83,3 +82,19 @@ class GuildMessageManager(GuildConfigManager):
         working_key = copy.deepcopy(self.active_key)
         working_key.update({message_type: {str(channel.id): message}})
         super().write(working_key)
+
+
+class GuildPunishmentManager(CommonConfigManager):
+    def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
+        super().__init__(guild, collection, "punishments", {})
+
+    def write(self, punishment_type: str, member: discord.Member, punishment_time: typing.Union[int, float]):
+        unpunishtime = time.time() + punishment_time
+        working_key = copy.deepcopy(self.active_key)
+        working_key.update({str(member.id): {punishment_type: unpunishtime}})
+        super().write(working_key)
+
+    def delete(self, member: discord.Member):
+        working_key = copy.deepcopy(self.active_key)
+        working_key.update({str(member.id): 1})
+        super().delete(working_key)

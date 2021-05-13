@@ -21,7 +21,7 @@ class administration(
     @commands.Cog.listener()
     async def on_member_join(self, member):
         guild = member.guild
-        messages_dict = managers.GuildMessageManager(guild, instances.activeDatabase["servers"]).read('on_member_join')
+        messages_dict = managers.GuildMessageManager(guild, instances.activeDatabase["servers"]).read("on_member_join")
         if messages_dict:
             for channel in messages_dict.keys():
                 active_channel = self.bot.get_channel(int(channel))
@@ -32,7 +32,7 @@ class administration(
     @commands.Cog.listener()
     async def on_member_remove(self, member):
         guild = member.guild
-        messages_dict = managers.GuildMessageManager(guild, instances.activeDatabase["servers"]).read('on_member_remove')
+        messages_dict = managers.GuildMessageManager(guild, instances.activeDatabase["servers"]).read("on_member_remove")
         if messages_dict:
             for channel in messages_dict.keys():
                 active_channel = self.bot.get_channel(int(channel))
@@ -99,7 +99,7 @@ class administration(
     @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
     async def prefix(self, ctx, *, prefix: str):
         try:
-            managers.GuildConfigManager(
+            managers.CommonConfigManager(
                 ctx.guild,
                 instances.activeDatabase["servers"],
                 "prefix",
@@ -117,7 +117,7 @@ class administration(
     )
     async def mute(self, ctx, *, role: discord.Role):
         try:
-            managers.GuildConfigManager(
+            managers.CommonConfigManager(
                 ctx.guild,
                 instances.activeDatabase["servers"],
                 "mute_role",

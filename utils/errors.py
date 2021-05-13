@@ -7,3 +7,7 @@ class SubcommandNotFound(commands.CommandNotFound):
 
 class NotConfigured(commands.CommandNotFound):
     pass
+
+
+class Blacklisted(commands.CheckFailure):
+    pass

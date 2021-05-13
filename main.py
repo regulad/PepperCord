@@ -15,10 +15,13 @@ from pretty_help import PrettyHelp
 import instances
 from utils import errors, managers
 
-logger = logging.getLogger("discord")
-logger.setLevel(logging.INFO)
 if not pathlib.Path("logs/").exists():
     os.mkdir("logs/")
+if not pathlib.Path("temp/").exists():
+    os.mkdir("temp/")
+
+logger = logging.getLogger("discord")
+logger.setLevel(logging.INFO)
 handler = logging.FileHandler(filename="logs/peppercord.log", encoding="utf-8", mode="a+")
 handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
 logger.addHandler(handler)
@@ -28,7 +31,7 @@ async def get_prefix(bot, message):
     if message.guild is None:
         return commands.when_mentioned_or(instances.config_instance["discord"]["commands"]["prefix"])(bot, message)
     else:
-        guild_prefix = managers.GuildConfigManager(
+        guild_prefix = managers.CommonConfigManager(
             message.guild,
             instances.activeDatabase["servers"],
             "prefix",
@@ -73,6 +76,20 @@ async def bot_check_once(ctx):
     retry_after = bucket.update_rate_limit()
     if retry_after:
         raise commands.CommandOnCooldown(bucket, retry_after)
+    elif managers.CommonConfigManager(
+        ctx.author,
+        instances.activeDatabase["users"],
+        "blacklisted",
+        False,
+    ).read():
+        raise errors.Blacklisted("User blacklisted.")
+    elif managers.CommonConfigManager(
+        ctx.guild,
+        instances.activeDatabase["servers"],
+        "blacklisted",
+        False,
+    ).read():
+        raise errors.Blacklisted("Guild blacklisted.")
     else:
         return True
 
@@ -80,7 +97,12 @@ async def bot_check_once(ctx):
 @bot.event
 async def on_command_error(ctx, e):
     if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await bot.is_owner(ctx.author):
-        await ctx.reinvoke()
+        try:
+            await ctx.reinvoke()
+        except Exception as e:
+            await ctx.send(f"During the attempt to reinvoke your command, another exception occured. See: ```{e}```")
+    elif isinstance(e, errors.Blacklisted):
+        await ctx.send("You have been blacklisted from utilizing this instance of the bot.")
     elif isinstance(e, commands.BotMissingPermissions):
         await ctx.send(f"I'm missing permissions I need to function. To re-invite me, see `{ctx.prefix}invite`.")
     elif isinstance(e, commands.NSFWChannelRequired):

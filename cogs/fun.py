@@ -1,3 +1,6 @@
+import base64
+import time
+
 import discord
 import nekos
 from art import text2art
@@ -152,7 +155,7 @@ class explorer(
             await ctx.send("Couldn't get information from the server. Is it online?")
         else:
             embed = (
-                discord.Embed(colour=discord.Colour.dark_gold(), title=server, thumbnail=status.favicon)
+                discord.Embed(colour=discord.Colour.dark_gold(), title=server)
                 .add_field(name="Ping:", value=f"{status.latency}ms")
                 .add_field(name="Players:", value=f"{status.players.online}/{status.players.max}")
                 .add_field(name="Version:", value=f"{status.version.name}, (ver. {status.version.protocol})", inline=False)

@@ -41,9 +41,15 @@ class moderation(
                                     ).read()
                                     mute_role = guild.get_role(int(mute_role_id))
                                     member = await guild.fetch_member(user_model.id)
-                                    await member.remove_roles(mute_role)
+                                    try:
+                                        await member.remove_roles(mute_role)
+                                    except:
+                                        pass
                                 elif punishment == "ban":
-                                    await guild.unban(user=user_model, reason="Timeban expired.")
+                                    try:
+                                        await guild.unban(user=user_model, reason="Timeban expired.")
+                                    except:
+                                        pass
                             finally:
                                 managers.GuildPunishmentManager(guild, instances.activeDatabase["servers"]).delete(user_model)
 

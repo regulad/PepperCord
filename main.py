@@ -28,8 +28,9 @@ logger.addHandler(handler)
 
 
 async def get_prefix(bot, message):
+    default_prefix = instances.config_instance["discord"]["commands"]["prefix"]
     if message.guild is None:
-        return commands.when_mentioned_or(instances.config_instance["discord"]["commands"]["prefix"])(bot, message)
+        return commands.when_mentioned_or(default_prefix)(bot, message)
     else:
         guild_prefix = managers.CommonConfigManager(
             message.guild,
@@ -37,7 +38,7 @@ async def get_prefix(bot, message):
             "prefix",
             instances.config_instance["discord"]["commands"]["prefix"],
         ).read()
-        return commands.when_mentioned_or(guild_prefix)(bot, message)
+        return commands.when_mentioned_or(f"{guild_prefix} ", guild_prefix)(bot, message)
 
 
 bot = commands.Bot(

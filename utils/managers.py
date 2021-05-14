@@ -17,12 +17,12 @@ class CommonConfigManager:
         self.model = model
         self.collection = collection
 
-        active_dict = collection.find_one({"_id": str(model.id)})
+        active_dict = collection.find_one({"_id": model.id})
         if not active_dict:
-            self.active_dict = {"_id": str(model.id)}
+            self.active_dict = {"_id": model.id}
             collection.insert_one(self.active_dict)
         else:
-            self.active_dict = collection.find_one({"_id": str(model.id)})
+            self.active_dict = collection.find_one({"_id": model.id})
 
         self.key_name = key_name
         self.key_value = key_value
@@ -98,3 +98,23 @@ class GuildPunishmentManager(CommonConfigManager):
         working_key = copy.deepcopy(self.active_key)
         working_key.update({str(member.id): 1})
         super().delete(working_key)
+
+
+class GuildReactionManager(CommonConfigManager):
+    def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
+        super().__init__(guild, collection, "reactions", {})
+
+    def write(
+        self,
+        channel: discord.TextChannel,
+        message: typing.Union[discord.Message, discord.PartialMessage],
+        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
+        role: discord.Role,
+    ):
+        if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
+            emoji_name = emoji.name
+        elif isinstance(emoji, str):
+            emoji_name = emoji
+        working_key = copy.deepcopy(self.active_key)
+        working_key.update({str(channel.id): {str(message.id): {emoji_name: role.id}}})
+        super().write(working_key)

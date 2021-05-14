@@ -1,7 +1,6 @@
 import typing
 
 import discord
-from discord import colour
 import instances
 from discord.ext import commands
 from utils import checks, errors, managers
@@ -18,10 +17,9 @@ class administration(
     async def cog_check(self, ctx):
         return checks.has_permission_level(ctx, 3)
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
+    async def member_message_processor(self, member: discord.Member, event: str):
         guild = member.guild
-        messages_dict = managers.GuildMessageManager(guild, instances.activeDatabase["servers"]).read("on_member_join")
+        messages_dict = managers.GuildMessageManager(guild, instances.activeDatabase["servers"]).read(event)
         if messages_dict:
             for channel in messages_dict.keys():
                 active_channel = self.bot.get_channel(int(channel))
@@ -30,15 +28,44 @@ class administration(
                 await active_channel.send(member.mention, embed=embed)
 
     @commands.Cog.listener()
+    async def on_member_join(self, member):
+        await self.member_message_processor(member, "on_member_join")
+
+    @commands.Cog.listener()
     async def on_member_remove(self, member):
-        guild = member.guild
-        messages_dict = managers.GuildMessageManager(guild, instances.activeDatabase["servers"]).read("on_member_remove")
-        if messages_dict:
-            for channel in messages_dict.keys():
-                active_channel = self.bot.get_channel(int(channel))
-                message = messages_dict[channel]
-                embed = discord.Embed(colour=member.colour, description=message)
-                await active_channel.send(member.mention, embed=embed)
+        await self.member_message_processor(member, "on_member_remove")
+
+    async def reaction_processor(self, payload: discord.RawReactionActionEvent):
+        if payload.guild_id == None or payload.user_id == self.bot.user.id:
+            return
+        guild: discord.Guild = self.bot.get_guild(payload.guild_id)
+        channel: discord.TextChannel = guild.get_channel(payload.channel_id)
+        message: discord.PartialMessage = channel.get_partial_message(payload.message_id)
+        author: discord.Member = guild.get_member(payload.user_id)
+        emoji: discord.PartialEmoji = payload.emoji
+        reaction_dict = managers.GuildReactionManager(guild, instances.activeDatabase["servers"]).read()
+        if reaction_dict:
+            for key_channel in reaction_dict.keys():
+                channel_dict = reaction_dict[key_channel]
+                if int(key_channel) == channel.id:
+                    for key_message in channel_dict.keys():
+                        message_dict = channel_dict[key_message]
+                        if int(key_message) == message.id:
+                            for role_pair in message_dict.keys():
+                                if role_pair == emoji.name:
+                                    role = guild.get_role(message_dict[role_pair])
+                                    if payload.event_type == "REACTION_ADD":
+                                        await author.add_roles(role)
+                                    elif payload.event_type == "REACTION_REMOVE":
+                                        await author.remove_roles(role)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        await self.reaction_processor(payload)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        await self.reaction_processor(payload)
 
     @commands.command(
         name="message",
@@ -137,6 +164,30 @@ class administration(
     async def setmessage(self, ctx, message_type: str, channel: discord.TextChannel, *, message: str):
         try:
             managers.GuildMessageManager(ctx.guild, instances.activeDatabase["servers"]).write(message_type, channel, message)
+        except:
+            await ctx.message.add_reaction(emoji="\U0000274c")
+        else:
+            await ctx.message.add_reaction(emoji="\U00002705")
+
+    @config.command(
+        name="reactionrole",
+        aliases=["reaction", "rr"],
+        brief="Configures reaction role.",
+        description="Configures reaction role. The bot must have permissions to add rections in the desired channel.",
+        usage="<Channel> <Message> <Emoji> <Role>",
+    )
+    async def reactionrole(
+        self,
+        ctx,
+        channel: discord.TextChannel,
+        message: typing.Union[discord.Message, discord.PartialMessage],
+        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
+        role: discord.Role,
+    ):
+        try:
+            managers.GuildReactionManager(ctx.guild, instances.activeDatabase["servers"]).write(channel, message, emoji, role)
+            message_model = channel.get_partial_message(message.id)
+            await message_model.add_reaction(emoji)
         except:
             await ctx.message.add_reaction(emoji="\U0000274c")
         else:

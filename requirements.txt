@@ -1,7 +1,7 @@
 discord.py # It.
 discord-pretty-help # Makes the help command look nice.
 jishaku  # Useful development tools.
-# aiohttp # For asyncronous HTTP requests
+aiohttp # For asyncronous HTTP requests
 pymongo # For syncronous MongoDB requests, really should use motor for asyncronous MongoDB requests
 dnspython==2.1.0 # For MongoDB SRV connection strings
 art # Ascii art library
@@ -10,4 +10,5 @@ jsonschema # Validates schema
 psutil # System status
 pycoingecko # Gets crypto data (Blocking, not optimal)
 nekos.py # For nekos.life
+asyncio-dgram # Docker dependency hell
 mcstatus # Minecraft Server

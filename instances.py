@@ -1,3 +1,4 @@
+import json
 import pathlib
 import shutil
 
@@ -9,7 +10,7 @@ if not pathlib.Path("config/config.yml").exists():
     shutil.copyfile("resources/config.example.yml", "config/config.yml")
 
 config_instance = yaml.load(open("config/config.yml"), Loader=yaml.FullLoader)
-schema_instance = yaml.load(open("resources/configSchema.yml"), Loader=yaml.FullLoader)
+schema_instance = json.load(open("resources/config.json"))
 
 jsonschema.validate(
     instance=config_instance,
@@ -17,4 +18,4 @@ jsonschema.validate(
 )
 
 activeDatabaseClient = pymongo.MongoClient(config_instance["db"]["uri"])
-activeDatabase = activeDatabaseClient["peppercord"]
+activeDatabase = activeDatabaseClient[config_instance["db"]["name"]]

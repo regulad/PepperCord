@@ -3,28 +3,14 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 """
 
-import logging
 import os
-import pathlib
 
 import discord
-from art import text2art
 from discord.ext import commands
 from pretty_help import PrettyHelp
 
 import instances
 from utils import errors, managers
-
-if not pathlib.Path("logs/").exists():
-    os.mkdir("logs/")
-if not pathlib.Path("temp/").exists():
-    os.mkdir("temp/")
-
-logger = logging.getLogger("discord")
-logger.setLevel(logging.INFO)
-handler = logging.FileHandler(filename="logs/peppercord.log", encoding="utf-8", mode="a+")
-handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-logger.addHandler(handler)
 
 
 async def get_prefix(bot, message):
@@ -66,9 +52,7 @@ def load_extensions(path: str):
 
 @bot.event
 async def on_ready():
-    print(
-        f"{text2art(text=bot.user.name, font='rnd-large')}\nLogged in as {bot.user.name}#{bot.user.discriminator} ({bot.user.id})"
-    )
+    print(f"Logged in as {bot.user.name}#{bot.user.discriminator} ({bot.user.id})")
 
 
 @bot.check_once

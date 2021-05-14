@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft/2019-09/schema#",
+  "$id": "https://www.regulad.xyz/PepperCord/configSchema.json",
+  "type": "object",
+  "properties": {
+    "discord": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "object",
+          "properties": {
+            "token": {
+              "type": "string",
+              "pattern": "([a-zA-Z0-9_]{24})\\.([a-zA-Z0-9_]{6})\\.([a-zA-Z0-9_]{27})"
+            }
+          },
+          "required": [
+            "token"
+          ]
+        },
+        "commands": {
+          "type": "object",
+          "properties": {
+            "prefix": {
+              "type": "string",
+              "default": "",
+              "null": null
+            },
+            "cooldown": {
+              "type": "object",
+              "properties": {
+                "rate": {
+                  "type": "number",
+                  "default": 6
+                },
+                "per": {
+                  "type": "number",
+                  "default": 10
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "api"
+      ]
+    },
+    "db": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "name": {
+          "type": "string",
+          "default": "peppercord"
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "properties": {
+        "dir": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "discord",
+    "db",
+    "extensions"
+  ]
+}

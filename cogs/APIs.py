@@ -1,9 +1,13 @@
+import base64
+from io import BytesIO
+
 import aiohttp
 import discord
 import nekos
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 from mcstatus import MinecraftServer
+from PIL import Image
 from pycoingecko import CoinGeckoAPI
 from utils.errors import SubcommandNotFound
 
@@ -119,6 +123,7 @@ class APIs(
         serverLookup = MinecraftServer.lookup(server)
         try:
             status = await serverLookup.async_status()
+            decoded = BytesIO(base64.b64decode(status.favicon.replace("data:image/png;base64,", "")))
         except:
             await ctx.send("Couldn't get information from the server. Is it online?")
         else:
@@ -127,8 +132,10 @@ class APIs(
                 .add_field(name="Ping:", value=f"{status.latency}ms")
                 .add_field(name="Players:", value=f"{status.players.online}/{status.players.max}")
                 .add_field(name="Version:", value=f"{status.version.name}, (ver. {status.version.protocol})", inline=False)
+                .set_thumbnail(url="attachment://favicon.png")
             )
-            await ctx.send(embed=embed)
+            file = discord.File(decoded, filename="favicon.png")
+            await ctx.send(embed=embed, file=file)
 
     @minecraft.command(
         name="player",

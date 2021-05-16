@@ -3,28 +3,14 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 """
 
-import logging
 import os
-import pathlib
 
 import discord
-from art import text2art
 from discord.ext import commands
 from pretty_help import PrettyHelp
 
 import instances
 from utils import errors, managers
-
-if not pathlib.Path("logs/").exists():
-    os.mkdir("logs/")
-if not pathlib.Path("temp/").exists():
-    os.mkdir("temp/")
-
-logger = logging.getLogger("discord")
-logger.setLevel(logging.INFO)
-handler = logging.FileHandler(filename="logs/peppercord.log", encoding="utf-8", mode="a+")
-handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-logger.addHandler(handler)
 
 
 async def get_prefix(bot, message):
@@ -34,7 +20,7 @@ async def get_prefix(bot, message):
     else:
         guild_prefix = managers.CommonConfigManager(
             message.guild,
-            instances.activeDatabase["servers"],
+            instances.guild_collection,
             "prefix",
             instances.config_instance["discord"]["commands"]["prefix"],
         ).read()
@@ -66,31 +52,25 @@ def load_extensions(path: str):
 
 @bot.event
 async def on_ready():
-    print(
-        f"{text2art(text=bot.user.name, font='rnd-large')}\nLogged in as {bot.user.name}#{bot.user.discriminator} ({bot.user.id})"
-    )
+    print(f"Logged in as {bot.user.name}#{bot.user.discriminator} ({bot.user.id})")
 
 
 @bot.check_once
 async def bot_check_once(ctx):
+    # Cooldown
     bucket = cooldown.get_bucket(ctx.message)
     retry_after = bucket.update_rate_limit()
     if retry_after:
         raise commands.CommandOnCooldown(bucket, retry_after)
-    elif managers.CommonConfigManager(
-        ctx.author,
-        instances.activeDatabase["users"],
-        "blacklisted",
-        False,
-    ).read():
-        raise errors.Blacklisted("User blacklisted.")
-    elif managers.CommonConfigManager(
-        ctx.guild,
-        instances.activeDatabase["servers"],
-        "blacklisted",
-        False,
-    ).read():
-        raise errors.Blacklisted("Guild blacklisted.")
+    # Blacklist
+    elif (managers.BlacklistManager(ctx.author, instances.user_collection,).read()) or (
+        ctx.guild != None
+        and managers.BlacklistManager(
+            ctx.guild,
+            instances.guild_collection,
+        ).read()
+    ):
+        raise errors.Blacklisted()
     else:
         return True
 

@@ -1,5 +1,10 @@
 db:
   uri: mongodb://mongo:27017 # Connection URI to your MongoDB Server
+  name: peppercord # Name of the DB on your PepperCord server
+  collections: # Name of the collections that are used to store data
+    user: user
+    guild: servers
+    bot: bot
 discord:
   api:
     token: UghqQolQCODamh1fS7B7DKkE.tJEE4u.TnJJbmoBbyscPFViH4OSOCX2Fyf # Token for your bot. Self bots don't work.

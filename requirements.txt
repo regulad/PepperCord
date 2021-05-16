@@ -3,7 +3,7 @@ discord-pretty-help # Makes the help command look nice.
 jishaku  # Useful development tools.
 aiohttp # For asyncronous HTTP requests
 pymongo # For syncronous MongoDB requests, really should use motor for asyncronous MongoDB requests
-dnspython==2.1.0 # For MongoDB SRV connection strings
+dnspython >= 2.1.0 # For MongoDB SRV connection strings
 art # Ascii art library
 pyyaml # Parses YAML
 jsonschema # Validates schema

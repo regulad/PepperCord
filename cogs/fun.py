@@ -1,8 +1,8 @@
-from discord.ext import commands
 from art import text2art
+from discord.ext import commands
 
 
-class fun(commands.Cog, name="Fun", description="Fun things implemented on a whim."):
+class Fun(commands.Cog, name="Fun", description="Fun things, normally implemented on a whim."):
     def __init__(self, bot):
         self.bot = bot
 
@@ -49,4 +49,4 @@ class fun(commands.Cog, name="Fun", description="Fun things implemented on a whi
 
 
 def setup(bot):
-    bot.add_cog(fun(bot))
+    bot.add_cog(Fun(bot))

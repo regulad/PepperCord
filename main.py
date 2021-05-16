@@ -112,5 +112,6 @@ async def on_command_error(ctx, e):
 
 if __name__ == "__main__":
     bot.load_extension("jishaku")
-    load_extensions(instances.config_instance["extensions"]["dir"])
+    for path in instances.config_instance["extensions"]["dir"]:
+        load_extensions(path)
     bot.run(instances.config_instance["discord"]["api"]["token"])

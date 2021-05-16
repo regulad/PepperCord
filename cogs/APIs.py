@@ -7,7 +7,6 @@ import nekos
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 from mcstatus import MinecraftServer
-from PIL import Image
 from pycoingecko import CoinGeckoAPI
 from utils.errors import SubcommandNotFound
 

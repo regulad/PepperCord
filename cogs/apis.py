@@ -1,10 +1,6 @@
-import base64
-import time
-
 import aiohttp
 import discord
 import nekos
-from art import text2art
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 from mcstatus import MinecraftServer
@@ -12,7 +8,7 @@ from pycoingecko import CoinGeckoAPI
 from utils.errors import SubcommandNotFound
 
 
-class apis(
+class APIs(
     commands.Cog,
     name="APIs",
     description="Gets random information from all over the internet and beyond.",
@@ -149,11 +145,7 @@ class apis(
         embed = discord.Embed(title=name).set_image(url=f"https://crafatar.com/renders/body/{uuid}?overlay")
         await ctx.send(embed=embed)
 
-    @commands.command(
-        name="bored",
-        description="Do something, stop being bored!",
-        brief="Anti-boredom."
-    )
+    @commands.command(name="bored", description="Do something, stop being bored!", brief="Anti-boredom.")
     async def bored(self, ctx):
         async with aiohttp.ClientSession() as client:
             async with client.get("https://www.boredapi.com/api/activity/") as request:
@@ -161,11 +153,7 @@ class apis(
         embed = discord.Embed(title=result["type"], description=result["activity"])
         await ctx.send(embed=embed)
 
-    @commands.command(
-        name="quote",
-        description="Get inspired from a random quote.",
-        brief="Get inspired!"
-    )
+    @commands.command(name="quote", description="Get inspired from a random quote.", brief="Get inspired!")
     async def quote(self, ctx):
         async with aiohttp.ClientSession() as client:
             async with client.get("https://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en") as request:
@@ -175,4 +163,4 @@ class apis(
 
 
 def setup(bot):
-    bot.add_cog(apis(bot))
+    bot.add_cog(APIs(bot))

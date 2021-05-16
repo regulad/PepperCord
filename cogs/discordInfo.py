@@ -7,7 +7,7 @@ import psutil
 from discord.ext import commands, tasks
 
 
-class discordInfo(
+class DiscordInfo(
     commands.Cog,
     name="Discord Info",
     description="Shows information about things on Discord.",
@@ -143,4 +143,4 @@ class discordInfo(
 
 
 def setup(bot):
-    bot.add_cog(discordInfo(bot))
+    bot.add_cog(DiscordInfo(bot))

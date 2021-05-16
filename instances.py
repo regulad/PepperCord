@@ -17,5 +17,8 @@ jsonschema.validate(
     schema=schema_instance,
 )
 
-activeDatabaseClient = pymongo.MongoClient(config_instance["db"]["uri"])
-activeDatabase = activeDatabaseClient[config_instance["db"]["name"]]
+active_database_client = pymongo.MongoClient(config_instance["db"]["uri"])
+active_database = active_database_client[config_instance["db"]["name"]]
+user_collection = active_database[config_instance["db"]["collections"]["user"]]
+guild_collection = active_database[config_instance["db"]["collections"]["guild"]]
+bot_collection = active_database[config_instance["db"]["collections"]["bot"]]

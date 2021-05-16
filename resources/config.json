@@ -56,14 +56,26 @@
         "name": {
           "type": "string",
           "default": "peppercord"
+        },
+        "collections": {
+          "type": "object",
+          "properties": {
+            "user": {"type": "string", "default": "user"},
+            "guild": {"type": "string", "default": "servers"},
+            "bot": {"type": "string", "default": "bot"}
+          }
         }
-      }
+      },
+      "required": [
+        "uri"
+      ]
     },
     "extensions": {
       "type": "object",
       "properties": {
         "dir": {
-          "type": "string"
+          "type": "string",
+          "default": "cogs/"
         }
       }
     }

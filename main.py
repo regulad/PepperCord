@@ -20,7 +20,7 @@ async def get_prefix(bot, message):
     else:
         guild_prefix = managers.CommonConfigManager(
             message.guild,
-            instances.activeDatabase["servers"],
+            instances.guild_collection,
             "prefix",
             instances.config_instance["discord"]["commands"]["prefix"],
         ).read()
@@ -63,11 +63,11 @@ async def bot_check_once(ctx):
     if retry_after:
         raise commands.CommandOnCooldown(bucket, retry_after)
     # Blacklist
-    elif (managers.BlacklistManager(ctx.author, instances.activeDatabase["users"],).read()) or (
+    elif (managers.BlacklistManager(ctx.author, instances.user_collection,).read()) or (
         ctx.guild != None
         and managers.BlacklistManager(
             ctx.guild,
-            instances.activeDatabase["servers"],
+            instances.guild_collection,
         ).read()
     ):
         raise errors.Blacklisted()

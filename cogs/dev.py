@@ -6,7 +6,7 @@ from discord.ext import commands
 from utils import managers
 
 
-class dev(
+class Dev(
     commands.Cog,
     name="Developer",
     description="Commands for the bot's developer used to operate the bot.",
@@ -25,13 +25,13 @@ class dev(
     )
     async def blacklist(self, ctx, value: bool, *, entity: typing.Union[discord.Guild, discord.Member, discord.User]):
         if isinstance(entity, discord.Guild):
-            table_name = "servers"
+            collection = instances.guild_collection
         elif isinstance(entity, (discord.Member, discord.User)):
-            table_name = "users"
+            collection = instances.user_collection
         try:
             managers.BlacklistManager(
                 entity,
-                instances.activeDatabase[table_name],
+                collection,
             ).write(value)
         except:
             await ctx.message.add_reaction(emoji="\U0000274c")
@@ -50,4 +50,4 @@ class dev(
 
 
 def setup(bot):
-    bot.add_cog(dev(bot))
+    bot.add_cog(Dev(bot))

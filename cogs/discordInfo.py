@@ -93,7 +93,7 @@ class discordInfo(
             await ctx.send("Couldn't find information on your guild.")
         else:
             await ctx.send(embed=embed)
-        await ctx.invoke(self.whoIs, **{"user": guildOwner})
+            await ctx.invoke(self.whoIs, user=guildOwner)
 
     @commands.command(
         name="botInfo",
@@ -128,6 +128,7 @@ class discordInfo(
             await ctx.send("Had trouble fetching information about the bot. Try again later.")
         else:
             await ctx.send(embed=embed)
+            await ctx.invoke(self.whoIs, user=self.bot.user)
 
     @commands.command(
         name="snowflakeLookup",

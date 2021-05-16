@@ -94,6 +94,7 @@ class moderation(
 
     @commands.command(
         name="mute",
+        aliases=["gulag"],
         brief="Mutes user from typing in text channels.",
         description="Mutes user from typing in text channels. Must be configured first.",
     )
@@ -117,6 +118,7 @@ class moderation(
 
     @commands.command(
         name="unmute",
+        aliases=["ungulag"],
         brief="Unmutes user from typing in text channels.",
         description="Unmutes user from typing in text channels. Must be configured first.",
     )
@@ -140,6 +142,7 @@ class moderation(
 
     @commands.command(
         name="timemute",
+        aliases=["timegulag"],
         brief="Mutes a user and unmutes them later",
         description="Mutes a user then schedueles their unmuting",
         usage="<Member> [Time (Minutes)]",

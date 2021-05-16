@@ -57,24 +57,20 @@ async def on_ready():
 
 @bot.check_once
 async def bot_check_once(ctx):
+    # Cooldown
     bucket = cooldown.get_bucket(ctx.message)
     retry_after = bucket.update_rate_limit()
     if retry_after:
         raise commands.CommandOnCooldown(bucket, retry_after)
-    elif managers.CommonConfigManager(
-        ctx.author,
-        instances.activeDatabase["users"],
-        "blacklisted",
-        False,
-    ).read():
-        raise errors.Blacklisted("User blacklisted.")
-    elif managers.CommonConfigManager(
-        ctx.guild,
-        instances.activeDatabase["servers"],
-        "blacklisted",
-        False,
-    ).read():
-        raise errors.Blacklisted("Guild blacklisted.")
+    # Blacklist
+    elif (managers.BlacklistManager(ctx.author, instances.activeDatabase["users"],).read()) or (
+        ctx.guild != None
+        and managers.BlacklistManager(
+            ctx.guild,
+            instances.activeDatabase["servers"],
+        ).read()
+    ):
+        raise errors.Blacklisted()
     else:
         return True
 

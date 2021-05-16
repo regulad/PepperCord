@@ -1,13 +1,31 @@
+import copy
 import time
 import typing
 
 import discord
 import instances
+import pymongo
 from discord.ext import commands, tasks
 from utils import checks, errors, managers
 
 
-class moderation(
+class GuildPunishmentManager(managers.CommonConfigManager):
+    def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
+        super().__init__(guild, collection, "punishments", {})
+
+    def write(self, punishment_type: str, member: discord.Member, punishment_time: typing.Union[int, float]):
+        unpunishtime = time.time() + punishment_time
+        working_key = copy.deepcopy(self.active_key)
+        working_key.update({str(member.id): {punishment_type: unpunishtime}})
+        super().write(working_key)
+
+    def delete(self, member: discord.Member):
+        working_key = copy.deepcopy(self.active_key)
+        working_key.update({str(member.id): 1})
+        super().delete(working_key)
+
+
+class Moderation(
     commands.Cog,
     name="Moderation",
     description="Tools for moderation.",
@@ -20,10 +38,11 @@ class moderation(
     def cog_unload(self):
         self.unpunish.stop()
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=30)
     async def unpunish(self):
         for guild in self.bot.guilds:
-            punishment_dict = managers.GuildPunishmentManager(guild, instances.activeDatabase["servers"]).read()
+            guild_punishments = GuildPunishmentManager(guild, instances.guild_collection)
+            punishment_dict = guild_punishments.read()
             if punishment_dict:
                 for user in punishment_dict.keys():
                     user_dict = punishment_dict[user]
@@ -35,11 +54,11 @@ class moderation(
                                 if punishment == "mute":
                                     mute_role_id = managers.CommonConfigManager(
                                         guild,
-                                        instances.activeDatabase["servers"],
+                                        instances.guild_collection,
                                         "mute_role",
                                         "",
                                     ).read()
-                                    mute_role = guild.get_role(int(mute_role_id))
+                                    mute_role = guild.get_role(mute_role_id)
                                     member = await guild.fetch_member(user_model.id)
                                     try:
                                         await member.remove_roles(mute_role)
@@ -51,10 +70,10 @@ class moderation(
                                     except:
                                         pass
                             finally:
-                                managers.GuildPunishmentManager(guild, instances.activeDatabase["servers"]).delete(user_model)
+                                guild_punishments.delete(user_model)
 
     async def cog_check(self, ctx):
-        return checks.has_permission_level(ctx, 2)
+        return await checks.has_permission_level(ctx, 2)
 
     @commands.command(
         name="purge",
@@ -94,6 +113,7 @@ class moderation(
 
     @commands.command(
         name="mute",
+        aliases=["gulag"],
         brief="Mutes user from typing in text channels.",
         description="Mutes user from typing in text channels. Must be configured first.",
     )
@@ -101,11 +121,11 @@ class moderation(
         try:
             mute_role_id = managers.CommonConfigManager(
                 ctx.guild,
-                instances.activeDatabase["servers"],
+                instances.guild_collection,
                 "mute_role",
-                "",
+                0,
             ).read()
-            mute_role = ctx.guild.get_role(int(mute_role_id))
+            mute_role = ctx.guild.get_role(mute_role_id)
         except:
             raise errors.NotConfigured()
         try:
@@ -117,6 +137,7 @@ class moderation(
 
     @commands.command(
         name="unmute",
+        aliases=["ungulag"],
         brief="Unmutes user from typing in text channels.",
         description="Unmutes user from typing in text channels. Must be configured first.",
     )
@@ -124,11 +145,11 @@ class moderation(
         try:
             mute_role_id = managers.CommonConfigManager(
                 ctx.guild,
-                instances.activeDatabase["servers"],
+                instances.guild_collection,
                 "mute_role",
-                "",
+                0,
             ).read()
-            mute_role = ctx.guild.get_role(int(mute_role_id))
+            mute_role = ctx.guild.get_role(mute_role_id)
         except:
             raise errors.NotConfigured()
         try:
@@ -140,6 +161,7 @@ class moderation(
 
     @commands.command(
         name="timemute",
+        aliases=["timegulag"],
         brief="Mutes a user and unmutes them later",
         description="Mutes a user then schedueles their unmuting",
         usage="<Member> [Time (Minutes)]",
@@ -147,9 +169,9 @@ class moderation(
     async def timemute(self, ctx, member: discord.Member, time: int = 10):
         try:
             await ctx.invoke(self.mute, member=member)
-            managers.GuildPunishmentManager(
+            GuildPunishmentManager(
                 ctx.guild,
-                instances.activeDatabase["servers"],
+                instances.guild_collection,
             ).write("mute", member, time * 60)
         except:
             await ctx.message.add_reaction(emoji="\U0000274c")
@@ -165,9 +187,9 @@ class moderation(
     async def timeban(self, ctx, member: discord.Member, time: int = 10):
         try:
             await ctx.invoke(self.ban, member=member)
-            managers.GuildPunishmentManager(
+            GuildPunishmentManager(
                 ctx.guild,
-                instances.activeDatabase["servers"],
+                instances.guild_collection,
             ).write("ban", member, time * 60)
         except:
             await ctx.message.add_reaction(emoji="\U0000274c")
@@ -176,4 +198,4 @@ class moderation(
 
 
 def setup(bot):
-    bot.add_cog(moderation(bot))
+    bot.add_cog(Moderation(bot))

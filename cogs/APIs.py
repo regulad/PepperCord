@@ -1,64 +1,24 @@
 import base64
-import time
+from io import BytesIO
 
+import aiohttp
 import discord
 import nekos
-from art import text2art
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 from mcstatus import MinecraftServer
+from PIL import Image
 from pycoingecko import CoinGeckoAPI
 from utils.errors import SubcommandNotFound
 
 
-class explorer(
+class APIs(
     commands.Cog,
-    name="Fun",
+    name="APIs",
     description="Gets random information from all over the internet and beyond.",
 ):
     def __init__(self, bot):
         self.bot = bot
-
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="wavedash",
-        aliases=["wave", "dash"],
-        description="Bounce, bounce, bounce...",
-    )
-    async def wavedash(self, ctx):
-        await ctx.send(
-            "<a:bad:839565043859193876><a:bounce1:839557305321259078><a:bad2:839565044249657414><a:bounce3:839557305074188318><a:bad4:839565044127760455><a:bounce5:839557305062391828>"
-            * 2
-        )
-
-    @wavedash.command(name="Badeline", aliases=["bad", "b"])
-    async def badeline(self, ctx):
-        await ctx.send(
-            "<a:bad:839565043859193876><a:bad1:839565043866796053><a:bad2:839565044249657414><a:bad3:839565043913064468><a:bad4:839565044127760455><a:bad5:839565043599278111>"
-            * 2
-        )
-
-    @wavedash.command(name="Madeline", aliases=["mad", "m"])
-    async def both(self, ctx):
-        await ctx.send(
-            "<a:bounce0:839557305120063508><a:bounce1:839557305321259078><a:bounce2:839557305053741056><a:bounce3:839557305074188318><a:bounce4:839557305058197546><a:bounce5:839557305062391828>"
-            * 2
-        )
-
-    @commands.command(
-        name="asciiArt",
-        aliases=["ascii", "art"],
-        brief="Turn any text into ascii art!",
-        description="Turn text into ascii art using art from PyPI.",
-        usage="<Text>",
-    )
-    async def asciiArt(self, ctx, *, text):
-        art = text2art(text, font="rnd-medium")
-        if (len(art) + 6) > 2000:
-            await ctx.send(f"Art was {len(art) - 2000} characters over the limit. Try with a shorter word.")
-        else:
-            await ctx.send(f"```{art}```")
 
     @commands.group(
         invoke_without_command=True,
@@ -141,16 +101,29 @@ class explorer(
     async def fact(self, ctx):
         await ctx.send(nekos.fact())
 
-    @commands.command(
+    @commands.group(
+        invoke_without_command=True,
+        case_insensitive=True,
         name="minecraft",
-        aliases=["mcstatus"],
+        aliases=["mc"],
+        description="Gets all sorts of data for Minecraft.",
+        brief="Get Minecraft Data.",
+    )
+    async def minecraft(self, ctx):
+        raise SubcommandNotFound()
+
+    @minecraft.command(
+        name="server",
+        aliases=["status"],
         description="Gets Minecraft Server status using mcstatus.",
         brief="Gets Minecraft Server.",
+        usage="[Server]",
     )
-    async def minecraft(self, ctx, *, server: str = "play.regulad.xyz"):
+    async def server(self, ctx, *, server: str = "play.regulad.xyz"):
         serverLookup = MinecraftServer.lookup(server)
         try:
             status = await serverLookup.async_status()
+            decoded = BytesIO(base64.b64decode(status.favicon.replace("data:image/png;base64,", "")))
         except:
             await ctx.send("Couldn't get information from the server. Is it online?")
         else:
@@ -159,9 +132,42 @@ class explorer(
                 .add_field(name="Ping:", value=f"{status.latency}ms")
                 .add_field(name="Players:", value=f"{status.players.online}/{status.players.max}")
                 .add_field(name="Version:", value=f"{status.version.name}, (ver. {status.version.protocol})", inline=False)
+                .set_thumbnail(url="attachment://favicon.png")
             )
-            await ctx.send(embed=embed)
+            file = discord.File(decoded, filename="favicon.png")
+            await ctx.send(embed=embed, file=file)
+
+    @minecraft.command(
+        name="player",
+        description="Get data on a Minecraft user.",
+        brief="Gets Minecraft player.",
+        usage="<Player Username>",
+    )
+    async def player(self, ctx, *, player: str):
+        async with aiohttp.ClientSession() as client:
+            async with client.get(f"https://api.mojang.com/users/profiles/minecraft/{player}") as request:
+                result = await request.json()
+                uuid = result["id"]
+                name = result["name"]
+        embed = discord.Embed(title=name).set_image(url=f"https://crafatar.com/renders/body/{uuid}?overlay")
+        await ctx.send(embed=embed)
+
+    @commands.command(name="bored", description="Do something, stop being bored!", brief="Anti-boredom.")
+    async def bored(self, ctx):
+        async with aiohttp.ClientSession() as client:
+            async with client.get("https://www.boredapi.com/api/activity/") as request:
+                result = await request.json()
+        embed = discord.Embed(title=result["type"], description=result["activity"])
+        await ctx.send(embed=embed)
+
+    @commands.command(name="quote", description="Get inspired from a random quote.", brief="Get inspired!")
+    async def quote(self, ctx):
+        async with aiohttp.ClientSession() as client:
+            async with client.get("https://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en") as request:
+                result = await request.json()
+        embed = discord.Embed(title=result["quoteText"]).set_author(name=result["quoteAuthor"])
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
-    bot.add_cog(explorer(bot))
+    bot.add_cog(APIs(bot))

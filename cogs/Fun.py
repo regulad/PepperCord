@@ -11,6 +11,7 @@ class Fun(commands.Cog, name="Fun", description="Fun things, normally implemente
         case_insensitive=True,
         name="wavedash",
         aliases=["wave", "dash"],
+        brief="Bounce, bounce, bounce...",
         description="Bounce, bounce, bounce...",
     )
     async def wavedash(self, ctx):

@@ -10,7 +10,7 @@ from discord.ext import commands
 from pretty_help import PrettyHelp
 
 import instances
-from utils import errors, managers
+from utils import errors, managers, permissions
 
 
 async def get_prefix(bot, message):
@@ -63,9 +63,9 @@ async def bot_check_once(ctx):
     if retry_after:
         raise commands.CommandOnCooldown(bucket, retry_after)
     # Blacklist
-    elif (managers.BlacklistManager(ctx.author, instances.user_collection,).read()) or (
+    elif (permissions.BlacklistManager(ctx.author, instances.user_collection,).read()) or (
         ctx.guild != None
-        and managers.BlacklistManager(
+        and permissions.BlacklistManager(
             ctx.guild,
             instances.guild_collection,
         ).read()
@@ -77,7 +77,7 @@ async def bot_check_once(ctx):
 
 @bot.event
 async def on_command_error(ctx, e):
-    await ctx.message.add_reaction(emoji="\U0000274c")
+    await ctx.message.add_reaction(emoji="❌")
     if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await bot.is_owner(ctx.author):
         try:
             await ctx.reinvoke()
@@ -85,8 +85,6 @@ async def on_command_error(ctx, e):
             await ctx.send(f"During the attempt to reinvoke your command, another exception occured. See: ```{e}```")
     elif isinstance(e, errors.Blacklisted):
         await ctx.send("You have been blacklisted from utilizing this instance of the bot.")
-    elif isinstance(e, errors.NotInVoiceChannel):
-        await ctx.send("Not in a voice channel.")
     elif isinstance(e, commands.BotMissingPermissions):
         await ctx.send(f"I'm missing permissions I need to function. To re-invite me, see `{ctx.prefix}invite`.")
     elif isinstance(e, commands.NSFWChannelRequired):

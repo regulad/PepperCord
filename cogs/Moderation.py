@@ -73,7 +73,7 @@ class Moderation(
                                 guild_punishments.delete(user_model)
 
     async def cog_check(self, ctx):
-        return await checks.has_permission_level(ctx, 2)
+        return await checks.is_mod(ctx)
 
     @commands.command(
         name="purge",
@@ -87,17 +87,17 @@ class Moderation(
     @commands.command(name="kick", brief="Kicks user from the server.", description="Kicks user from the server.")
     async def kick(self, ctx, member: discord.Member, *, reason: str = ""):
         await member.kick(reason=reason)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(name="ban", brief="Bans user from the server.", description="Bans user from the server.")
     async def ban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
         await ctx.guild.ban(user=member, reason=reason)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(name="unban", brief="Unbans user from the server.", description="Unbans user from the server.")
     async def unban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
         await ctx.guild.unban(user=member, reason=reason)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="mute",
@@ -117,7 +117,7 @@ class Moderation(
         except:
             raise errors.NotConfigured()
         await member.add_roles(mute_role)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="unmute",
@@ -137,7 +137,7 @@ class Moderation(
         except:
             raise errors.NotConfigured()
         await member.remove_roles(mute_role)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="timemute",

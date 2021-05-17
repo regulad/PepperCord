@@ -65,7 +65,7 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
     )
     async def setmessage(self, ctx, message_type: str, channel: discord.TextChannel, *, message: str):
         GuildMessageManager(ctx.guild, instances.guild_collection).write(message_type, channel, message)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
 
 def setup(bot):

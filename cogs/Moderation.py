@@ -86,30 +86,18 @@ class Moderation(
 
     @commands.command(name="kick", brief="Kicks user from the server.", description="Kicks user from the server.")
     async def kick(self, ctx, member: discord.Member, *, reason: str = ""):
-        try:
-            await member.kick(reason=reason)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        await member.kick(reason=reason)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @commands.command(name="ban", brief="Bans user from the server.", description="Bans user from the server.")
     async def ban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
-        try:
-            await ctx.guild.ban(user=member, reason=reason)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.guild.ban(user=member, reason=reason)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @commands.command(name="unban", brief="Unbans user from the server.", description="Unbans user from the server.")
     async def unban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
-        try:
-            await ctx.guild.unban(user=member, reason=reason)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.guild.unban(user=member, reason=reason)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @commands.command(
         name="mute",
@@ -128,12 +116,8 @@ class Moderation(
             mute_role = ctx.guild.get_role(mute_role_id)
         except:
             raise errors.NotConfigured()
-        try:
-            await member.add_roles(mute_role)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        await member.add_roles(mute_role)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @commands.command(
         name="unmute",
@@ -152,12 +136,8 @@ class Moderation(
             mute_role = ctx.guild.get_role(mute_role_id)
         except:
             raise errors.NotConfigured()
-        try:
-            await member.remove_roles(mute_role)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        await member.remove_roles(mute_role)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @commands.command(
         name="timemute",
@@ -167,16 +147,12 @@ class Moderation(
         usage="<Member> [Time (Minutes)]",
     )
     async def timemute(self, ctx, member: discord.Member, time: int = 10):
-        try:
-            await ctx.invoke(self.mute, member=member)
-            GuildPunishmentManager(
-                ctx.guild,
-                instances.guild_collection,
-            ).write("mute", member, time * 60)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U000023ed")
+        await ctx.invoke(self.mute, member=member)
+        GuildPunishmentManager(
+            ctx.guild,
+            instances.guild_collection,
+        ).write("mute", member, time * 60)
+        await ctx.message.add_reaction(emoji="\U000023ed")
 
     @commands.command(
         name="timeban",
@@ -185,16 +161,12 @@ class Moderation(
         usage="<Member> [Time (Minutes)]",
     )
     async def timeban(self, ctx, member: discord.Member, time: int = 10):
-        try:
-            await ctx.invoke(self.ban, member=member)
-            GuildPunishmentManager(
-                ctx.guild,
-                instances.guild_collection,
-            ).write("ban", member, time * 60)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U000023ed")
+        await ctx.invoke(self.ban, member=member)
+        GuildPunishmentManager(
+            ctx.guild,
+            instances.guild_collection,
+        ).write("ban", member, time * 60)
+        await ctx.message.add_reaction(emoji="\U000023ed")
 
 
 def setup(bot):

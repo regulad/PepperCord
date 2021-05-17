@@ -55,12 +55,8 @@ class Administration(
         usage="<Permission Level> <Role>",
     )
     async def write(self, ctx, value: int, *, entity: discord.Role):
-        try:
-            managers.GuildPermissionManager(ctx.guild, instances.guild_collection).write(entity, value)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        managers.GuildPermissionManager(ctx.guild, instances.guild_collection).write(entity, value)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @commands.group(
         invoke_without_command=True,
@@ -75,17 +71,13 @@ class Administration(
 
     @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
     async def prefix(self, ctx, *, prefix: str):
-        try:
-            managers.CommonConfigManager(
-                ctx.guild,
-                instances.guild_collection,
-                "prefix",
-                instances.config_instance["discord"]["commands"]["prefix"],
-            ).write(prefix)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        managers.CommonConfigManager(
+            ctx.guild,
+            instances.guild_collection,
+            "prefix",
+            instances.config_instance["discord"]["commands"]["prefix"],
+        ).write(prefix)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @config.command(
         name="mute",
@@ -93,17 +85,13 @@ class Administration(
         description="Sets the role that is given to people who are muted. It must already be configured.",
     )
     async def mute(self, ctx, *, role: discord.Role):
-        try:
-            managers.CommonConfigManager(
-                ctx.guild,
-                instances.guild_collection,
-                "mute_role",
-                0,
-            ).write(role.id)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        managers.CommonConfigManager(
+            ctx.guild,
+            instances.guild_collection,
+            "mute_role",
+            0,
+        ).write(role.id)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
 
 def setup(bot):

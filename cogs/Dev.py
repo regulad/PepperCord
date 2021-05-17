@@ -28,15 +28,11 @@ class Dev(
             collection = instances.guild_collection
         elif isinstance(entity, (discord.Member, discord.User)):
             collection = instances.user_collection
-        try:
-            managers.BlacklistManager(
-                entity,
-                collection,
-            ).write(value)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        managers.BlacklistManager(
+            entity,
+            collection,
+        ).write(value)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
     @commands.command(
         name="nick",

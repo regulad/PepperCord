@@ -17,15 +17,25 @@ class Dev(
     async def cog_check(self, ctx):
         return await self.bot.is_owner(ctx.author)
 
+    # If the bot joins a blacklisted guild, leave.
+    @commands.Cog.listener()
+    async def on_guild_join(guild: discord.Guild):
+        if permissions.BlacklistManager(guild, instances.guild_collection).read():
+            await guild.leave()
+
     @commands.command(
         name="blacklist",
         description="Tools to blacklist entity from using the bot.",
         brief="Blacklists declared entity.",
         usage="<Value> <Entity>",
     )
-    async def blacklist(self, ctx, value: bool, *, entity: typing.Union[discord.Guild, discord.Member, discord.User]):
+    async def blacklist(
+        self, ctx, value: typing.Optional[bool], *, entity: typing.Union[discord.Guild, discord.Member, discord.User]
+    ):
+        value = value or True
         if isinstance(entity, discord.Guild):
             collection = instances.guild_collection
+            await entity.leave()
         elif isinstance(entity, (discord.Member, discord.User)):
             collection = instances.user_collection
         permissions.BlacklistManager(

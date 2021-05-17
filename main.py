@@ -105,8 +105,6 @@ async def on_command_error(ctx, e):
         await ctx.send("This command must be configured first. Ask an admin.")
     elif isinstance(e, commands.CommandNotFound):
         await ctx.send(f"{e}. Try `{ctx.prefix}help`.")
-    elif isinstance(e, commands.CommandError):
-        await ctx.send("An error occured processing your command. Try again.")
     else:
         await ctx.send(
             f"Something went very wrong while processing your command. This can be caused by bad arguments or something worse. Execption: ```{e}``` You can contact support with `{ctx.prefix}support`."

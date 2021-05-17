@@ -4,7 +4,7 @@ import discord
 import instances
 import pymongo
 from discord.ext import commands
-from utils import checks, errors, managers
+from utils import checks, errors, managers, permissions
 
 
 class GuildMessageManager(managers.CommonConfigManager):
@@ -26,7 +26,7 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await checks.has_permission_level(ctx, 3)
+        return await checks.has_permission_level(ctx, permissions.Permissions.ADMINISTRATOR)
 
     async def member_message_processor(self, member: discord.Member, event: str):
         guild = member.guild

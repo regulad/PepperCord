@@ -77,6 +77,7 @@ async def bot_check_once(ctx):
 
 @bot.event
 async def on_command_error(ctx, e):
+    await ctx.message.add_reaction(emoji="\U0000274c")
     if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await bot.is_owner(ctx.author):
         try:
             await ctx.reinvoke()
@@ -84,6 +85,8 @@ async def on_command_error(ctx, e):
             await ctx.send(f"During the attempt to reinvoke your command, another exception occured. See: ```{e}```")
     elif isinstance(e, errors.Blacklisted):
         await ctx.send("You have been blacklisted from utilizing this instance of the bot.")
+    elif isinstance(e, errors.NotInVoiceChannel):
+        await ctx.send("Not in a voice channel.")
     elif isinstance(e, commands.BotMissingPermissions):
         await ctx.send(f"I'm missing permissions I need to function. To re-invite me, see `{ctx.prefix}invite`.")
     elif isinstance(e, commands.NSFWChannelRequired):

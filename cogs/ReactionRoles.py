@@ -92,14 +92,10 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
         role: discord.Role,
     ):
-        try:
-            GuildReactionManager(ctx.guild, instances.guild_collection).write(channel, message, emoji, role)
-            message_model = channel.get_partial_message(message.id)
-            await message_model.add_reaction(emoji)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        GuildReactionManager(ctx.guild, instances.guild_collection).write(channel, message, emoji, role)
+        message_model = channel.get_partial_message(message.id)
+        await message_model.add_reaction(emoji)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
 
 def setup(bot):

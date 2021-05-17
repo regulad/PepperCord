@@ -64,12 +64,8 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
         description="Sets message displayed when an action occursm. Message types include on_member_join and on_member_remove.",
     )
     async def setmessage(self, ctx, message_type: str, channel: discord.TextChannel, *, message: str):
-        try:
-            GuildMessageManager(ctx.guild, instances.guild_collection).write(message_type, channel, message)
-        except:
-            await ctx.message.add_reaction(emoji="\U0000274c")
-        else:
-            await ctx.message.add_reaction(emoji="\U00002705")
+        GuildMessageManager(ctx.guild, instances.guild_collection).write(message_type, channel, message)
+        await ctx.message.add_reaction(emoji="\U00002705")
 
 
 def setup(bot):

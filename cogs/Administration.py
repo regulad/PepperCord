@@ -47,7 +47,7 @@ class Administration(
     async def read(self, ctx, *, entity: typing.Optional[typing.Union[discord.Member, discord.Role]]):
         entity = entity or ctx.author
         permission_level = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection).read(entity)
-        await ctx.send(f"`{entity.id}` has permission level {permission_level}")
+        await ctx.send(f"{entity.name} has permission level `{permission_level}`")
 
     @permissions.command(
         name="write",

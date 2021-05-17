@@ -74,7 +74,7 @@ class Levels(commands.Cog):
             # Disabled
             guild_config = LevelConfigManager(message.guild, instances.guild_collection)
             user_config = LevelConfigManager(message.author, instances.user_collection)
-            if not (guild_config or user_config):
+            if not (guild_config.read() or user_config.read()):
                 next_xp = get_xp(new_level + 1) - current_xp
                 embed = (
                     discord.Embed(

@@ -30,7 +30,7 @@ class GuildReactionManager(managers.CommonConfigManager):
 
 class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions that give/remove a role when clicked on."):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: commands.Bot = bot
 
     async def cog_check(self, ctx):
         return await checks.is_admin(ctx)
@@ -80,8 +80,8 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
 
     @reactionrole.command(
         name="add",
-        brief="Adds reactions.",
-        description="The bot must have permissions to add rections in the desired channel.",
+        brief="Adds reaction roles.",
+        description="Adds reaction roles. The bot must have permissions to add rections in the desired channel.",
         usage="<Channel> <Message> <Emoji> <Role>",
     )
     async def add(
@@ -93,8 +93,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         role: discord.Role,
     ):
         GuildReactionManager(ctx.guild, instances.guild_collection).write(channel, message, emoji, role)
-        message_model = channel.get_partial_message(message.id)
-        await message_model.add_reaction(emoji)
+        await message.add_reaction(emoji)
         await ctx.message.add_reaction(emoji="✅")
 
 

@@ -3,7 +3,7 @@ import typing
 import discord
 import instances
 from discord.ext import commands
-from utils import managers
+from utils import permissions
 
 
 class Dev(
@@ -28,11 +28,11 @@ class Dev(
             collection = instances.guild_collection
         elif isinstance(entity, (discord.Member, discord.User)):
             collection = instances.user_collection
-        managers.BlacklistManager(
+        permissions.BlacklistManager(
             entity,
             collection,
         ).write(value)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="nick",

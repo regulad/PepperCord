@@ -36,7 +36,7 @@ class DiscordInfo(
         brief="Get user info.",
         usage="[User (ID/Mention/Name)]",
     )
-    async def whoIs(self, ctx, *, user: typing.Union[discord.Member, discord.User] = None):
+    async def whoIs(self, ctx, *, user: typing.Optional[typing.Union[discord.Member, discord.User]]):
         if not user:
             user = ctx.author
         try:
@@ -68,7 +68,7 @@ class DiscordInfo(
         usage="[Guild ID]",
     )
     @commands.guild_only()
-    async def serverInfo(self, ctx, *, guild: discord.Guild = None):
+    async def serverInfo(self, ctx, *, guild: typing.Optional[discord.Guild]):
         if not guild:
             guild = ctx.guild
         guildOwner = guild.owner

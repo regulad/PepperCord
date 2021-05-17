@@ -3,7 +3,7 @@ import typing
 import discord
 import instances
 from discord.ext import commands
-from utils import checks, errors, managers
+from utils import checks, errors, managers, permissions
 
 
 class Administration(
@@ -15,7 +15,7 @@ class Administration(
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await checks.has_permission_level(ctx, 3)
+        return await checks.is_admin(ctx)
 
     @commands.command(
         name="message",
@@ -41,22 +41,32 @@ class Administration(
     @permissions.command(
         name="read",
         brief="Displays permission level of entity.",
-        description="Gets current permission level from member or role.",
-        usage="<Member|Role>",
+        description="Gets raw permission level from member or role.",
+        usage="[Member|Role]",
     )
-    async def read(self, ctx, *, entity: typing.Union[discord.Member, discord.Role]):
-        permission_level = managers.GuildPermissionManager(ctx.guild, instances.guild_collection).read(entity)
-        await ctx.send(f"{entity.id} has permission level {permission_level}")
+    async def read(self, ctx, *, entity: typing.Optional[typing.Union[discord.Member, discord.Role]]):
+        entity = entity or ctx.author
+        permission_level = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection).read(entity)
+        await ctx.send(f"`{entity.id}` has permission level {permission_level}")
 
     @permissions.command(
         name="write",
         brief="Write permission level of a role.",
-        description="Writes given permission level into a role.",
-        usage="<Permission Level> <Role>",
+        description="Writes given permission level into a role. Valid options include: Manager, Moderator, and Administrator.",
+        usage="[Permission Level (Admin)] <Role>",
     )
-    async def write(self, ctx, value: int, *, entity: discord.Role):
-        managers.GuildPermissionManager(ctx.guild, instances.guild_collection).write(entity, value)
-        await ctx.message.add_reaction(emoji="\U00002705")
+    async def write(self, ctx, value: typing.Optional[str], *, entity: discord.Role):
+        value = value or "Admin"
+        if value == "Admin" or value == "Administrator" or value == "admin" or value == "administrator":
+            attribute = permissions.Permissions.ADMINISTRATOR
+        elif value == "Mod" or value == "Moderator" or value == "mod" or value == "moderator":
+            attribute = permissions.Permissions.MODERATOR
+        elif value == "Man" or value == "Manager" or value == "man" or value == "manager":
+            attribute = permissions.Permissions.MANAGER
+        else:
+            raise commands.BadArgument()
+        permissions.GuildPermissionManager(ctx.guild, instances.guild_collection).write(entity, attribute)
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.group(
         invoke_without_command=True,
@@ -77,7 +87,7 @@ class Administration(
             "prefix",
             instances.config_instance["discord"]["commands"]["prefix"],
         ).write(prefix)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
     @config.command(
         name="mute",
@@ -91,7 +101,7 @@ class Administration(
             "mute_role",
             0,
         ).write(role.id)
-        await ctx.message.add_reaction(emoji="\U00002705")
+        await ctx.message.add_reaction(emoji="✅")
 
 
 def setup(bot):

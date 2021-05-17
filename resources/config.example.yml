@@ -3,7 +3,7 @@ db:
   name: peppercord # Name of the DB on your PepperCord server
   collections: # Name of the collections that are used to store data
     user: user
-    guild: servers
+    guild: guild
     bot: bot
 discord:
   api:

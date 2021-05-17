@@ -87,6 +87,8 @@ async def on_command_error(ctx, e):
         await ctx.send("You have been blacklisted from utilizing this instance of the bot.")
     elif isinstance(e, commands.BotMissingPermissions):
         await ctx.send(f"I'm missing permissions I need to function. To re-invite me, see `{ctx.prefix}invite`.")
+    elif isinstance(e, commands.NoPrivateMessage):
+        await ctx.send(f"This commands can only be executed in a server.")
     elif isinstance(e, commands.NSFWChannelRequired):
         await ctx.send("No horny! A NSFW channel is required to execute this command.")
     elif isinstance(e, commands.CommandOnCooldown):

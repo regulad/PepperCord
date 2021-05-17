@@ -113,7 +113,7 @@ class Levels(commands.Cog):
 
     @disablexp.command(
         name="user",
-        aliases="self",
+        aliases=["self"],
         brief="Disables level-up alerts for just you.",
         description="Disables level-up alerts for just you. You will still earn XP to use in other servers.",
     )

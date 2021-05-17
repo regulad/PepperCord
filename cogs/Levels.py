@@ -3,7 +3,6 @@ import random
 import typing
 
 import discord
-from discord import colour
 import instances
 import pymongo
 from discord.ext import commands
@@ -28,7 +27,7 @@ def get_level(xp: typing.Union[int, float]):
 class LevelConfigManager(managers.CommonConfigManager):
     def __init__(
         self,
-        model: discord.Guild,
+        model: typing.Union[discord.Guild, discord.Member, discord.User],
         collection: pymongo.collection.Collection,
     ):
         super().__init__(model, collection, "levels_disabled", False)
@@ -48,6 +47,11 @@ class Levels(commands.Cog):
         self.bot: commands.Bot = bot
         self.xp_cd = commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.user)
 
+    async def cog_check(self, ctx):
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
+        return True
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         # Recursion prevention
@@ -65,61 +69,65 @@ class Levels(commands.Cog):
         message_xp = random.randrange(xp_start, xp_end)
         new_xp = current_xp + message_xp
         new_level = get_level(new_xp)
+        # Levelup message
         if new_level > current_level:
-            next_xp = get_xp(new_level + 1) - current_xp
-            embed = (
-                discord.Embed(
-                    colour=message.author.colour,
-                    title="Level up!",
-                    description=f"{message.author.name} just levelled up to `{new_level}`!",
+            # Disabled
+            guild_config = LevelConfigManager(message.guild, instances.guild_collection)
+            user_config = LevelConfigManager(message.author, instances.user_collection)
+            if not (guild_config or user_config):
+                next_xp = get_xp(new_level + 1) - current_xp
+                embed = (
+                    discord.Embed(
+                        colour=message.author.colour,
+                        title="Level up!",
+                        description=f"{message.author.name} just levelled up to `{new_level}`!",
+                    )
+                    .add_field(name="To next:", value=f"```{round(next_xp)}```")
+                    .set_thumbnail(url=message.author.avatar_url)
                 )
-                .add_field(name="To next:", value=f"```{round(next_xp)}```")
-                .set_thumbnail(url=message.author.avatar_url)
-            )
-            await message.reply(embed=embed)
+                await message.reply(embed=embed)
+        # The actual action
         user_instance.increment(message_xp)
 
     @commands.group(
         invoke_without_command=True,
         case_insensitive=True,
-        name="xp",
-        brief="XP tools.",
-        description="XP/Levelling tools & configuration.",
+        name="disablexp",
+        aliases=["disablelevels"],
+        brief="Disables level-up alerts.",
+        description="Disables level-up alerts. You will still earn XP to use in other servers.",
     )
-    @commands.guild_only()
-    async def xp(self, ctx):
+    async def disablexp(self, ctx):
         raise errors.SubcommandNotFound()
 
-    @xp.command(
-        name="disable", brief="Disables levelling in a server.", description="Disables earning of XP and level-up alerts."
+    @disablexp.command(
+        name="server",
+        aliases=["guild"],
+        brief="Disables level-up alerts for the entire server.",
+        description="Disables level-up alerts for the entire server. Server members will still learn XP to use in other servers that the bot is in.",
     )
     @commands.check(checks.is_admin)
-    async def disable(self, ctx):
+    async def server(self, ctx):
         LevelConfigManager(ctx.guild, instances.guild_collection).write(True)
         await ctx.message.add_reaction(emoji="✅")
 
-    @xp.command(
-        name="enable", brief="Enables levelling in a server.", description="Enables earning of XP and level-up alerts."
+    @disablexp.command(
+        name="user",
+        aliases="self",
+        brief="Disables level-up alerts for just you.",
+        description="Disables level-up alerts for just you. You will still earn XP to use in other servers.",
     )
-    @commands.check(checks.is_admin)
-    async def enable(self, ctx):
-        LevelConfigManager(ctx.guild, instances.guild_collection).write(False)
+    async def user(self, ctx):
+        LevelConfigManager(ctx.author, instances.guild_collection).write(True)
         await ctx.message.add_reaction(emoji="✅")
 
-    @xp.command(name="set", brief="Writes XP level.", description="Writes XP level, overriding any present XP.")
+    @commands.command(
+        name="setxp", brief="Writes XP level.", description="Writes XP level, overriding any present XP. Only for the owner"
+    )
     @commands.is_owner()
     async def set(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]], *, xp: int):
         user = user or ctx.author
         LevelManager(user, instances.user_collection).write(xp)
-        await ctx.message.add_reaction(emoji="✅")
-
-    @xp.command(
-        name="increment", aliases=["add"], brief="Adds to XP level.", description="Adds to XP level, keeping any present XP."
-    )
-    @commands.is_owner()
-    async def increment(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]], *, xp: int):
-        user = user or ctx.author
-        LevelManager(user, instances.user_collection).increment(xp)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(

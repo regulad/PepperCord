@@ -5,7 +5,7 @@ import discord
 import instances
 import pymongo
 from discord.ext import commands
-from utils import checks, errors, managers
+from utils import checks, errors, managers, permissions
 
 
 class GuildReactionManager(managers.CommonConfigManager):
@@ -33,7 +33,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await checks.has_permission_level(ctx, 3)
+        return await checks.has_permission_level(ctx, permissions.Permissions.ADMINISTRATOR)
 
     async def reaction_processor(self, payload: discord.RawReactionActionEvent):
         if payload.guild_id == None or payload.user_id == self.bot.user.id:

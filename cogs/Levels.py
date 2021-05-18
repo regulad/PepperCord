@@ -80,12 +80,22 @@ class Levels(commands.Cog):
                     discord.Embed(
                         colour=message.author.colour,
                         title="Level up!",
-                        description=f"{message.author.name} just levelled up to `{new_level}`!",
+                        description=f"{message.author.display_name} just levelled up to `{new_level}`!",
                     )
                     .add_field(name="To next:", value=f"```{round(next_xp)}```")
                     .set_thumbnail(url=message.author.avatar_url)
                 )
-                await message.reply(embed=embed)
+                channel = managers.CommonConfigManager(
+                    message.guild,
+                    instances.guild_collection,
+                    "redirect",
+                    0,
+                ).read()
+                if channel:
+                    channel_model: discord.TextChannel = message.guild.get_channel(channel)
+                    await channel_model.send(message.author.mention, embed=embed)
+                else:
+                    await message.reply(embed=embed)
         # The actual action
         user_instance.increment(message_xp)
 
@@ -107,7 +117,7 @@ class Levels(commands.Cog):
         description="Disables level-up alerts for the entire server. Server members will still learn XP to use in other servers that the bot is in.",
     )
     @commands.check(checks.is_admin)
-    async def server(self, ctx):
+    async def dserver(self, ctx):
         LevelConfigManager(ctx.guild, instances.guild_collection).write(True)
         await ctx.message.add_reaction(emoji="✅")
 
@@ -117,8 +127,40 @@ class Levels(commands.Cog):
         brief="Disables level-up alerts for just you.",
         description="Disables level-up alerts for just you. You will still earn XP to use in other servers.",
     )
-    async def user(self, ctx):
+    async def duser(self, ctx):
         LevelConfigManager(ctx.author, instances.guild_collection).write(True)
+        await ctx.message.add_reaction(emoji="✅")
+
+    @commands.group(
+        invoke_without_command=True,
+        case_insensitive=True,
+        name="Enablesxp",
+        aliases=["enablelevels"],
+        brief="Enables level-up alerts.",
+        description="Enables level-up alerts. You will still earn XP to use in other servers.",
+    )
+    async def enablexp(self, ctx):
+        raise errors.SubcommandNotFound()
+
+    @enablexp.command(
+        name="server",
+        aliases=["guild"],
+        brief="Enables level-up alerts for the entire server.",
+        description="Enables level-up alerts for the entire server. Server members who have individually disabled notofications will still be disabled.",
+    )
+    @commands.check(checks.is_admin)
+    async def eserver(self, ctx):
+        LevelConfigManager(ctx.guild, instances.guild_collection).write(False)
+        await ctx.message.add_reaction(emoji="✅")
+
+    @enablexp.command(
+        name="user",
+        aliases=["self"],
+        brief="Enables level-up alerts for just you.",
+        description="Enables level-up alerts for just you. You will still earn XP to use in other servers.",
+    )
+    async def euser(self, ctx):
+        LevelConfigManager(ctx.author, instances.guild_collection).write(False)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
@@ -133,19 +175,46 @@ class Levels(commands.Cog):
     @commands.command(
         name="rank", aliases=["level"], brief="Displays current level & rank.", description="Displays current level & rank."
     )
-    async def rank(self, ctx, *, user: typing.Optional[typing.Union[discord.Member, discord.User]]):
+    async def rank(self, ctx: commands.Context, *, user: typing.Optional[discord.Member]):
         user = user or ctx.author
         xp = LevelManager(user, instances.user_collection).read()
         level = get_level(xp)
         next_level = get_xp(level + 1) - xp
         embed = (
-            discord.Embed(colour=user.colour, title=f"{user.name}'s level")
+            discord.Embed(colour=user.colour, title=f"{user.display_name}'s level")
             .add_field(name="XP:", value=f"```{xp}```")
             .add_field(name="Level:", value=f"```{level}```")
             .add_field(name="To next:", value=f"```{round(next_level)}```")
             .set_thumbnail(url=user.avatar_url)
         )
         await ctx.send(embed=embed)
+
+    @commands.command(name="leaderboard", brief="Displays current level & rank.", description="Displays current level & rank.")
+    @commands.cooldown(1, 30, commands.cooldowns.BucketType.guild)
+    async def leaderboard(
+        self,
+        ctx: commands.Context,
+    ):
+        if ctx.guild.large:
+            raise errors.TooManyMembers()
+        async with ctx.typing():
+            embed: discord.Embed = discord.Embed(colour=discord.Colour.random(), title=f"{ctx.guild.name}").set_thumbnail(
+                url=ctx.guild.icon_url
+            )
+            member_xp_dict = {}
+            for member in ctx.guild.members:  # Horribly inefficent. Like, really bad.
+                member_xp_dict[member] = LevelManager(member, instances.user_collection).read()
+            sorted_list = sorted(member_xp_dict.items(), key=lambda item: item[1], reverse=True)
+            del sorted_list[15:]
+            sorted_dict = dict(sorted_list)
+            dict_index = 0
+            for member in list(sorted_dict.keys()):
+                dict_index += 1
+                xp = sorted_dict[member]
+                embed.add_field(
+                    name=f"{dict_index}. {member.display_name}", value=f"Level {get_level(xp)} ({xp} XP)", inline=False
+                )
+            await ctx.send(embed=embed)
 
     @commands.command(
         name="xp-level",

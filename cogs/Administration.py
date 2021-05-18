@@ -103,6 +103,20 @@ class Administration(
         ).write(role.id)
         await ctx.message.add_reaction(emoji="✅")
 
+    @config.command(
+        name="redirect",
+        brief="Redirects level-up alerts to a certain channel.",
+        description="Redirects level-up alerts to a certain channel. Pass 0 to disable.",
+    )
+    async def redirect(self, ctx, *, channel: discord.TextChannel):
+        managers.CommonConfigManager(
+            ctx.guild,
+            instances.guild_collection,
+            "redirect",
+            0,
+        ).write(channel.id)
+        await ctx.message.add_reaction(emoji="✅")
+
 
 def setup(bot):
     bot.add_cog(Administration(bot))

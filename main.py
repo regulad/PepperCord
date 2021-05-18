@@ -18,12 +18,14 @@ async def get_prefix(bot, message):
     if message.guild is None:
         return commands.when_mentioned_or(default_prefix)(bot, message)
     else:
-        guild_prefix = managers.CommonConfigManager(
+        guild_prefix_manager = managers.CommonConfigManager(
             message.guild,
             instances.guild_collection,
             "prefix",
             instances.config_instance["discord"]["commands"]["prefix"],
-        ).read()
+        )
+        await guild_prefix_manager.fetch_document()
+        guild_prefix = await guild_prefix_manager.read()
         return commands.when_mentioned_or(f"{guild_prefix} ", guild_prefix)(bot, message)
 
 
@@ -57,18 +59,20 @@ async def on_ready():
 
 @bot.check_once
 async def bot_check_once(ctx):
+    # Get data
+    user_blacklist_manager = permissions.BlacklistManager(ctx.author, instances.user_collection,)
+    await user_blacklist_manager.fetch_document()
+    guild_blacklist_manager = permissions.BlacklistManager(ctx.guild,instances.guild_collection,)
+    await guild_blacklist_manager.fetch_document()
     # Cooldown
     bucket = cooldown.get_bucket(ctx.message)
     retry_after = bucket.update_rate_limit()
     if retry_after:
         raise commands.CommandOnCooldown(bucket, retry_after)
     # Blacklist
-    elif (permissions.BlacklistManager(ctx.author, instances.user_collection,).read()) or (
+    elif (await user_blacklist_manager.read()) or (
         ctx.guild != None
-        and permissions.BlacklistManager(
-            ctx.guild,
-            instances.guild_collection,
-        ).read()
+        and await guild_blacklist_manager.read()
     ):
         raise errors.Blacklisted()
     else:

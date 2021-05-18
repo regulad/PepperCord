@@ -3,7 +3,7 @@ import enum
 import typing
 
 import discord
-import pymongo
+import motor.motor_asyncio
 
 from .managers import CommonConfigManager
 
@@ -16,19 +16,19 @@ class Permissions(enum.Enum):
 
 class BlacklistManager(CommonConfigManager):
     def __init__(
-        self, model: typing.Union[discord.Guild, discord.Member, discord.User], collection: pymongo.collection.Collection
+        self, model: typing.Union[discord.Guild, discord.Member, discord.User], collection: motor.motor_asyncio.AsyncIOMotorCollection
     ):
         super().__init__(model, collection, "blacklisted", False)
 
-    def write(self, value: bool):
-        super().write(value)
+    async def write(self, value: bool):
+        await super().write(value)
 
 
 class GuildPermissionManager(CommonConfigManager):
-    def __init__(self, guild: discord.Guild, collection: pymongo.collection.Collection):
+    def __init__(self, guild: discord.Guild, collection: motor.motor_asyncio.AsyncIOMotorCollection):
         super().__init__(guild, collection, "permissions", {})
 
-    def read(self, entity: typing.Union[discord.Member, discord.Role]):
+    async def read(self, entity: typing.Union[discord.Member, discord.Role]):
         if isinstance(entity, discord.Member):
             entity = entity.top_role
         below_roles = []
@@ -43,7 +43,7 @@ class GuildPermissionManager(CommonConfigManager):
             permission_levels.append(active_item)
         return max(permission_levels)
 
-    def write(self, role: discord.Role, level: Permissions):
+    async def write(self, role: discord.Role, level: Permissions):
         working_key = copy.deepcopy(self.active_key)
         working_key.update({str(role.id): level.value})
-        super().write(working_key)
+        await super().write(working_key)

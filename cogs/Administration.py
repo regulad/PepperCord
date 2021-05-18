@@ -46,7 +46,9 @@ class Administration(
     )
     async def read(self, ctx, *, entity: typing.Optional[typing.Union[discord.Member, discord.Role]]):
         entity = entity or ctx.author
-        permission_level = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection).read(entity)
+        permission_level_manager = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection)
+        await permission_level_manager.fetch_document()
+        permission_level = await permission_level_manager.read(entity)
         await ctx.send(f"{entity.name} has permission level `{permission_level}`")
 
     @permissions.command(
@@ -65,7 +67,9 @@ class Administration(
             attribute = permissions.Permissions.MANAGER
         else:
             raise commands.BadArgument()
-        permissions.GuildPermissionManager(ctx.guild, instances.guild_collection).write(entity, attribute)
+        permission_manager = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection)
+        await permission_manager.fetch_document()
+        await permission_manager.write(entity, attribute)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.group(
@@ -81,12 +85,14 @@ class Administration(
 
     @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
     async def prefix(self, ctx, *, prefix: str):
-        managers.CommonConfigManager(
+        config_manager = managers.CommonConfigManager(
             ctx.guild,
             instances.guild_collection,
             "prefix",
             instances.config_instance["discord"]["commands"]["prefix"],
-        ).write(prefix)
+        )
+        await config_manager.fetch_document()
+        await config_manager.write(prefix)
         await ctx.message.add_reaction(emoji="✅")
 
     @config.command(
@@ -95,12 +101,14 @@ class Administration(
         description="Sets the role that is given to people who are muted. It must already be configured.",
     )
     async def mute(self, ctx, *, role: discord.Role):
-        managers.CommonConfigManager(
+        config_manager = managers.CommonConfigManager(
             ctx.guild,
             instances.guild_collection,
             "mute_role",
             0,
-        ).write(role.id)
+        )
+        await config_manager.fetch_document()
+        await config_manager.write(role.id)
         await ctx.message.add_reaction(emoji="✅")
 
     @config.command(
@@ -109,12 +117,14 @@ class Administration(
         description="Redirects level-up alerts to a certain channel. Pass 0 to disable.",
     )
     async def redirect(self, ctx, *, channel: discord.TextChannel):
-        managers.CommonConfigManager(
+        config_manager = managers.CommonConfigManager(
             ctx.guild,
             instances.guild_collection,
             "redirect",
             0,
-        ).write(channel.id)
+        )
+        await config_manager.fetch_document()
+        await config_manager.write(channel.id)
         await ctx.message.add_reaction(emoji="✅")
 
 

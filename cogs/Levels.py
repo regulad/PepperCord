@@ -4,7 +4,7 @@ import typing
 
 import discord
 import instances
-import pymongo
+import motor.motor_asyncio
 from discord.ext import commands
 from utils import checks, errors, managers
 
@@ -28,7 +28,7 @@ class LevelConfigManager(managers.CommonConfigManager):
     def __init__(
         self,
         model: typing.Union[discord.Guild, discord.Member, discord.User],
-        collection: pymongo.collection.Collection,
+        collection: motor.motor_asyncio.AsyncIOMotorCollection,
     ):
         if isinstance(model, (discord.Member, discord.User)):
             super().__init__(model, collection, "levels_disabled", False)
@@ -37,12 +37,12 @@ class LevelConfigManager(managers.CommonConfigManager):
 
 
 class LevelManager(managers.CommonConfigManager):
-    def __init__(self, model: typing.Union[discord.Member, discord.User], collection: pymongo.collection.Collection):
+    def __init__(self, model: typing.Union[discord.Member, discord.User], collection: motor.motor_asyncio.AsyncIOMotorCollection):
         super().__init__(model, collection, "xp", 0)
 
-    def increment(self, new_xp: int):
+    async def increment(self, new_xp: int):
         new_key = self.active_key + new_xp
-        super().write(new_key)
+        await super().write(new_key)
 
 
 class Levels(
@@ -59,6 +59,7 @@ class Levels(
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        levelled_up = False
         # Recursion prevention
         if (not message.guild) or (message.author.bot):
             return
@@ -69,18 +70,22 @@ class Levels(
             return
         # Actual processing
         user_instance = LevelManager(message.author, instances.user_collection)
-        current_xp = user_instance.read()
+        await user_instance.fetch_document()
+        current_xp = await user_instance.read()
         current_level = get_level(current_xp)
         message_xp = random.randrange(xp_start, xp_end)
         new_xp = current_xp + message_xp
         new_level = get_level(new_xp)
         # Levelup message
         if new_level > current_level:
+            levelled_up = True
             # Disabled
             guild_config = LevelConfigManager(message.guild, instances.guild_collection)
+            await guild_config.fetch_document()
             user_config = LevelConfigManager(message.author, instances.user_collection)
-            if not (guild_config.read() or user_config.read()):
-                next_xp = get_xp(new_level + 1) - current_xp
+            await user_config.fetch_document()
+            if not (await guild_config.read() or await user_config.read()):
+                next_xp = get_xp(new_level + 1) - get_xp(new_level)
                 embed = (
                     discord.Embed(
                         colour=message.author.colour,
@@ -90,19 +95,24 @@ class Levels(
                     .add_field(name="To next:", value=f"```{round(next_xp)}```")
                     .set_thumbnail(url=message.author.avatar_url)
                 )
-                channel = managers.CommonConfigManager(
+                channel_manager = managers.CommonConfigManager(
                     message.guild,
                     instances.guild_collection,
                     "redirect",
                     0,
-                ).read()
+                )
+                await channel_manager.fetch_document()
+                channel = await channel_manager.read()
                 if channel:
                     channel_model: discord.TextChannel = message.guild.get_channel(channel)
                     await channel_model.send(message.author.mention, embed=embed)
                 else:
                     await message.reply(embed=embed)
         # The actual action
-        user_instance.increment(message_xp)
+        if levelled_up:
+            await user_instance.write(get_xp(new_level))
+        else:
+            await user_instance.increment(message_xp)
 
     @commands.group(
         invoke_without_command=True,
@@ -123,7 +133,9 @@ class Levels(
     )
     @commands.check(checks.is_admin)
     async def dserver(self, ctx):
-        LevelConfigManager(ctx.guild, instances.guild_collection).write(True)
+        level_config_manager = LevelConfigManager(ctx.guild, instances.guild_collection)
+        await level_config_manager.fetch_document()
+        await level_config_manager.write(True)
         await ctx.message.add_reaction(emoji="✅")
 
     @disablexp.command(
@@ -133,7 +145,9 @@ class Levels(
         description="Disables level-up alerts for just you. You will still earn XP to use in other servers.",
     )
     async def duser(self, ctx):
-        LevelConfigManager(ctx.author, instances.guild_collection).write(True)
+        level_config_manager = LevelConfigManager(ctx.author, instances.guild_collection)
+        await level_config_manager.fetch_document()
+        await level_config_manager.write(True)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.group(
@@ -155,7 +169,9 @@ class Levels(
     )
     @commands.check(checks.is_admin)
     async def eserver(self, ctx):
-        LevelConfigManager(ctx.guild, instances.guild_collection).write(False)
+        level_config_manager = LevelConfigManager(ctx.guild, instances.guild_collection)
+        await level_config_manager.fetch_document()
+        await level_config_manager.write(False)
         await ctx.message.add_reaction(emoji="✅")
 
     @enablexp.command(
@@ -165,7 +181,9 @@ class Levels(
         description="Enables level-up alerts for just you. You will still earn XP to use in other servers.",
     )
     async def euser(self, ctx):
-        LevelConfigManager(ctx.author, instances.guild_collection).write(False)
+        level_config_manager = LevelConfigManager(ctx.author, instances.guild_collection)
+        await level_config_manager.fetch_document()
+        await level_config_manager.write(False)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
@@ -174,7 +192,9 @@ class Levels(
     @commands.is_owner()
     async def set(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]], *, xp: int):
         user = user or ctx.author
-        LevelManager(user, instances.user_collection).write(xp)
+        level_manager = LevelManager(user, instances.user_collection)
+        await level_manager.fetch_document()
+        await level_manager.write(xp)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
@@ -182,13 +202,15 @@ class Levels(
     )
     async def rank(self, ctx: commands.Context, *, user: typing.Optional[discord.Member]):
         user = user or ctx.author
-        xp = LevelManager(user, instances.user_collection).read()
+        level_manager = LevelManager(user, instances.user_collection)
+        await level_manager.fetch_document()
+        xp = await level_manager.read()
         level = get_level(xp)
         next_level = get_xp(level + 1) - xp
         embed = (
             discord.Embed(colour=user.colour, title=f"{user.display_name}'s level")
-            .add_field(name="XP:", value=f"```{xp}```")
-            .add_field(name="Level:", value=f"```{level}```")
+            .add_field(name="XP:", value=f"```{round(xp)}```")
+            .add_field(name="Level:", value=f"```{round(level)}```")
             .add_field(name="To next:", value=f"```{round(next_level)}```")
             .set_thumbnail(url=user.avatar_url)
         )
@@ -200,15 +222,15 @@ class Levels(
         self,
         ctx: commands.Context,
     ):
-        if ctx.guild.large:
-            raise errors.TooManyMembers()
         async with ctx.typing():
             embed: discord.Embed = discord.Embed(colour=discord.Colour.random(), title=f"{ctx.guild.name}").set_thumbnail(
                 url=ctx.guild.icon_url
             )
             member_xp_dict = {}
-            for member in ctx.guild.members:  # Horribly inefficent. Like, really bad.
-                member_xp_dict[member] = LevelManager(member, instances.user_collection).read()
+            for member in ctx.guild.members:
+                level_manager = LevelManager(member, instances.user_collection)
+                await level_manager.fetch_document()
+                member_xp_dict[member] = await level_manager.read()
             sorted_list = sorted(member_xp_dict.items(), key=lambda item: item[1], reverse=True)
             del sorted_list[15:]
             sorted_dict = dict(sorted_list)
@@ -217,7 +239,7 @@ class Levels(
                 dict_index += 1
                 xp = sorted_dict[member]
                 embed.add_field(
-                    name=f"{dict_index}. {member.display_name}", value=f"Level {get_level(xp)} ({xp} XP)", inline=False
+                    name=f"{dict_index}. {member.display_name}", value=f"Level {round(get_level(xp))} ({round(xp)} XP)", inline=False
                 )
             await ctx.send(embed=embed)
 

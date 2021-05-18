@@ -38,10 +38,12 @@ class Dev(
             await entity.leave()
         elif isinstance(entity, (discord.Member, discord.User)):
             collection = instances.user_collection
-        permissions.BlacklistManager(
+        blacklist_manager = permissions.BlacklistManager(
             entity,
             collection,
-        ).write(value)
+        )
+        await blacklist_manager.fetch_document()
+        await blacklist_manager.write(value)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(

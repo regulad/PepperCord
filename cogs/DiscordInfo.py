@@ -117,7 +117,7 @@ class DiscordInfo(
                     name="Invite:",
                     value=discord.utils.oauth_url(
                         client_id=str(self.bot.user.id),
-                        permissions=discord.Permissions(permissions=8),
+                        permissions=discord.Permissions(permissions=3157650678),
                         guild=ctx.guild,
                         scopes=("bot", "applications.commands"),
                     ),

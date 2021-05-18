@@ -8,7 +8,6 @@ art # Ascii art library
 pyyaml # Parses YAML
 jsonschema # Validates schema
 psutil # System status
-pycoingecko # Gets crypto data (Blocking, not optimal)
 nekos.py # For nekos.life
 asyncio-dgram # Docker dependency hell
 mcstatus # Minecraft Server

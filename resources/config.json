@@ -72,11 +72,25 @@
           "type": "array"
         }
       }
+    },
+    "web": {
+      "type": "object",
+      "properties": {
+        "base": {
+          "type": "string",
+          "format": "uri"
+        },
+        "github": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
     }
   },
   "required": [
     "discord",
     "db",
-    "extensions"
+    "extensions",
+    "web"
   ]
 }

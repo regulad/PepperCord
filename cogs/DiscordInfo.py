@@ -115,8 +115,13 @@ class DiscordInfo(
                 .set_thumbnail(url=self.bot.user.avatar_url)
                 .add_field(
                     name="Invite:",
-                    value=discord.utils.oauth_url(client_id=str(self.bot.user.id), permissions=discord.Permissions(permissions=8), guild=ctx.guild,scopes=("bot", "applications.commands")),
-                    inline=False
+                    value=discord.utils.oauth_url(
+                        client_id=str(self.bot.user.id),
+                        permissions=discord.Permissions(permissions=8),
+                        guild=ctx.guild,
+                        scopes=("bot", "applications.commands"),
+                    ),
+                    inline=False,
                 )
                 .add_field(
                     name="Bot status:",

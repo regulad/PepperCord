@@ -30,7 +30,10 @@ class LevelConfigManager(managers.CommonConfigManager):
         model: typing.Union[discord.Guild, discord.Member, discord.User],
         collection: pymongo.collection.Collection,
     ):
-        super().__init__(model, collection, "levels_disabled", True)
+        if isinstance(model, (discord.Member, discord.User)):
+            super().__init__(model, collection, "levels_disabled", False)
+        elif isinstance(model, discord.Guild):
+            super().__init__(model, collection, "levels_disabled", True)
 
 
 class LevelManager(managers.CommonConfigManager):

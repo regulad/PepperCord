@@ -42,7 +42,7 @@ class LevelManager(managers.CommonConfigManager):
         super().write(new_key)
 
 
-class Levels(commands.Cog):
+class Levels(commands.Cog, name="Levels", description="Each member can \"level up\" and raise their point on the server's leaderboard"):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
         self.xp_cd = commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.user)
@@ -134,7 +134,7 @@ class Levels(commands.Cog):
     @commands.group(
         invoke_without_command=True,
         case_insensitive=True,
-        name="Enablesxp",
+        name="enablexp",
         aliases=["enablelevels"],
         brief="Enables level-up alerts.",
         description="Enables level-up alerts. You will still earn XP to use in other servers.",

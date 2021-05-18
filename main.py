@@ -83,6 +83,8 @@ async def on_command_error(ctx, e):
             await ctx.reinvoke()
         except Exception as e:
             await ctx.send(f"During the attempt to reinvoke your command, another exception occured. See: ```{e}```")
+    elif isinstance(e, errors.TooManyMembers):
+        await ctx.send("This command doesn't work very well in large servers and has been disabled there. Sorry!")
     elif isinstance(e, errors.Blacklisted):
         await ctx.send("You have been blacklisted from utilizing this instance of the bot.")
     elif isinstance(e, commands.BotMissingPermissions):

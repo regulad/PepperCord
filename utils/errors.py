@@ -11,3 +11,7 @@ class NotConfigured(commands.CommandNotFound):
 
 class Blacklisted(commands.CheckFailure):
     pass
+
+
+class TooManyMembers(commands.CommandError):
+    pass

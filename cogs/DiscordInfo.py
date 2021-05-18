@@ -3,6 +3,7 @@ import sys
 import typing
 
 import discord
+from instances import config_instance
 import psutil
 from discord.ext import commands, tasks
 
@@ -103,11 +104,13 @@ class DiscordInfo(
     )
     async def botInfo(self, ctx):
         try:
+            base = config_instance["web"]["base"]
+            github = config_instance["web"]["github"]
             embed = (
                 discord.Embed(
                     colour=discord.Colour.orange(),
                     title=f"Hi, I'm {self.bot.user.name}! Nice to meet you!",
-                    description="**Important Links**: [Website](https://www.regulad.xyz/PepperCord) | [Invite](https://www.regulad.xyz/PepperCord/invite) | [Server](https://www.regulad.xyz/discord) | [Donate](https://www.regulad.xyz/donate)\n **GitHub**: [Repository](https://github.com/regulad/PepperCord) | [Issues](https://github.com/regulad/PepperCord/issues) | [Pull Requests](https://github.com/regulad/PepperCord/pulls)\n*For support, please make a GitHub issue. The server isn't for support!*",
+                    description=f"**Important Links**: [Website]({base}) | [Donate]({base}/donate)\n **GitHub**: [Repository]({github}) | [Issues]({github}/issues) | [Pull Requests]({github}/pulls)\n*For support, use GitHub issues.*",
                 )
                 .set_thumbnail(url=self.bot.user.avatar_url)
                 .add_field(

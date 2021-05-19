@@ -11,3 +11,4 @@ psutil # System status
 asyncio-dgram # Docker dependency hell
 mcstatus # Minecraft Server
 Pillow # Image editing
+dblpy # top.gg

@@ -1,12 +1,6 @@
-import base64
-from io import BytesIO
-
 import aiohttp
 import discord
-import nekos
 from discord.ext import commands
-from mcstatus import MinecraftServer
-from utils import errors
 
 
 class APIs(

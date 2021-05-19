@@ -20,54 +20,6 @@ class APIs(
     @commands.group(
         invoke_without_command=True,
         case_insensitive=True,
-        name="neko",
-        aliases=["nekos"],
-        description="Get data from https//nekos.life/api/v2/",
-        brief="Get data from nekos.life",
-    )
-    async def neko(self, ctx):
-        raise errors.SubcommandNotFound()
-
-    @neko.command(name="eightball", aliases=["8ball"])
-    async def eightball(self, ctx):
-        eightball = nekos.eightball()
-        embed = discord.Embed(colour=discord.Colour.blurple(), title=eightball.text).set_image(url=eightball.image)
-        await ctx.send(embed=embed)
-
-    @neko.command(
-        name="img",
-        usage="[https://github.com/Nekos-life/nekos.py/blob/master/nekos/nekos.py#L17#L27]",
-    )
-    @commands.is_nsfw()
-    async def img(self, ctx, *, target: str = "hentai"):
-        try:
-            await ctx.send(nekos.img(target))
-        except nekos.errors.InvalidArgument:
-            await ctx.send("Couldn't find that type of image.")
-
-    @neko.command(name="owoify")
-    async def owoify(self, ctx, *, text: str = "OwO"):
-        await ctx.send(nekos.owoify(text))
-
-    @neko.command(name="cat")
-    async def cat(self, ctx):
-        await ctx.send(nekos.cat())
-
-    @neko.command(name="textcat")
-    async def textcat(self, ctx):
-        await ctx.send(nekos.textcat())
-
-    @neko.command(name="why")
-    async def why(self, ctx):
-        await ctx.send(nekos.why())
-
-    @neko.command(name="fact")
-    async def fact(self, ctx):
-        await ctx.send(nekos.fact())
-
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
         name="minecraft",
         aliases=["mc"],
         description="Gets all sorts of data for Minecraft.",

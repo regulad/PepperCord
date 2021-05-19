@@ -60,9 +60,15 @@ async def on_ready():
 @bot.check_once
 async def bot_check_once(ctx):
     # Get data
-    user_blacklist_manager = permissions.BlacklistManager(ctx.author, instances.user_collection,)
+    user_blacklist_manager = permissions.BlacklistManager(
+        ctx.author,
+        instances.user_collection,
+    )
     await user_blacklist_manager.fetch_document()
-    guild_blacklist_manager = permissions.BlacklistManager(ctx.guild,instances.guild_collection,)
+    guild_blacklist_manager = permissions.BlacklistManager(
+        ctx.guild,
+        instances.guild_collection,
+    )
     await guild_blacklist_manager.fetch_document()
     # Cooldown
     bucket = cooldown.get_bucket(ctx.message)
@@ -70,10 +76,7 @@ async def bot_check_once(ctx):
     if retry_after:
         raise commands.CommandOnCooldown(bucket, retry_after)
     # Blacklist
-    elif (await user_blacklist_manager.read()) or (
-        ctx.guild != None
-        and await guild_blacklist_manager.read()
-    ):
+    elif (await user_blacklist_manager.read()) or (ctx.guild != None and await guild_blacklist_manager.read()):
         raise errors.Blacklisted()
     else:
         return True
@@ -103,6 +106,8 @@ async def on_command_error(ctx, e):
         )
     elif isinstance(e, commands.UserInputError):
         await ctx.send(f"Command is valid, but input is invalid. Try `{ctx.prefix}help {ctx.command}`.")
+    elif isinstance(e, (commands.MissingPermissions, errors.LowPrivilege)):
+        await ctx.send("You are missing required permissions.")
     elif isinstance(e, commands.CheckFailure):
         await ctx.send("You cannot run this command.")
     elif isinstance(e, errors.SubcommandNotFound):

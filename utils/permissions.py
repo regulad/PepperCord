@@ -16,7 +16,9 @@ class Permissions(enum.Enum):
 
 class BlacklistManager(CommonConfigManager):
     def __init__(
-        self, model: typing.Union[discord.Guild, discord.Member, discord.User], collection: motor.motor_asyncio.AsyncIOMotorCollection
+        self,
+        model: typing.Union[discord.Guild, discord.Member, discord.User],
+        collection: motor.motor_asyncio.AsyncIOMotorCollection,
     ):
         super().__init__(model, collection, "blacklisted", False)
 

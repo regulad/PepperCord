@@ -2,6 +2,7 @@ import instances
 from discord.ext import commands
 
 from .permissions import *
+from .errors import *
 
 
 async def has_permission_level(ctx: commands.Context, value: Permissions):
@@ -17,7 +18,7 @@ async def has_permission_level(ctx: commands.Context, value: Permissions):
     ):
         return True
     else:
-        raise commands.MissingPermissions()
+        raise LowPrivilege()
 
 
 async def is_admin(ctx):

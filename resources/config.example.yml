@@ -15,7 +15,7 @@ discord:
       per: 10
 extensions:
   dir:
-    - cogs/ # Directory where extensions like cogs are stored.
+    - extensions/ # Directory where extensions like cogs are stored.
 web:
   base: https://www.regulad.xyz/PepperCord # Base domain for donate button and more
   github: https://github.com/regulad/PepperCord # GitHub repo site

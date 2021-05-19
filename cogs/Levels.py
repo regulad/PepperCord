@@ -37,7 +37,9 @@ class LevelConfigManager(managers.CommonConfigManager):
 
 
 class LevelManager(managers.CommonConfigManager):
-    def __init__(self, model: typing.Union[discord.Member, discord.User], collection: motor.motor_asyncio.AsyncIOMotorCollection):
+    def __init__(
+        self, model: typing.Union[discord.Member, discord.User], collection: motor.motor_asyncio.AsyncIOMotorCollection
+    ):
         super().__init__(model, collection, "xp", 0)
 
     async def increment(self, new_xp: int):
@@ -239,7 +241,9 @@ class Levels(
                 dict_index += 1
                 xp = sorted_dict[member]
                 embed.add_field(
-                    name=f"{dict_index}. {member.display_name}", value=f"Level {round(get_level(xp))} ({round(xp)} XP)", inline=False
+                    name=f"{dict_index}. {member.display_name}",
+                    value=f"Level {round(get_level(xp))} ({round(xp)} XP)",
+                    inline=False,
                 )
             await ctx.send(embed=embed)
 

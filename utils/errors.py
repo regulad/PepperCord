@@ -15,3 +15,7 @@ class Blacklisted(commands.CheckFailure):
 
 class TooManyMembers(commands.CommandError):
     pass
+
+
+class LowPrivilege(commands.CheckFailure):
+    pass

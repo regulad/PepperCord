@@ -225,13 +225,13 @@ class Levels(
             raise errors.TooManyMembers()
         page = page or 0
         async with ctx.typing():
-            embed: discord.Embed = discord.Embed(colour=discord.Colour.random(), title=f"{ctx.guild.name}: page {page}").set_thumbnail(
-                url=ctx.guild.icon_url
-            )
+            embed: discord.Embed = discord.Embed(
+                colour=discord.Colour.random(), title=f"{ctx.guild.name}: page {page}"
+            ).set_thumbnail(url=ctx.guild.icon_url)
             member_xp_dict = {}
             for member in ctx.guild.members:
                 level_manager = LevelManager(member, instances.user_collection)
-                await level_manager.fetch_document() 
+                await level_manager.fetch_document()
                 member_xp_dict[member] = await level_manager.read()
             dict_index = page * 15
             new_dict_index = dict_index + 15

@@ -61,7 +61,6 @@ class Levels(
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        levelled_up = False
         # Recursion prevention
         if (not message.guild) or (message.author.bot):
             return
@@ -80,7 +79,6 @@ class Levels(
         new_level = get_level(new_xp)
         # Levelup message
         if new_level > current_level:
-            levelled_up = True
             # Disabled
             guild_config = LevelConfigManager(message.guild, instances.guild_collection)
             await guild_config.fetch_document()
@@ -110,11 +108,9 @@ class Levels(
                     await channel_model.send(message.author.mention, embed=embed)
                 else:
                     await message.reply(embed=embed)
+                message_xp += 1
         # The actual action
-        if levelled_up:
-            await user_instance.write(get_xp(new_level))
-        else:
-            await user_instance.increment(message_xp)
+        await user_instance.increment(message_xp)
 
     @commands.group(
         invoke_without_command=True,

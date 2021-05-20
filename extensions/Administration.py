@@ -127,6 +127,29 @@ class Administration(
         await config_manager.write(channel.id)
         await ctx.message.add_reaction(emoji="✅")
 
+    @commands.command(
+        name="color",
+        aliases=["colour", "colourrole", "colorrole"],
+        brief="Swiftly creates role with given color.",
+        description="Swiftly creates a role with the given color. If specified, you can give it to a user.",
+        usage="<R> <G> <B> [Name] [Member]",
+    )
+    async def colorrole(
+        self,
+        ctx: commands.Context,
+        r: int,
+        g: int,
+        b: int,
+        name: typing.Optional[str],
+        member: typing.Optional[discord.Member],
+    ):
+        colourinstance = discord.Colour.from_rgb(r, g, b)
+        name = name or "#" + str(str(hex(r)).strip("0x") + str(hex(g)).strip("0x") + str(hex(b)).strip("0x")).upper()
+        role = await ctx.guild.create_role(name=name, colour=colourinstance)
+        if member:
+            await member.add_roles(role)
+        await ctx.message.add_reaction(emoji="✅")
+
 
 def setup(bot):
     bot.add_cog(Administration(bot))

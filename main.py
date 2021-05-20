@@ -43,13 +43,18 @@ cooldown = commands.CooldownMapping.from_cooldown(
 
 
 def load_extensions(path: str):
+    extensions = 0
     for file in os.listdir(path):
         if file.endswith(".py"):
             full_path = path + file
             try:
                 bot.load_extension(full_path.strip(".py").replace("/", "."))
             except Exception as e:
-                print(f"{e}\nContinuing recursively")
+                print(f"Could not load {full_path}: {e}, continuing recursively")
+            else:
+                print(f"Loaded {full_path}")
+                extensions += 1
+    return extensions
 
 
 @bot.event
@@ -125,5 +130,5 @@ async def on_command_error(ctx, e):
 if __name__ == "__main__":
     bot.load_extension("jishaku")
     for path in instances.config_instance["extensions"]["dir"]:
-        load_extensions(path)
+        print(f"Loaded {load_extensions(path)} extensions from {path}")
     bot.run(instances.config_instance["discord"]["api"]["token"])

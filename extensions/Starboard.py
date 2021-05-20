@@ -35,15 +35,10 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         return True
 
     async def sendstar(self, channel: discord.TextChannel, message: discord.Message):
-        embed = (
-            discord.Embed(
-                colour=message.author.colour,
-                description=message.clean_content,
-            ).set_thumbnail(url=message.author.avatar_url)
-            # .add_field(name="Sent:", value=f"{message.created_at} UTC")
-            # .add_field(name="By:", value=message.author.mention)
-            # .add_field(name="In:", value=message.channel.mention)
-            .add_field(name="Link:", value=message.jump_url, inline=False)
+        embed = discord.Embed(colour=message.author.colour, description=message.clean_content,).set_author(
+            name=f"Sent by {message.author.display_name} in {message.channel.name}",
+            url=message.jump_url,
+            icon_url=message.author.avatar_url,
         )
         if message.attachments:
             attachment = message.attachments[0]
@@ -54,6 +49,10 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
                 or attachment.content_type == "image/webp"
             ):
                 embed.set_image(url=attachment.url)
+        elif message.embeds:
+            user_embed = message.embeds[0]
+            if user_embed.type == "video" or embed.type == "rich":
+                embed.set_image(url=user_embed.url)
         await channel.send(embed=embed)
 
     @commands.Cog.listener()

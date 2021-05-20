@@ -80,10 +80,9 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         if not emoji.name == sendemoji:
             return
         # See if reaction count meets threshold
-        react_count = 0
         for reaction in message.reactions:
             if reaction.emoji == sendemoji:
-                react_count += 1
+                react_count = reaction.count
         if react_count >= threshold:
             await self.sendstar(sendchannel, message)
         else:

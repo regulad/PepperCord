@@ -38,7 +38,6 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         embed = (
             discord.Embed(
                 colour=message.author.colour,
-                title=f"Message from {message.author.display_name} in ",
                 description=f"> *[{message.content}]({message.jump_url})*",
             )
             .set_thumbnail(url=message.author.avatar_url)

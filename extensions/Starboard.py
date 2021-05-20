@@ -38,12 +38,12 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         embed = (
             discord.Embed(
                 colour=message.author.colour,
-                description=f"> *[{message.content}]({message.jump_url})*",
-            )
-            .set_thumbnail(url=message.author.avatar_url)
-            .add_field(name="Sent:", value=f"{message.created_at} UTC")
-            .add_field(name="By:", value=message.author.mention)
-            .add_field(name="In:", value=message.channel.mention)
+                description=message.clean_content,
+            ).set_thumbnail(url=message.author.avatar_url)
+            # .add_field(name="Sent:", value=f"{message.created_at} UTC")
+            # .add_field(name="By:", value=message.author.mention)
+            # .add_field(name="In:", value=message.channel.mention)
+            .add_field(name="Link:", value=message.jump_url, inline=False)
         )
         if message.attachments:
             attachment = message.attachments[0]
@@ -63,9 +63,8 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
             return
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
         channel: discord.TextChannel = guild.get_channel(payload.channel_id)
-        message_partial: discord.PartialMessage = channel.get_partial_message(payload.message_id)
-        message: discord.Message = await message_partial.fetch()
-        author: discord.Member = guild.get_member(payload.user_id)
+        message: discord.Message = await channel.fetch_message(payload.message_id)
+        # author: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
         # Get documents
         config_manager = StarboardConfigManager(guild, instances.guild_collection)
@@ -81,7 +80,11 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
             return
         # See if reaction count meets threshold
         for reaction in message.reactions:
-            if reaction.emoji == sendemoji:
+            if isinstance(reaction.emoji, (discord.Emoji, discord.PartialEmoji)):
+                reaction_name = reaction.emoji.name
+            else:
+                reaction_name = reaction.emoji
+            if reaction_name == sendemoji:
                 react_count = reaction.count
         if react_count >= threshold:
             await self.sendstar(sendchannel, message)
@@ -110,6 +113,17 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
     @commands.check(checks.is_admin)
     async def sconfig(self, ctx):
         raise errors.SubcommandNotFound()
+
+    @sconfig.command(
+        name="disable",
+        brief="Disables Starboard.",
+        description="Disables starboard by removing the configuration.",
+    )
+    async def sdisable(self, ctx):
+        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
+        await config_manager.fetch_document()
+        await config_manager.delete(1)
+        await ctx.message.add_reaction("✅")
 
     @sconfig.command(
         name="channel",
@@ -154,15 +168,18 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
     @starboard.command(
         name="pin",
         brief="Pins message to the starboard.",
-        description="Pins a message of your choice to the starboard.",
+        description="Pins a message of your choice to the starboard. You can also reply to a message with the command to pin it.",
         usage="[Message]",
     )
     async def spin(
         self, ctx: commands.Context, *, message: typing.Optional[typing.Union[discord.Message, discord.PartialMessage]]
     ):
         if not isinstance(message, (discord.Message, discord.PartialMessage)):
-            messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
-            message = messages[0]
+            if ctx.message.reference:
+                message = ctx.message.reference.resolved
+            else:
+                messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
+                message = messages[0]
         config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
         await config_manager.fetch_document()
         try:

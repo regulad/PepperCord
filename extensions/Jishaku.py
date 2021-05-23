@@ -1,1 +1,1 @@
-from jishaku import cog
+from jishaku.cog import *

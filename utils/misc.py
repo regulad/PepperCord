@@ -1,2 +1,3 @@
 def dict_difference(x: dict, y: dict):
-    return dict(set(x) - set(y))
+    diff = dict(set(y.items()) - set(x.items()))
+    return diff

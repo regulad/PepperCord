@@ -1,9 +1,8 @@
 from discord.ext import commands
-
 from utils import errors
 
 
-class BotChecks(commands.Cog, name="Bot Checks", description="Global bot checks."):
+class BotCheck(commands.Cog, name="Bot Checks", description="Global bot checks."):
     def __init__(self, bot):
         self.bot = bot
 
@@ -20,11 +19,15 @@ class BotChecks(commands.Cog, name="Bot Checks", description="Global bot checks.
         if retry_after:
             raise commands.CommandOnCooldown(bucket, retry_after)
         # Blacklist
-        elif ctx.guild != None and ctx.document.setdefault("blacklisted", False):
+        guild_doc = await ctx.guild_doc
+        user_doc = await ctx.user_doc
+        if ctx.guild != None and guild_doc.setdefault("blacklisted", False):
+            raise errors.Blacklisted()
+        elif user_doc.setdefault("blacklisted", False):
             raise errors.Blacklisted()
         else:
             return True
 
 
 def setup(bot):
-    bot.add_cog(BotChecks(bot))
+    bot.add_cog(BotCheck(bot))

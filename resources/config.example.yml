@@ -1,7 +1,6 @@
 db:
   uri: mongodb://mongo:27017 # Connection URI to your MongoDB Server
   name: peppercord # Name of the DB on your PepperCord server
-  col: guild
 discord:
   api:
     token: UghqQolQCODamh1fS7B7DKkE.tJEE4u.TnJJbmoBbyscPFViH4OSOCX2Fyf # Token for your bot. Self bots don't work.
@@ -10,9 +9,6 @@ discord:
     cooldown:
       rate: 6 # Amount of commands that can be executed every per
       per: 10
-extensions:
-  dir:
-    - extensions/ # Directory where extensions like cogs are stored.
 web:
   base: https://www.regulad.xyz/PepperCord # Base domain for donate button and more
   github: https://github.com/regulad/PepperCord # GitHub repo site

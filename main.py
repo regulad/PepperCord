@@ -33,26 +33,29 @@ jsonschema.validate(
 # Configure the database
 db_client = motor.motor_asyncio.AsyncIOMotorClient(config["db"]["uri"])
 db = db_client[config["db"]["name"]]
-col = db[config["db"]["col"]]
 
 
 async def get_prefix(bot, message):
-    document = await database.Document.find_one_or_insert_document(bot.collection, {"_id": message.guild.id})
+    document = await database.Document.find_one_or_insert_document(bot.database["guild"], {"_id": message.guild.id})
     default_prefix = bot.config["discord"]["commands"]["prefix"]
     if message.guild is None:
-        return commands.when_mentioned_or(default_prefix)(bot, message)
+        return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)
     else:
-        guild_prefix = document.setdefault("prefix", "?")
+        guild_prefix = document.setdefault("prefix", default_prefix)
         return commands.when_mentioned_or(f"{guild_prefix} ", guild_prefix)(bot, message)
 
+
+intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
 
 bot = bot.CustomBot(
     command_prefix=get_prefix,
     case_insensitive=True,
-    intents=discord.Intents.all(),
+    intents=intents,
     description="https://github.com/regulad/PepperCord",
     help_command=PrettyHelp(color=discord.Colour.orange()),
-    collection=col,
+    database=db,
     config=config,
 )
 
@@ -61,7 +64,7 @@ if __name__ == "__main__":
         if file.endswith(".py"):
             full_path = "extensions/" + file
             try:
-                bot.load_extension(full_path.strip(".py").replace("/", "."))
+                bot.load_extension(os.path.splitext(full_path)[0].replace("/", "."))
             except Exception as e:
                 print(f"Could not load {full_path}: {e}, continuing recursively")
             else:

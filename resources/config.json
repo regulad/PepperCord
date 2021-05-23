@@ -51,9 +51,6 @@
         },
         "name": {
           "type": "string"
-        },
-        "col": {
-          "type": "string"
         }
       },
       "required": [

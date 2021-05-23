@@ -30,7 +30,7 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
 
     async def member_message_processor(self, member: discord.Member, event: str):
         guild = member.guild
-        messages_dict_manager = GuildMessageManager(guild, instances.guild_collection)
+        messages_dict_manager = GuildMessageManager(guild, instances.active_collection)
         await messages_dict_manager.fetch_document()
         messages_dict = await messages_dict_manager.read(event)
         if messages_dict:
@@ -66,7 +66,7 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
         description="Sets message displayed when an action occursm. Message types include on_member_join and on_member_remove.",
     )
     async def setmessage(self, ctx, message_type: str, channel: discord.TextChannel, *, message: str):
-        guild_message_manager = GuildMessageManager(ctx.guild, instances.guild_collection)
+        guild_message_manager = GuildMessageManager(ctx.guild, instances.active_collection)
         await guild_message_manager.fetch_document()
         await guild_message_manager.write(message_type, channel, message)
         await ctx.message.add_reaction(emoji="✅")

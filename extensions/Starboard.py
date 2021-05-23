@@ -66,7 +66,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         # author: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
         # Get documents
-        config_manager = StarboardConfigManager(guild, instances.guild_collection)
+        config_manager = StarboardConfigManager(guild, instances.active_collection)
         await config_manager.fetch_document()
         try:
             sendchannel = guild.get_channel(await config_manager.read("channel"))
@@ -119,7 +119,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         description="Disables starboard by removing the configuration.",
     )
     async def sdisable(self, ctx):
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
+        config_manager = StarboardConfigManager(ctx.guild, instances.active_collection)
         await config_manager.fetch_document()
         await config_manager.delete(1)
         await ctx.message.add_reaction("✅")
@@ -133,7 +133,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
     )
     async def schannel(self, ctx: commands.Context, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
+        config_manager = StarboardConfigManager(ctx.guild, instances.active_collection)
         await config_manager.fetch_document()
         await config_manager.write("channel", channel.id)
         await ctx.message.add_reaction("✅")
@@ -147,7 +147,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
     async def semoji(self, ctx: commands.Context, *, emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str]):
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
+        config_manager = StarboardConfigManager(ctx.guild, instances.active_collection)
         await config_manager.fetch_document()
         await config_manager.write("emoji", emoji)
         await ctx.message.add_reaction("✅")
@@ -159,7 +159,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         usage="<Threshold>",
     )
     async def sthreshold(self, ctx: commands.Context, *, threshold: int):
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
+        config_manager = StarboardConfigManager(ctx.guild, instances.active_collection)
         await config_manager.fetch_document()
         await config_manager.write("threshold", threshold)
         await ctx.message.add_reaction("✅")
@@ -179,7 +179,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
             else:
                 messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
                 message = messages[0]
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
+        config_manager = StarboardConfigManager(ctx.guild, instances.active_collection)
         await config_manager.fetch_document()
         try:
             channel = await config_manager.read("channel")

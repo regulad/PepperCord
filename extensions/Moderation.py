@@ -41,7 +41,7 @@ class Moderation(
     @tasks.loop(seconds=30)
     async def unpunish(self):
         for guild in self.bot.guilds:
-            guild_punishments = GuildPunishmentManager(guild, instances.guild_collection)
+            guild_punishments = GuildPunishmentManager(guild, instances.active_collection)
             await guild_punishments.fetch_document()
             punishment_dict = await guild_punishments.read()
             if punishment_dict:
@@ -55,7 +55,7 @@ class Moderation(
                                 if punishment == "mute":
                                     mute_role_id_manager = managers.CommonConfigManager(
                                         guild,
-                                        instances.guild_collection,
+                                        instances.active_collection,
                                         "mute_role",
                                         0,
                                     )
@@ -114,7 +114,7 @@ class Moderation(
         try:
             mute_role_id_manager = managers.CommonConfigManager(
                 ctx.guild,
-                instances.guild_collection,
+                instances.active_collection,
                 "mute_role",
                 0,
             )
@@ -136,7 +136,7 @@ class Moderation(
         try:
             mute_role_id_manager = managers.CommonConfigManager(
                 ctx.guild,
-                instances.guild_collection,
+                instances.active_collection,
                 "mute_role",
                 0,
             )
@@ -159,7 +159,7 @@ class Moderation(
         await ctx.invoke(self.mute, member=member)
         guild_punishment_manager = GuildPunishmentManager(
             ctx.guild,
-            instances.guild_collection,
+            instances.active_collection,
         )
         await guild_punishment_manager.fetch_document()
         await guild_punishment_manager.write("mute", member, time * 60)
@@ -175,7 +175,7 @@ class Moderation(
         await ctx.invoke(self.ban, member=member)
         guild_punishment_manager = GuildPunishmentManager(
             ctx.guild,
-            instances.guild_collection,
+            instances.active_collection,
         )
         await guild_punishment_manager.fetch_document()
         await guild_punishment_manager.write("ban", member, time * 60)

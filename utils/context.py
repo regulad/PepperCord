@@ -8,11 +8,8 @@ class CustomContext(commands.Context):
         self._collection = collection
         super().__init__(**attrs)
 
-        # If the context is from a guild, fetch the guild's document from the database.
-        if self.guild:
-            self._document = Document.find_one_or_insert_document(self._collection, {"_id": self.guild.id})
-
     @property
     def document(self):
-        """Returns a coroutine that """
-        return self._document or None
+        """Returns a coroutine that when awaited will return a Document instance."""
+        if self.guild:
+            return Document.find_one_or_insert_document(self._collection, {"_id": self.guild.id})

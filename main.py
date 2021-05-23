@@ -31,18 +31,18 @@ jsonschema.validate(
 )
 
 # Configure the database
-database_client = motor.motor_asyncio.AsyncIOMotorClient(config["db"]["uri"])
-db = database_client[config["db"]["name"]]
+db_client = motor.motor_asyncio.AsyncIOMotorClient(config["db"]["uri"])
+db = db_client[config["db"]["name"]]
 col = db[config["db"]["col"]]
 
 
 async def get_prefix(bot, message):
-    document = database.Document(bot.collection, {"_id": message.guild.id})
+    document = await database.Document.find_one_or_insert_document(bot.collection, {"_id": message.guild.id})
     default_prefix = bot.config["discord"]["commands"]["prefix"]
     if message.guild is None:
         return commands.when_mentioned_or(default_prefix)(bot, message)
     else:
-        guild_prefix = document.set_default("prefix", "?")
+        guild_prefix = document.setdefault("prefix", "?")
         return commands.when_mentioned_or(f"{guild_prefix} ", guild_prefix)(bot, message)
 
 

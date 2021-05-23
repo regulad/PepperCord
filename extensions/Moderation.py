@@ -1,28 +1,10 @@
-import copy
 import time
 import typing
 
 import discord
-import instances
-import motor.motor_asyncio
 from discord.ext import commands, tasks
-from utils import checks, errors, managers
-
-
-class GuildPunishmentManager(managers.CommonConfigManager):
-    def __init__(self, guild: discord.Guild, collection: motor.motor_asyncio.AsyncIOMotorCollection):
-        super().__init__(guild, collection, "punishments", {})
-
-    async def write(self, punishment_type: str, member: discord.Member, punishment_time: typing.Union[int, float]):
-        unpunishtime = time.time() + punishment_time
-        working_key = copy.deepcopy(self.active_key)
-        working_key.update({str(member.id): {punishment_type: unpunishtime}})
-        await super().write(working_key)
-
-    async def delete(self, member: discord.Member):
-        working_key = copy.deepcopy(self.active_key)
-        working_key.update({str(member.id): 1})
-        await super().delete(working_key)
+from utils import checks, errors
+from utils.database import Document
 
 
 class Moderation(
@@ -41,41 +23,26 @@ class Moderation(
     @tasks.loop(seconds=30)
     async def unpunish(self):
         for guild in self.bot.guilds:
-            guild_punishments = GuildPunishmentManager(guild, instances.active_collection)
-            await guild_punishments.fetch_document()
-            punishment_dict = await guild_punishments.read()
+            # Get the document for the guild
+            guild_doc = await Document.find_one_or_insert_document(self.bot.database["guild"], {"_id": guild.id})
+            punishment_dict = guild_doc.setdefault("punishments", {})
+            # If the punishment dict is present
             if punishment_dict:
-                for user in punishment_dict.keys():
-                    user_dict = punishment_dict[user]
-                    user_model = self.bot.get_user(int(user))
+                for user_id in punishment_dict.keys():
+                    user_dict = punishment_dict[user_id]
                     for punishment in user_dict.keys():
                         unpunish_time = user_dict[punishment]
                         if unpunish_time <= time.time():
                             try:
                                 if punishment == "mute":
-                                    mute_role_id_manager = managers.CommonConfigManager(
-                                        guild,
-                                        instances.active_collection,
-                                        "mute_role",
-                                        0,
-                                    )
-                                    await mute_role_id_manager.fetch_document()
-                                    mute_role_id = await mute_role_id_manager.read()
-                                    if not mute_role_id:
-                                        break
-                                    mute_role = guild.get_role(mute_role_id)
-                                    member = await guild.fetch_member(user_model.id)
-                                    try:
-                                        await member.remove_roles(mute_role)
-                                    except:
-                                        pass
+                                    mute_role = guild.get_role(guild_doc["mute_role"])
+                                    member = guild.get_member(user_id)
+                                    await member.remove_roles(mute_role)
                                 elif punishment == "ban":
-                                    try:
-                                        await guild.unban(user=user_model, reason="Timeban expired.")
-                                    except:
-                                        pass
+                                    user = self.bot.get_user(user_id)
+                                    await guild.unban(user=user, reason="Timeban expired.")
                             finally:
-                                await guild_punishments.delete(user_model)
+                                del punishment_dict[user_id]
 
     async def cog_check(self, ctx):
         return await checks.is_mod(ctx)
@@ -111,16 +78,9 @@ class Moderation(
         description="Mutes user from typing in text channels. Must be configured first.",
     )
     async def mute(self, ctx, *, member: discord.Member):
+        guild_doc = await ctx.guild_doc
         try:
-            mute_role_id_manager = managers.CommonConfigManager(
-                ctx.guild,
-                instances.active_collection,
-                "mute_role",
-                0,
-            )
-            await mute_role_id_manager.fetch_document()
-            mute_role_id = await mute_role_id_manager.read()
-            mute_role = ctx.guild.get_role(mute_role_id)
+            mute_role = ctx.guild.get_role(guild_doc["mute_role"])
         except:
             raise errors.NotConfigured()
         await member.add_roles(mute_role)
@@ -133,16 +93,9 @@ class Moderation(
         description="Unmutes user from typing in text channels. Must be configured first.",
     )
     async def unmute(self, ctx, *, member: discord.Member):
+        guild_doc = await ctx.guild_doc
         try:
-            mute_role_id_manager = managers.CommonConfigManager(
-                ctx.guild,
-                instances.active_collection,
-                "mute_role",
-                0,
-            )
-            await mute_role_id_manager.fetch_document()
-            mute_role_id = await mute_role_id_manager.read()
-            mute_role = ctx.guild.get_role(mute_role_id)
+            mute_role = ctx.guild.get_role(guild_doc["mute_role"])
         except:
             raise errors.NotConfigured()
         await member.remove_roles(mute_role)
@@ -155,15 +108,11 @@ class Moderation(
         description="Mutes a user then schedueles their unmuting",
         usage="<Member> [Time (Minutes)]",
     )
-    async def timemute(self, ctx, member: discord.Member, time: int = 10):
+    async def timemute(self, ctx, member: discord.Member, unpunishtime: int = 10):
         await ctx.invoke(self.mute, member=member)
-        guild_punishment_manager = GuildPunishmentManager(
-            ctx.guild,
-            instances.active_collection,
-        )
-        await guild_punishment_manager.fetch_document()
-        await guild_punishment_manager.write("mute", member, time * 60)
-        await ctx.message.add_reaction(emoji="\U000023ed")
+        guild_doc = await ctx.guild_doc
+        guild_doc.setdefault("punishments", {})[str(member.id)] = {"mute": time.time() + (unpunishtime * 60)}
+        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="timeban",
@@ -171,15 +120,11 @@ class Moderation(
         description="Mutes a user then schedueles their unmuting",
         usage="<Member> [Time (Minutes)]",
     )
-    async def timeban(self, ctx, member: discord.Member, time: int = 10):
-        await ctx.invoke(self.ban, member=member)
-        guild_punishment_manager = GuildPunishmentManager(
-            ctx.guild,
-            instances.active_collection,
-        )
-        await guild_punishment_manager.fetch_document()
-        await guild_punishment_manager.write("ban", member, time * 60)
-        await ctx.message.add_reaction(emoji="\U000023ed")
+    async def timeban(self, ctx, member: discord.Member, unpunishtime: int = 10):
+        await ctx.invoke(self.mute, member=member)
+        guild_doc = await ctx.guild_doc
+        guild_doc.setdefault("punishments", {})[str(member.id)] = {"ban": time.time() + (unpunishtime * 60)}
+        await ctx.message.add_reaction(emoji="✅")
 
 
 def setup(bot):

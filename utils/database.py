@@ -36,17 +36,3 @@ class Document(dict):
     @property
     def query(self):
         return self._query
-    
-    def __setitem__(self, k, v) -> None:
-        before = copy.deepcopy(self)
-        result = super().__setitem__(k, v)
-        diff = dict_difference(before, result)
-        asyncio.create_task(self._collection.update_one(self.query, diff))
-        return result
-
-    """
-    def __delitem__(self, v: _KT) -> None:
-        before = copy.deepcopy(self)
-        result = super().__delitem__(v)
-        return result
-    """

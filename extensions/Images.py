@@ -1,4 +1,3 @@
-import copy
 import typing
 from io import BytesIO
 
@@ -18,7 +17,7 @@ class Images(commands.Cog, name="Images", description="Image editing funnies."):
         usage="[Channel]",
     )
     @commands.cooldown(1, 40, commands.BucketType.channel)
-    async def pinsleft(self, ctx: commands.Context, *, channel: typing.Optional[discord.TextChannel]):
+    async def pinsleft(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         async with ctx.typing():
             channel = channel or ctx.channel
             pins_left = 50 - len(await channel.pins())

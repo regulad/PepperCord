@@ -5,14 +5,14 @@ from .context import CustomContext
 
 
 class CustomBot(commands.Bot):
-    def __init__(self, command_prefix, help_command, description, *, collection, config, **options):
-        self._collection = collection
+    def __init__(self, command_prefix, help_command, description, *, database, config, **options):
+        self._database = database
         self._config = config
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
 
     @property
-    def collection(self):
-        return self._collection
+    def database(self):
+        return self._database
 
     @property
     def config(self):
@@ -51,7 +51,7 @@ class CustomBot(commands.Bot):
         view = commands.view.StringView(message.content)
 
         if cls == CustomContext:
-            ctx = cls(prefix=None, view=view, bot=self, collection=self._collection, message=message)
+            ctx = cls(prefix=None, view=view, bot=self, database=self._database, message=message)
         else:
             ctx = cls(prefix=None, view=view, bot=self, message=message)
 

@@ -43,7 +43,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         message: discord.PartialMessage = channel.get_partial_message(payload.message_id)
         author: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
-        reaction_dict_manager = GuildReactionManager(guild, instances.guild_collection)
+        reaction_dict_manager = GuildReactionManager(guild, instances.active_collection)
         await reaction_dict_manager.fetch_document()
         reaction_dict = await reaction_dict_manager.read()
         if reaction_dict:
@@ -94,7 +94,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
         role: discord.Role,
     ):
-        guild_reaction_manager = GuildReactionManager(ctx.guild, instances.guild_collection)
+        guild_reaction_manager = GuildReactionManager(ctx.guild, instances.active_collection)
         await guild_reaction_manager.fetch_document()
         await guild_reaction_manager.write(channel, message, emoji, role)
         await message.add_reaction(emoji)

@@ -46,7 +46,7 @@ class Administration(
     )
     async def read(self, ctx, *, entity: typing.Optional[typing.Union[discord.Member, discord.Role]]):
         entity = entity or ctx.author
-        permission_level_manager = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection)
+        permission_level_manager = permissions.GuildPermissionManager(ctx.guild, instances.active_collection)
         await permission_level_manager.fetch_document()
         permission_level = await permission_level_manager.read(entity)
         await ctx.send(f"{entity.name} has permission level `{permission_level}`")
@@ -67,7 +67,7 @@ class Administration(
             attribute = permissions.Permissions.MANAGER
         else:
             raise commands.BadArgument()
-        permission_manager = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection)
+        permission_manager = permissions.GuildPermissionManager(ctx.guild, instances.active_collection)
         await permission_manager.fetch_document()
         await permission_manager.write(entity, attribute)
         await ctx.message.add_reaction(emoji="✅")
@@ -87,7 +87,7 @@ class Administration(
     async def prefix(self, ctx, *, prefix: str):
         config_manager = managers.CommonConfigManager(
             ctx.guild,
-            instances.guild_collection,
+            instances.active_collection,
             "prefix",
             instances.config_instance["discord"]["commands"]["prefix"],
         )
@@ -103,7 +103,7 @@ class Administration(
     async def mute(self, ctx, *, role: discord.Role):
         config_manager = managers.CommonConfigManager(
             ctx.guild,
-            instances.guild_collection,
+            instances.active_collection,
             "mute_role",
             0,
         )
@@ -119,7 +119,7 @@ class Administration(
     async def redirect(self, ctx, *, channel: discord.TextChannel):
         config_manager = managers.CommonConfigManager(
             ctx.guild,
-            instances.guild_collection,
+            instances.active_collection,
             "redirect",
             0,
         )

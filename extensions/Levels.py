@@ -27,19 +27,14 @@ def get_level(xp: typing.Union[int, float]):
 class LevelConfigManager(managers.CommonConfigManager):
     def __init__(
         self,
-        model: typing.Union[discord.Guild, discord.Member, discord.User],
+        model: discord.Guild,
         collection: motor.motor_asyncio.AsyncIOMotorCollection,
     ):
-        if isinstance(model, (discord.Member, discord.User)):
-            super().__init__(model, collection, "levels_disabled", False)
-        elif isinstance(model, discord.Guild):
-            super().__init__(model, collection, "levels_disabled", True)
+        super().__init__(model, collection, "levels_disabled", True)
 
 
 class LevelManager(managers.CommonConfigManager):
-    def __init__(
-        self, model: typing.Union[discord.Member, discord.User], collection: motor.motor_asyncio.AsyncIOMotorCollection
-    ):
+    def __init__(self, model: discord.Guild, collection: motor.motor_asyncio.AsyncIOMotorCollection):
         super().__init__(model, collection, "xp", 0)
 
     async def increment(self, new_xp: int):
@@ -80,7 +75,7 @@ class Levels(
         # Levelup message
         if new_level > current_level:
             # Disabled
-            guild_config = LevelConfigManager(message.guild, instances.guild_collection)
+            guild_config = LevelConfigManager(message.guild, instances.active_collection)
             await guild_config.fetch_document()
             user_config = LevelConfigManager(message.author, instances.user_collection)
             await user_config.fetch_document()
@@ -97,7 +92,7 @@ class Levels(
                 )
                 channel_manager = managers.CommonConfigManager(
                     message.guild,
-                    instances.guild_collection,
+                    instances.active_collection,
                     "redirect",
                     0,
                 )
@@ -112,87 +107,28 @@ class Levels(
         # The actual action
         await user_instance.increment(message_xp)
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
+    @commands.command(
         name="disablexp",
         aliases=["disablelevels"],
         brief="Disables level-up alerts.",
         description="Disables level-up alerts. You will still earn XP to use in other servers.",
     )
     async def disablexp(self, ctx):
-        raise errors.SubcommandNotFound()
-
-    @disablexp.command(
-        name="server",
-        aliases=["guild"],
-        brief="Disables level-up alerts for the entire server.",
-        description="Disables level-up alerts for the entire server. Server members will still learn XP to use in other servers that the bot is in.",
-    )
-    @commands.check(checks.is_admin)
-    async def dserver(self, ctx):
-        level_config_manager = LevelConfigManager(ctx.guild, instances.guild_collection)
+        level_config_manager = LevelConfigManager(ctx.guild, instances.active_collection)
         await level_config_manager.fetch_document()
         await level_config_manager.write(True)
         await ctx.message.add_reaction(emoji="✅")
 
-    @disablexp.command(
-        name="user",
-        aliases=["self"],
-        brief="Disables level-up alerts for just you.",
-        description="Disables level-up alerts for just you. You will still earn XP to use in other servers.",
-    )
-    async def duser(self, ctx):
-        level_config_manager = LevelConfigManager(ctx.author, instances.guild_collection)
-        await level_config_manager.fetch_document()
-        await level_config_manager.write(True)
-        await ctx.message.add_reaction(emoji="✅")
-
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
+    @commands.command(
         name="enablexp",
         aliases=["enablelevels"],
         brief="Enables level-up alerts.",
         description="Enables level-up alerts. You will still earn XP to use in other servers.",
     )
     async def enablexp(self, ctx):
-        raise errors.SubcommandNotFound()
-
-    @enablexp.command(
-        name="server",
-        aliases=["guild"],
-        brief="Enables level-up alerts for the entire server.",
-        description="Enables level-up alerts for the entire server. Server members who have individually disabled notofications will still be disabled.",
-    )
-    @commands.check(checks.is_admin)
-    async def eserver(self, ctx):
-        level_config_manager = LevelConfigManager(ctx.guild, instances.guild_collection)
+        level_config_manager = LevelConfigManager(ctx.guild, instances.active_collection)
         await level_config_manager.fetch_document()
         await level_config_manager.write(False)
-        await ctx.message.add_reaction(emoji="✅")
-
-    @enablexp.command(
-        name="user",
-        aliases=["self"],
-        brief="Enables level-up alerts for just you.",
-        description="Enables level-up alerts for just you. You will still earn XP to use in other servers.",
-    )
-    async def euser(self, ctx):
-        level_config_manager = LevelConfigManager(ctx.author, instances.guild_collection)
-        await level_config_manager.fetch_document()
-        await level_config_manager.write(False)
-        await ctx.message.add_reaction(emoji="✅")
-
-    @commands.command(
-        name="setxp", brief="Writes XP level.", description="Writes XP level, overriding any present XP. Only for the owner"
-    )
-    @commands.is_owner()
-    async def set(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]], *, xp: int):
-        user = user or ctx.author
-        level_manager = LevelManager(user, instances.user_collection)
-        await level_manager.fetch_document()
-        await level_manager.write(xp)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
@@ -246,21 +182,6 @@ class Levels(
                     inline=False,
                 )
             await ctx.send(embed=embed)
-
-    @commands.command(
-        name="xp-level",
-        aliases=["xptolevel"],
-        brief="Displays level for set amount of XP.",
-        description="Displays the level that a set amount of XP would have.",
-    )
-    async def xp_level(self, ctx, *, xp: typing.Union[int, float]):
-        await ctx.send(get_level(xp))
-
-    @commands.command(
-        name="level-xp", aliases=["leveltoxp"], brief="Displays XP for set level.", description="Displays XP for set level."
-    )
-    async def level_xp(self, ctx, *, level: int):
-        await ctx.send(get_xp(level))
 
 
 def setup(bot):

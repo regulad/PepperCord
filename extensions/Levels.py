@@ -73,7 +73,7 @@ class Levels(
                 message_xp += 1
         # The actual action
         ctx.user_doc["xp"] = new_xp
-        await ctx.user_doc.update_db()
+        await ctx.user_doc.replace_db()
 
     @commands.command(
         name="redirect",
@@ -85,8 +85,7 @@ class Levels(
     async def redirect(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         ctx.guild_doc.setdefault("levels", {})["redirect"] = channel.id
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await ctx.guild_doc.replace_db()
 
     @commands.command(
         name="disablexp",
@@ -97,8 +96,7 @@ class Levels(
     @commands.check(checks.is_admin)
     async def disablexp(self, ctx):
         ctx.guild_doc.setdefault("levels", {})["disabled"] = True
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await ctx.guild_doc.replace_db()
 
     @commands.command(
         name="enablexp",
@@ -109,8 +107,7 @@ class Levels(
     @commands.check(checks.is_admin)
     async def enablexp(self, ctx):
         ctx.guild_doc.setdefault("levels", {})["disabled"] = False
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await ctx.guild_doc.replace_db()
 
     @commands.command(
         name="rank", aliases=["level"], brief="Displays current level & rank.", description="Displays current level & rank."
@@ -140,27 +137,26 @@ class Levels(
         if ctx.guild.large:
             raise errors.TooManyMembers()
         page = page or 0
-        async with ctx.typing():
-            embed: discord.Embed = discord.Embed(
-                colour=discord.Colour.random(), title=f"{ctx.guild.name}: page {page}"
-            ).set_thumbnail(url=ctx.guild.icon_url)
-            member_xp_dict = {}
-            for member in ctx.guild.members:
-                member_doc = await Document.get_document(self.bot.database["user"], {"_id": member.id})
-                member_xp_dict[member] = member_doc.setdefault("xp", 0)
-            dict_index = page * 15
-            new_dict_index = dict_index + 15
-            sorted_list = sorted(member_xp_dict.items(), key=lambda item: item[1], reverse=True)
-            sorted_dict = dict(sorted_list)
-            for member in list(sorted_dict.keys())[dict_index:new_dict_index]:
-                dict_index += 1
-                xp = sorted_dict[member]
-                embed.add_field(
-                    name=f"{dict_index}. {member.display_name}",
-                    value=f"Level {round(get_level(xp))} ({round(xp)} XP)",
-                    inline=False,
-                )
-            await ctx.send(embed=embed)
+        embed: discord.Embed = discord.Embed(
+            colour=discord.Colour.random(), title=f"{ctx.guild.name}: page {page}"
+        ).set_thumbnail(url=ctx.guild.icon_url)
+        member_xp_dict = {}
+        for member in ctx.guild.members:
+            member_doc = await Document.get_document(self.bot.database["user"], {"_id": member.id})
+            member_xp_dict[member] = member_doc.setdefault("xp", 0)
+        dict_index = page * 15
+        new_dict_index = dict_index + 15
+        sorted_list = sorted(member_xp_dict.items(), key=lambda item: item[1], reverse=True)
+        sorted_dict = dict(sorted_list)
+        for member in list(sorted_dict.keys())[dict_index:new_dict_index]:
+            dict_index += 1
+            xp = sorted_dict[member]
+            embed.add_field(
+                name=f"{dict_index}. {member.display_name}",
+                value=f"Level {round(get_level(xp))} ({round(xp)} XP)",
+                inline=False,
+            )
+        await ctx.send(embed=embed)
 
 
 def setup(bot):

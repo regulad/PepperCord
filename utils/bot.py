@@ -1,8 +1,6 @@
-import discord
 from discord.ext import commands
 
 from .context import CustomContext
-from .database import Document
 
 
 class CustomBot(commands.Bot):
@@ -20,88 +18,35 @@ class CustomBot(commands.Bot):
         return self._config
 
     async def get_context(self, message, *, cls=CustomContext):
-        r"""|coro|
+        result = await super().get_context(message, cls=cls)
+        if isinstance(result, CustomContext):
+            await result.get_document(self._database)
+        return result
 
-        Returns the invocation context from the message.
+    async def invoke(self, ctx):
+        """|coro|
 
-        This is a more low-level counter-part for :meth:`.process_commands`
-        to allow users more fine grained control over the processing.
-
-        The returned context is not guaranteed to be a valid invocation
-        context, :attr:`.Context.valid` must be checked to make sure it is.
-        If the context is not valid then it is not a valid candidate to be
-        invoked under :meth:`~.Bot.invoke`.
+        Invokes the command given under the invocation context and
+        handles all the internal event dispatch mechanisms.
 
         Parameters
         -----------
-        message: :class:`discord.Message`
-            The message to get the invocation context from.
-        cls
-            The factory class that will be used to create the context.
-            By default, this is :class:`.Context`. Should a custom
-            class be provided, it must be similar enough to :class:`.Context`\'s
-            interface.
-
-        Returns
-        --------
-        :class:`.Context`
-            The invocation context. The type of this can change via the
-            ``cls`` parameter.
+        ctx: :class:`.Context`
+            The invocation context to invoke.
         """
-
-        view = commands.view.StringView(message.content)
-
-        if cls == CustomContext:
-            # Kinda jank?
-            if message.guild:
-                guild_doc = await Document.get_document(self._database["guild"], {"_id": message.guild.id})
-            if message.author:
-                user_doc = await Document.get_document(self._database["user"], {"_id": message.author.id})
-            ctx = cls(prefix=None, view=view, bot=self, guild_doc=guild_doc, user_doc=user_doc, message=message)
-        else:
-            ctx = cls(prefix=None, view=view, bot=self, message=message)
-
-        if self._skip_check(message.author.id, self.user.id):
-            return ctx
-
-        prefix = await self.get_prefix(message)
-        invoked_prefix = prefix
-
-        if isinstance(prefix, str):
-            if not view.skip_string(prefix):
-                return ctx
-        else:
+        if ctx.command is not None:
+            self.dispatch("command", ctx)
             try:
-                # if the context class' __init__ consumes something from the view this
-                # will be wrong.  That seems unreasonable though.
-                if message.content.startswith(tuple(prefix)):
-                    invoked_prefix = discord.utils.find(view.skip_string, prefix)
+                if await self.can_run(ctx, call_once=True):
+                    async with ctx.typing():
+                        await ctx.command.invoke(ctx)
+                        await ctx.message.add_reaction(emoji="✅")
                 else:
-                    return ctx
-
-            except TypeError:
-                if not isinstance(prefix, list):
-                    raise TypeError(
-                        "get_prefix must return either a string or a list of string, "
-                        "not {}".format(prefix.__class__.__name__)
-                    )
-
-                # It's possible a bad command_prefix got us here.
-                for value in prefix:
-                    if not isinstance(value, str):
-                        raise TypeError(
-                            "Iterable command_prefix or list returned from get_prefix must "
-                            "contain only strings, not {}".format(value.__class__.__name__)
-                        )
-
-                # Getting here shouldn't happen
-                raise
-
-        if self.strip_after_prefix:
-            view.skip_ws()
-
-        invoker = view.get_word()
-        ctx.invoked_with = invoker
-        ctx.prefix = invoked_prefix
-        ctx.command = self.all_commands.get(invoker)
-        return ctx
+                    raise commands.errors.CheckFailure("The global check once functions failed.")
+            except commands.errors.CommandError as exc:
+                await ctx.command.dispatch_error(ctx, exc)
+            else:
+                self.dispatch("command_completion", ctx)
+        elif ctx.invoked_with:
+            exc = commands.errors.CommandNotFound('Command "{}" is not found'.format(ctx.invoked_with))
+            self.dispatch("command_error", ctx, exc)

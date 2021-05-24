@@ -36,8 +36,7 @@ class Dev(
         elif isinstance(entity, (discord.Member, discord.User)):
             document = await Document.get_document(self.bot.database["guild"], {"_id": entity.id})
         document["blacklisted"] = True
-        await document.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await document.replace_db()
 
     @commands.command(
         name="nick",
@@ -48,16 +47,6 @@ class Dev(
     @commands.guild_only()
     async def nick(self, ctx, *, name: str):
         await ctx.guild.me.edit(nick=name)
-
-    @commands.command(
-        name="leave",
-        brief="Leaves the server.",
-        description="Makes the bot leave the server. If not specified, leaves the current server.",
-    )
-    async def leave(self, ctx, *, guild: typing.Optional[discord.Guild]):
-        guild = guild or ctx.guild
-        await guild.leave()
-        await ctx.message.add_reaction(emoji="✅")
 
 
 def setup(bot):

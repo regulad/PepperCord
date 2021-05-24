@@ -5,8 +5,6 @@ https://github.com/regulad/PepperCord
 
 import json
 import os
-import pathlib
-import shutil
 
 import discord
 import jsonschema
@@ -17,11 +15,7 @@ from pretty_help import PrettyHelp
 
 from utils import bot, database
 
-# Copy the example config file if no config file exists.
-if not pathlib.Path("config/config.yml").exists():
-    shutil.copyfile("resources/config.example.yml", "config/config.yml")
-
-config = yaml.load(open("config/config.yml"), Loader=yaml.FullLoader)
+config = yaml.load(open("config.yml"), Loader=yaml.FullLoader)
 config_schema = json.load(open("resources/config.json"))
 
 # Make sure the config is valid.

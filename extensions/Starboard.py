@@ -75,7 +75,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
                 react_count = reaction.count
         if react_count >= threshold:
             await self._sendstar(ctx.guild_doc, ctx.message)
-            await ctx.guild_doc.update_db()
+            await ctx.guild_doc.replace_db()
         else:
             return
 
@@ -88,7 +88,12 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         brief="Starboard setup.",
     )
     async def starboard(self, ctx):
-        raise errors.SubcommandNotFound()
+        try:
+            sendchannel = ctx.guild.get_channel(ctx.guild_doc.setdefault("starboard", {})["channel"])
+        except:
+            raise errors.NotConfigured()
+        else:
+            await ctx.send(sendchannel.mention)
 
     @starboard.group(
         invoke_without_command=True,
@@ -100,7 +105,37 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
     )
     @commands.check(checks.is_admin)
     async def sconfig(self, ctx):
-        raise errors.SubcommandNotFound()
+        try:
+            sendchannel = ctx.guild.get_channel(ctx.guild_doc.setdefault("starboard", {})["channel"])
+        except:
+            raise errors.NotConfigured()
+        try:
+            emoji = await commands.EmojiConverter().convert(
+                ctx, ctx.guild_doc.setdefault("starboard", {}).setdefault("emoji", "⭐")
+            )
+        except:
+            emoji = ctx.guild_doc.setdefault("starboard", {}).setdefault("emoji", "⭐")
+        threshold = ctx.guild_doc.setdefault("starboard", {}).setdefault("threshold", 3)
+        embed = (
+            discord.Embed(title="Starboard Config")
+            .add_field(name="Channel:", value=sendchannel.mention)
+            .add_field(name="Emoji:", value=emoji)
+            .add_field(name="Threshold:", value=threshold)
+        )
+        await ctx.send(embed=embed)
+
+    @sconfig.command(
+        name="disable",
+        aliases=["off", "delete"],
+        brief="Deletes starboard data.",
+        description="Deletes all starboard data, including config and message cache.",
+    )
+    async def sdisable(self, ctx):
+        try:
+            del ctx.guild_doc["starboard"]
+        except:
+            raise errors.NotConfigured()
+        await ctx.guild_doc.replace_db()
 
     @sconfig.command(
         name="channel",
@@ -112,8 +147,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
     async def schannel(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         ctx.guild_doc.setdefault("starboard", {})["channel"] = channel.id
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction("✅")
+        await ctx.guild_doc.replace_db()
 
     @sconfig.command(
         name="emoji",
@@ -125,8 +159,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
         ctx.guild_doc.setdefault("starboard", {})["emoji"] = emoji
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction("✅")
+        await ctx.guild_doc.replace_db()
 
     @sconfig.command(
         name="threshold",
@@ -136,8 +169,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
     )
     async def sthreshold(self, ctx, *, threshold: int):
         ctx.guild_doc.setdefault("starboard", {})["threshold"] = threshold
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction("✅")
+        await ctx.guild_doc.replace_db()
 
     @starboard.command(
         name="pin",
@@ -153,8 +185,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
                 messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
                 message = messages[0]
         await self._sendstar(ctx.guild_doc, message)
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction("✅")
+        await ctx.guild_doc.replace_db()
 
     @starboard.command(
         name="convert",
@@ -166,8 +197,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         for pin in (await channel.pins())[::-1]:
             await self._sendstar(ctx.guild_doc, pin)
             await asyncio.sleep(1)  # Prevents rate-limiting
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction("✅")
+        await ctx.guild_doc.replace_db()
 
 
 def setup(bot):

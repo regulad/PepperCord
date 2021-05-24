@@ -43,7 +43,7 @@ class Moderation(
                                     await guild.unban(user=user, reason="Timeban expired.")
                             finally:
                                 del punishment_dict[user_id]
-                                await guild_doc.update_db()
+                                await guild_doc.replace_db()
 
     async def cog_check(self, ctx):
         return await checks.is_mod(ctx)
@@ -60,17 +60,14 @@ class Moderation(
     @commands.command(name="kick", brief="Kicks user from the server.", description="Kicks user from the server.")
     async def kick(self, ctx, member: discord.Member, *, reason: str = ""):
         await member.kick(reason=reason)
-        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(name="ban", brief="Bans user from the server.", description="Bans user from the server.")
     async def ban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
         await ctx.guild.ban(user=member, reason=reason)
-        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(name="unban", brief="Unbans user from the server.", description="Unbans user from the server.")
     async def unban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
         await ctx.guild.unban(user=member, reason=reason)
-        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="mute",
@@ -84,7 +81,6 @@ class Moderation(
         except:
             raise errors.NotConfigured()
         await member.add_roles(mute_role)
-        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="unmute",
@@ -98,7 +94,6 @@ class Moderation(
         except:
             raise errors.NotConfigured()
         await member.remove_roles(mute_role)
-        await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
         name="timemute",
@@ -110,7 +105,7 @@ class Moderation(
     async def timemute(self, ctx, member: discord.Member, unpunishtime: int = 10):
         await ctx.invoke(self.mute, member=member)
         ctx.guild_doc.setdefault("punishments", {})[str(member.id)] = {"mute": time.time() + (unpunishtime * 60)}
-        await ctx.guild_doc.update_db()
+        await ctx.guild_doc.replace_db()
         await ctx.message.add_reaction(emoji="⏰")
 
     @commands.command(
@@ -122,7 +117,7 @@ class Moderation(
     async def timeban(self, ctx, member: discord.Member, unpunishtime: int = 10):
         await ctx.invoke(self.mute, member=member)
         ctx.guild_doc.setdefault("punishments", {})[str(member.id)] = {"ban": time.time() + (unpunishtime * 60)}
-        await ctx.guild_doc.update_db()
+        await ctx.guild_doc.replace_db()
         await ctx.message.add_reaction(emoji="⏰")
 
 

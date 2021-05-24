@@ -6,9 +6,5 @@ services:
       - 'config:/app/config'
   mongo:
     image: mongo
-  mongo-express:
-    image: mongo-express
-    ports:
-      - 8081:8081
 volumes:
   config:

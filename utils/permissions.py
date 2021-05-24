@@ -39,4 +39,4 @@ class GuildPermissionManager:
         """Writes a permission level into a role in a guild document"""
         value = level.value
         self.ctx.guild_doc.setdefault("permissions", {})[str(role.id)] = value
-        await self.ctx.guild_doc.update_db()
+        await self.ctx.guild_doc.replace_db()

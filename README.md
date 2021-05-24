@@ -56,6 +56,8 @@ volumes:
 
 You'll still need to configure networking, but this will be different on every Docker environment.
 
+Under Docker, you should place your config file in `config/config.yml` rather than `config.yml`.
+
 ### Configuration
 
 PepperCord uses MongoDB as a data store and YAML for configuration, so you'll need to but your bot's info into `config.yml`. 

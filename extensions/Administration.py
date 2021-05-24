@@ -118,12 +118,10 @@ class Administration(
         )
         await message.add_reaction(emoji="✅")
         await message.add_reaction(emoji="❌")
+
         def checkForReaction(reaction: discord.reaction, user: typing.Union[discord.Member, discord.User]):
-            return bool(
-                (user.id == ctx.author.id)
-                and (reaction.message == message)
-                and (str(reaction.emoji) in ["✅", "❌"])
-            )
+            return bool((user.id == ctx.author.id) and (reaction.message == message) and (str(reaction.emoji) in ["✅", "❌"]))
+
         try:
             reaction: discord.Reaction = await self.bot.wait_for(event="reaction_add", check=checkForReaction, timeout=20.0)
         except asyncio.TimeoutError:
@@ -141,6 +139,7 @@ class Administration(
                 return
         await ctx.guild_doc.delete_db()
         await ctx.guild.leave()
+
 
 def setup(bot):
     bot.add_cog(Administration(bot))

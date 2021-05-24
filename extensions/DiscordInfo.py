@@ -3,7 +3,6 @@ import sys
 import typing
 
 import discord
-from instances import config_instance
 import psutil
 from discord.ext import commands, tasks
 
@@ -16,17 +15,17 @@ class DiscordInfo(
     def __init__(self, bot):
         self.bot = bot
 
-        self.activityUpdate.start()
+        self.activity_update.start()
 
     def cog_unload(self):
-        self.activityUpdate.stop()
+        self.activity_update.stop()
 
-    @tasks.loop(seconds=60)
-    async def activityUpdate(self):
+    @tasks.loop(seconds=600)
+    async def activity_update(self):
         watchingString = f"with {len(self.bot.users)} users in {len(self.bot.guilds)} servers"
         await self.bot.change_presence(activity=discord.Game(name=watchingString))
 
-    @activityUpdate.before_loop
+    @activity_update.before_loop
     async def beforeActivyUpdate(self):
         await self.bot.wait_until_ready()
 
@@ -52,7 +51,7 @@ class DiscordInfo(
             if isinstance(user, discord.Member):
                 embed = embed.insert_field_at(0, name="Status:", value=f"{user.status}")
                 if user.name != user.display_name:
-                    embed = embed.insert_field_at(0, name="Also known as:", value=user.display_name)
+                    embed = embed.insert_field_at(0, name="Nickname:", value=user.display_name)
                 embed = embed.add_field(name="Server join date:", value=f"{user.joined_at} UTC")
                 if user.premium_since:
                     embed = embed.add_field(name="Server boosting since:", value=f"{user.premium_since} UTC")
@@ -104,8 +103,8 @@ class DiscordInfo(
     )
     async def botInfo(self, ctx):
         try:
-            base = config_instance["web"]["base"]
-            github = config_instance["web"]["github"]
+            base = self.bot.config["web"]["base"]
+            github = self.bot.config["web"]["github"]
             embed = (
                 discord.Embed(
                     colour=discord.Colour.orange(),

@@ -1,28 +1,9 @@
-import copy
 import typing
 
 import discord
-import instances
-import motor.motor_asyncio
 from discord.ext import commands
-from utils import checks, errors, managers
-
-
-class StarboardConfigManager(managers.CommonConfigManager):
-    def __init__(
-        self,
-        model: typing.Union[discord.Guild, discord.Member, discord.User],
-        collection: motor.motor_asyncio.AsyncIOMotorCollection,
-    ):
-        super().__init__(model, collection, "starboard", {"emoji": "⭐", "threshold": 3})
-
-    async def read(self, field):
-        return self.active_key[field]
-
-    async def write(self, field: str, value):
-        working_key = copy.deepcopy(self.active_key)
-        working_key.update({field: value})
-        return await super().write(working_key)
+from utils import checks, errors
+from utils.database import Document
 
 
 class Starboard(commands.Cog, name="Starboard", description="An alternative to pinning messages."):
@@ -34,12 +15,23 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
             raise commands.NoPrivateMessage()
         return True
 
-    async def sendstar(self, channel: discord.TextChannel, message: discord.Message):
-        embed = discord.Embed(colour=message.author.colour, description=message.clean_content,).set_author(
+    async def _sendstar(self, document: Document, message: discord.Message):
+        # Get channel
+        try:
+            sendchannel = message.guild.get_channel(document.setdefault("starboard", {})["channel"])
+        except:
+            raise errors.NotConfigured()
+        # Get already pinned messages
+        messages = document.setdefault("starboard", {}).setdefault("messages", [])
+        if message.id in messages:
+            raise errors.AlreadyPinned()
+        # Setup embed
+        embed = discord.Embed(colour=message.author.colour, description=message.content).set_author(
             name=f"Sent by {message.author.display_name} in {message.channel.name}",
             url=message.jump_url,
             icon_url=message.author.avatar_url,
         )
+        # Setup attachments
         if message.attachments:
             attachment = message.attachments[0]
             if (
@@ -53,32 +45,27 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
             user_embed = message.embeds[0]
             if user_embed.type == "video" or embed.type == "rich":
                 embed.set_image(url=user_embed.url)
-        await channel.send(embed=embed)
+        await sendchannel.send(embed=embed)
+        messages.append(message.id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         # Setup
         if payload.guild_id == None or payload.user_id == self.bot.user.id:
             return
-        guild: discord.Guild = self.bot.get_guild(payload.guild_id)
-        channel: discord.TextChannel = guild.get_channel(payload.channel_id)
-        message: discord.Message = await channel.fetch_message(payload.message_id)
-        # author: discord.Member = guild.get_member(payload.user_id)
+        guild = self.bot.get_guild(payload.guild_id)
+        ctx = await self.bot.get_context(
+            await guild.get_channel(payload.channel_id).get_partial_message(payload.message_id).fetch()
+        )
         emoji: discord.PartialEmoji = payload.emoji
         # Get documents
-        config_manager = StarboardConfigManager(guild, instances.guild_collection)
-        await config_manager.fetch_document()
-        try:
-            sendchannel = guild.get_channel(await config_manager.read("channel"))
-        except:
-            raise errors.NotConfigured()
-        sendemoji = await config_manager.read("emoji")
-        threshold = await config_manager.read("threshold")
+        sendemoji = ctx.guild_doc.setdefault("starboard", {}).setdefault("emoji", "⭐")
+        threshold = ctx.guild_doc.setdefault("starboard", {}).setdefault("threshold", 3)
         # See if reaction is correct
         if not emoji.name == sendemoji:
             return
         # See if reaction count meets threshold
-        for reaction in message.reactions:
+        for reaction in ctx.message.reactions:
             if isinstance(reaction.emoji, (discord.Emoji, discord.PartialEmoji)):
                 reaction_name = reaction.emoji.name
             else:
@@ -86,7 +73,8 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
             if reaction_name == sendemoji:
                 react_count = reaction.count
         if react_count >= threshold:
-            await self.sendstar(sendchannel, message)
+            await self._sendstar(ctx.guild_doc, ctx.message)
+            await ctx.guild_doc.update_db()
         else:
             return
 
@@ -114,28 +102,16 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         raise errors.SubcommandNotFound()
 
     @sconfig.command(
-        name="disable",
-        brief="Disables Starboard.",
-        description="Disables starboard by removing the configuration.",
-    )
-    async def sdisable(self, ctx):
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
-        await config_manager.fetch_document()
-        await config_manager.delete(1)
-        await ctx.message.add_reaction("✅")
-
-    @sconfig.command(
         name="channel",
         aliases=["board"],
         brief="Sets channel.",
         description="Sets channel to be used as the starboard.",
         usage="[Channel]",
     )
-    async def schannel(self, ctx: commands.Context, *, channel: typing.Optional[discord.TextChannel]):
+    async def schannel(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
-        await config_manager.fetch_document()
-        await config_manager.write("channel", channel.id)
+        ctx.guild_doc.setdefault("starboard", {})["channel"] = channel.id
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction("✅")
 
     @sconfig.command(
@@ -144,12 +120,11 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         description="Sets emoji people can react with to star a message. Defaults to ⭐. If a manager placed the reaction, it will get pinned to the starboard instantly.",
         usage="<Emoji>",
     )
-    async def semoji(self, ctx: commands.Context, *, emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str]):
+    async def semoji(self, ctx, *, emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str]):
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
-        await config_manager.fetch_document()
-        await config_manager.write("emoji", emoji)
+        ctx.guild_doc.setdefault("starboard", {})["emoji"] = emoji
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction("✅")
 
     @sconfig.command(
@@ -158,10 +133,9 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         description="Sets the reaction threshold for being pinned. Defaults to 3.",
         usage="<Threshold>",
     )
-    async def sthreshold(self, ctx: commands.Context, *, threshold: int):
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
-        await config_manager.fetch_document()
-        await config_manager.write("threshold", threshold)
+    async def sthreshold(self, ctx, *, threshold: int):
+        ctx.guild_doc.setdefault("starboard", {})["threshold"] = threshold
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction("✅")
 
     @starboard.command(
@@ -170,22 +144,27 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         description="Pins a message of your choice to the starboard. You can also reply to a message with the command to pin it.",
         usage="[Message]",
     )
-    async def spin(
-        self, ctx: commands.Context, *, message: typing.Optional[typing.Union[discord.Message, discord.PartialMessage]]
-    ):
+    async def spin(self, ctx, *, message: typing.Optional[typing.Union[discord.Message, discord.PartialMessage]]):
         if not isinstance(message, (discord.Message, discord.PartialMessage)):
             if ctx.message.reference:
                 message = ctx.message.reference.resolved
             else:
                 messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
                 message = messages[0]
-        config_manager = StarboardConfigManager(ctx.guild, instances.guild_collection)
-        await config_manager.fetch_document()
-        try:
-            channel = await config_manager.read("channel")
-        except:
-            raise errors.NotConfigured()
-        await self.sendstar(ctx.guild.get_channel(channel), message)
+        await self._sendstar(ctx.guild_doc, message)
+        await ctx.guild_doc.update_db()
+        await ctx.message.add_reaction("✅")
+
+    @starboard.command(
+        name="convert",
+        brief="Converts pins in channel to pins on starboard.",
+        description="Converts pins in channel to pins on starboard. Does not unpin channels.",
+    )
+    async def sconvert(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
+        channel = channel or ctx.channel
+        for pin in (await channel.pins())[::-1]:
+            await self._sendstar(ctx.guild_doc, pin)
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction("✅")
 
 

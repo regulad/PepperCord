@@ -1,20 +1,18 @@
-import instances
-from discord.ext import commands
-
 from .permissions import *
 from .errors import *
 
+from discord.ext import commands
+import discord
 
-async def has_permission_level(ctx: commands.Context, value: Permissions):
+
+async def has_permission_level(ctx, value: Permissions):
     if not ctx.guild:
         return False
-    value = value or 1
-    permission_manager = GuildPermissionManager(ctx.guild, instances.guild_collection)
-    await permission_manager.fetch_document()
+    value = value or 3
     if (
-        (await permission_manager.read(ctx.author) >= value.value)
-        or (ctx.author.guild_permissions.administrator)
-        or (ctx.author.id == ctx.guild.owner_id)
+        (await GuildPermissionManager(ctx).read(ctx.author) >= value.value)
+        or await guild_privledged(ctx)
+        or await commands.is_owner(ctx.author)
     ):
         return True
     else:
@@ -31,3 +29,10 @@ async def is_mod(ctx):
 
 async def is_man(ctx):
     return await has_permission_level(ctx, Permissions.MANAGER)
+
+
+async def guild_privledged(ctx):
+    if (ctx.author.guild_permissions.administrator) or (ctx.author.id == ctx.guild.owner_id):
+        return True
+    else:
+        raise commands.MissingPermissions(discord.Permissions(permissions=8))

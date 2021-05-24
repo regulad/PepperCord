@@ -1,9 +1,8 @@
 import typing
 
 import discord
-import instances
 from discord.ext import commands
-from utils import permissions
+from utils.database import Document
 
 
 class Dev(
@@ -17,12 +16,6 @@ class Dev(
     async def cog_check(self, ctx):
         return await self.bot.is_owner(ctx.author)
 
-    # If the bot joins a blacklisted guild, leave.
-    @commands.Cog.listener()
-    async def on_guild_join(guild: discord.Guild):
-        if permissions.BlacklistManager(guild, instances.guild_collection).read():
-            await guild.leave()
-
     @commands.command(
         name="blacklist",
         description="Tools to blacklist entity from using the bot.",
@@ -30,20 +23,20 @@ class Dev(
         usage="<Value> <Entity>",
     )
     async def blacklist(
-        self, ctx, value: typing.Optional[bool], *, entity: typing.Union[discord.Guild, discord.Member, discord.User]
+        self,
+        ctx,
+        value: typing.Optional[bool],
+        *,
+        entity: typing.Optional[typing.Union[discord.User, discord.Member, discord.Guild]]
     ):
         value = value or True
+        entity = entity or ctx.guild
         if isinstance(entity, discord.Guild):
-            collection = instances.guild_collection
-            await entity.leave()
+            document = await Document.get_document(self.bot.database["guild"], {"_id": entity.id})
         elif isinstance(entity, (discord.Member, discord.User)):
-            collection = instances.user_collection
-        blacklist_manager = permissions.BlacklistManager(
-            entity,
-            collection,
-        )
-        await blacklist_manager.fetch_document()
-        await blacklist_manager.write(value)
+            document = await Document.get_document(self.bot.database["guild"], {"_id": entity.id})
+        document["blacklisted"] = True
+        await document.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
@@ -55,6 +48,16 @@ class Dev(
     @commands.guild_only()
     async def nick(self, ctx, *, name: str):
         await ctx.guild.me.edit(nick=name)
+
+    @commands.command(
+        name="leave",
+        brief="Leaves the server.",
+        description="Makes the bot leave the server. If not specified, leaves the current server.",
+    )
+    async def leave(self, ctx, *, guild: typing.Optional[discord.Guild]):
+        guild = guild or ctx.guild
+        await guild.leave()
+        await ctx.message.add_reaction(emoji="✅")
 
 
 def setup(bot):

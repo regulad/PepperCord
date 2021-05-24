@@ -7,7 +7,7 @@ from utils import checks, errors
 
 class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions that give/remove a role when clicked on."):
     def __init__(self, bot):
-        self.bot: commands.Bot = bot
+        self.bot = bot
 
     async def cog_check(self, ctx):
         return await checks.is_admin(ctx)
@@ -17,8 +17,9 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         if payload.guild_id == None or payload.user_id == self.bot.user.id:
             return
         guild = self.bot.get_guild(payload.guild_id)
+        channel = guild.get_channel(payload.channel_id)
         ctx = await self.bot.get_context(
-            await guild.get_channel(payload.channel_id).get_partial_message(payload.message_id).fetch()
+            await channel.fetch_message(payload.message_id)
         )
         reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji

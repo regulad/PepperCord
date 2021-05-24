@@ -10,10 +10,7 @@ async def has_permission_level(ctx, value: Permissions):
         return False
     value = value.value or 3
     has = await GuildPermissionManager(ctx).read(ctx.author)
-    if (
-        (has >= value)
-        or await guild_privledged(ctx)
-    ):
+    if (has >= value) or await guild_privledged(ctx):
         return True
     else:
         raise LowPrivilege(f"Has {has}, needs {value}. ({value - has})")

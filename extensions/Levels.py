@@ -81,6 +81,7 @@ class Levels(
         description="Sets channel to redirect level-up alerts to. Defaults to sending in the same channel.",
         usage="[Channel]",
     )
+    @commands.check(checks.is_admin)
     async def redirect(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         ctx.guild_doc.setdefault("levels", {})["redirect"] = channel.id

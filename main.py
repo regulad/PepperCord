@@ -16,19 +16,7 @@ from pretty_help import PrettyHelp
 from utils import bot, database
 
 
-try:
-    config1 = open("config.yml")
-except:
-    config1 = None
-
-try:
-    config2 = open("config/config.yml")
-except:
-    config2 = None
-
-config_file = config1 or config2
-
-config = yaml.load(config_file, Loader=yaml.FullLoader)
+config = yaml.load(open("config/config.yml"), Loader=yaml.FullLoader)
 config_schema = json.load(open("resources/config.json"))
 
 # Make sure the config is valid.

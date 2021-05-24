@@ -46,8 +46,8 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
         description="Sets message displayed when an action occursm. Message types include on_member_join and on_member_remove.",
     )
     async def setmessage(self, ctx, message_type: str, channel: discord.TextChannel, *, message: str):
-        guild_doc = await ctx.guild_doc
-        guild_doc.setdefault("messages", {}).setdefault(message_type, {})[channel.id] = message
+        ctx.guild_doc.setdefault("messages", {}).setdefault(message_type, {})[channel.id] = message
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
 

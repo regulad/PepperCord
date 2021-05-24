@@ -9,11 +9,15 @@ class ErrorHandling(commands.Cog, name="Error Handling", description="Listeners 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, e):
         await ctx.message.add_reaction(emoji="❌")
-        if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await bot.is_owner(ctx.author):
+        if isinstance(e, commands.CommandInvokeError):
+            e = e.original
+        if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await self.bot.is_owner(ctx.author):
             try:
                 await ctx.reinvoke()
             except Exception as e:
                 await ctx.send(f"During the attempt to reinvoke your command, another exception occured. See: ```{e}```")
+        elif isinstance(e, errors.AlreadyPinned):
+            await ctx.send("This message is already pinned to the starboard.")
         elif isinstance(e, errors.TooManyMembers):
             await ctx.send("This command doesn't work very well in large servers and has been disabled there. Sorry!")
         elif isinstance(e, errors.Blacklisted):

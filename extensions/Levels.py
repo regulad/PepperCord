@@ -38,8 +38,6 @@ class Levels(
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         ctx = await self.bot.get_context(message)
-        guild_doc = await ctx.guild_doc
-        user_doc = await ctx.user_doc
         # Recursion prevention
         if (not ctx.guild) or (ctx.author.bot):
             return
@@ -49,14 +47,14 @@ class Levels(
         if retry_after:
             return
         # Actual processing
-        current_xp = user_doc.setdefault("xp", 0)
+        current_xp = ctx.user_doc.setdefault("xp", 0)
         current_level = get_level(current_xp)
         message_xp = random.randrange(xp_start, xp_end)
         new_xp = current_xp + message_xp
         new_level = get_level(new_xp)
         # Levelup message
         if new_level > current_level:
-            if not guild_doc.setdefault("levels", {}).setdefault("disabled", False):
+            if not ctx.guild_doc.setdefault("levels", {}).setdefault("disabled", False):
                 next_xp = get_xp(new_level + 1) - get_xp(new_level)
                 embed = (
                     discord.Embed(
@@ -68,13 +66,14 @@ class Levels(
                     .set_thumbnail(url=message.author.avatar_url)
                 )
                 try:
-                    redirect = ctx.guild.get_channel(guild_doc.setdefault("levels", {})["redirect"])
+                    redirect = ctx.guild.get_channel(ctx.guild_doc.setdefault("levels", {})["redirect"])
                     await redirect.send(message.author.mention, embed=embed)
                 except:
                     await ctx.reply(embed=embed)
                 message_xp += 1
         # The actual action
-        user_doc["xp"] = new_xp
+        ctx.user_doc["xp"] = new_xp
+        await ctx.user_doc.update_db()
 
     @commands.command(
         name="redirect",
@@ -84,8 +83,8 @@ class Levels(
     )
     async def redirect(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
-        guild_doc = await ctx.guild_doc
-        guild_doc.setdefault("levels", {})["redirect"] = channel.id
+        ctx.guild_doc.setdefault("levels", {})["redirect"] = channel.id
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
@@ -96,8 +95,8 @@ class Levels(
     )
     @commands.check(checks.is_admin)
     async def disablexp(self, ctx):
-        guild_doc = await ctx.guild_doc
-        guild_doc.setdefault("levels", {})["disabled"] = True
+        ctx.guild_doc.setdefault("levels", {})["disabled"] = True
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(
@@ -108,8 +107,8 @@ class Levels(
     )
     @commands.check(checks.is_admin)
     async def enablexp(self, ctx):
-        guild_doc = await ctx.guild_doc
-        guild_doc.setdefault("levels", {})["disabled"] = False
+        ctx.guild_doc.setdefault("levels", {})["disabled"] = False
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.command(

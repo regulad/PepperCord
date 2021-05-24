@@ -19,11 +19,9 @@ class BotCheck(commands.Cog, name="Bot Checks", description="Global bot checks."
         if retry_after:
             raise commands.CommandOnCooldown(bucket, retry_after)
         # Blacklist
-        guild_doc = await ctx.guild_doc
-        user_doc = await ctx.user_doc
-        if ctx.guild != None and guild_doc.setdefault("blacklisted", False):
+        if ctx.guild != None and ctx.guild_doc.setdefault("blacklisted", False):
             raise errors.Blacklisted()
-        elif user_doc.setdefault("blacklisted", False):
+        elif ctx.user_doc.setdefault("blacklisted", False):
             raise errors.Blacklisted()
         else:
             return True

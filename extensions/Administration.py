@@ -81,8 +81,8 @@ class Administration(
 
     @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
     async def prefix(self, ctx, *, prefix: str):
-        guild_doc = await ctx.guild_doc
-        guild_doc["prefix"] = prefix
+        ctx.guild_doc["prefix"] = prefix
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
     @config.command(
@@ -91,8 +91,8 @@ class Administration(
         description="Sets the role that is given to people who are muted. It must already be configured.",
     )
     async def mute(self, ctx, *, role: discord.Role):
-        guild_doc = await ctx.guild_doc
-        guild_doc["mute_role"] = role.id
+        ctx.guild_doc["mute_role"] = role.id
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
 

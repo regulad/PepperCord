@@ -17,11 +17,13 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         if payload.guild_id == None or payload.user_id == self.bot.user.id:
             return
         guild = self.bot.get_guild(payload.guild_id)
-        ctx = await self.bot.get_context(await guild.get_channel(payload.channel_id).get_partial_message(payload.message_id).fetch())
+        ctx = await self.bot.get_context(
+            await guild.get_channel(payload.channel_id).get_partial_message(payload.message_id).fetch()
+        )
         reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
         # Fetch info
-        reaction_dict = (await ctx.guild_doc).setdefault("reactions", {})
+        reaction_dict = (ctx.guild_doc).setdefault("reactions", {})
         if reaction_dict:
             for key_channel in reaction_dict.keys():
                 channel_dict = reaction_dict[key_channel]
@@ -70,13 +72,14 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
         role: discord.Role,
     ):
-        reaction_dict = (await ctx.guild_doc).setdefault("reactions", {})
+        reaction_dict = ctx.guild_doc.setdefault("reactions", {})
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji_name = emoji.name
         elif isinstance(emoji, str):
             emoji_name = emoji
         reaction_dict.update({str(channel.id): {str(message.id): {emoji_name: role.id}}})
         await message.add_reaction(emoji)
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
 

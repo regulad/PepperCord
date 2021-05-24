@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 
 from .context import CustomContext
+from .database import Document
 
 
 class CustomBot(commands.Bot):
@@ -51,7 +52,12 @@ class CustomBot(commands.Bot):
         view = commands.view.StringView(message.content)
 
         if cls == CustomContext:
-            ctx = cls(prefix=None, view=view, bot=self, database=self._database, message=message)
+            # Kinda jank?
+            if message.guild:
+                guild_doc = await Document.find_one_or_insert_document(self._database["guild"], {"_id": message.guild.id})
+            if message.author:
+                user_doc = await Document.find_one_or_insert_document(self._database["user"], {"_id": message.author.id})
+            ctx = cls(prefix=None, view=view, bot=self, guild_doc=guild_doc, user_doc=user_doc, message=message)
         else:
             ctx = cls(prefix=None, view=view, bot=self, message=message)
 

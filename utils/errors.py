@@ -19,3 +19,7 @@ class TooManyMembers(commands.CommandError):
 
 class LowPrivilege(commands.CheckFailure):
     pass
+
+
+class AlreadyPinned(Exception):
+    pass

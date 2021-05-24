@@ -17,7 +17,6 @@ class GuildPermissionManager:
     async def read(self, entity: typing.Union[discord.Member, discord.Role]):
         """Gets the max permission level of a member or role"""
         # Configures guild document
-        guild_doc = await self.ctx.guild_doc
         # Gets role from member
         if isinstance(entity, discord.Member):
             entity = entity.top_role
@@ -29,7 +28,7 @@ class GuildPermissionManager:
         # Gets permission level for each role
         permission_levels = []
         for role in below_roles:
-            active_item = guild_doc.setdefault("permissions", {}).get(str(role.id))
+            active_item = self.ctx.guild_doc.setdefault("permissions", {}).get(str(role.id))
             if not active_item:
                 active_item = 0
             permission_levels.append(active_item)
@@ -38,4 +37,5 @@ class GuildPermissionManager:
 
     async def write(self, role: discord.Role, level: Permissions):
         """Writes a permission level into a role in a guild document"""
-        self.ctx.document.setdefault("permissions", {})[str(role.id)] = level
+        self.ctx.guild_doc.setdefault("permissions", {})[str(role.id)] = level
+        await self.ctx.guild_doc.update_db()

@@ -54,7 +54,7 @@ class Levels(
         new_level = get_level(new_xp)
         # Levelup message
         if new_level > current_level:
-            if not ctx.guild_doc.setdefault("levels", {}).setdefault("disabled", False):
+            if not ctx.guild_doc.setdefault("levels", {}).setdefault("disabled", True):
                 next_xp = get_xp(new_level + 1) - get_xp(new_level)
                 embed = (
                     discord.Embed(

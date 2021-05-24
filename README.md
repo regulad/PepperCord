@@ -25,7 +25,7 @@ Features include:
   * ASCII Art
   * Minecraft
 
-If you have any ideas on how to improve the bot, please make a fork and submit your pull request [here](https://github.com/regulad/PepperCord/pulls].
+If you have any ideas on how to improve the bot, please make a fork and submit your pull request [here](https://github.com/regulad/PepperCord/pulls).
 
 # Using
 

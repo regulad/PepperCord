@@ -32,9 +32,9 @@ class Dev(
         value = value or True
         entity = entity or ctx.guild
         if isinstance(entity, discord.Guild):
-            document = await Document.find_one_or_insert_document(self.bot.database["guild"], {"_id": entity.id})
+            document = await Document.get_document(self.bot.database["guild"], {"_id": entity.id})
         elif isinstance(entity, (discord.Member, discord.User)):
-            document = await Document.find_one_or_insert_document(self.bot.database["guild"], {"_id": entity.id})
+            document = await Document.get_document(self.bot.database["guild"], {"_id": entity.id})
         document["blacklisted"] = True
         await document.update_db()
         await ctx.message.add_reaction(emoji="✅")

@@ -15,7 +15,7 @@ class Document(dict):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    async def find_one_or_insert_document(cls, collection: motor.motor_asyncio.AsyncIOMotorCollection, query: dict):
+    async def get_document(cls, collection: motor.motor_asyncio.AsyncIOMotorCollection, query: dict):
         document = (await collection.find_one(query)) or query
         before = copy.deepcopy(document)
         return cls(document, collection=collection, query=query, before=before)

@@ -116,7 +116,7 @@ class Levels(
     )
     async def rank(self, ctx, *, user: typing.Optional[discord.Member]):
         user = user or ctx.author
-        user_doc = await Document.find_one_or_insert_document(self.bot.database["user"], {"_id": user.id})
+        user_doc = await Document.get_document(self.bot.database["user"], {"_id": user.id})
         xp = user_doc.setdefault("xp", 0)
         level = get_level(xp)
         next_level = get_xp(level + 1) - xp
@@ -145,7 +145,7 @@ class Levels(
             ).set_thumbnail(url=ctx.guild.icon_url)
             member_xp_dict = {}
             for member in ctx.guild.members:
-                member_doc = await Document.find_one_or_insert_document(self.bot.database["user"], {"_id": member.id})
+                member_doc = await Document.get_document(self.bot.database["user"], {"_id": member.id})
                 member_xp_dict[member] = member_doc.setdefault("xp", 0)
             dict_index = page * 15
             new_dict_index = dict_index + 15

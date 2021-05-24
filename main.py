@@ -36,7 +36,7 @@ db = db_client[config["db"]["name"]]
 
 
 async def get_prefix(bot, message):
-    document = await database.Document.find_one_or_insert_document(bot.database["guild"], {"_id": message.guild.id})
+    document = await database.Document.get_document(bot.database["guild"], {"_id": message.guild.id})
     default_prefix = bot.config["discord"]["commands"]["prefix"]
     if message.guild is None:
         return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)

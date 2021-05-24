@@ -1,31 +1,8 @@
-import copy
 import typing
 
 import discord
-import instances
-import motor.motor_asyncio
 from discord.ext import commands
-from utils import checks, errors, managers, permissions
-
-
-class GuildReactionManager(managers.CommonConfigManager):
-    def __init__(self, guild: discord.Guild, collection: motor.motor_asyncio.AsyncIOMotorCollection):
-        super().__init__(guild, collection, "reactions", {})
-
-    async def write(
-        self,
-        channel: discord.TextChannel,
-        message: typing.Union[discord.Message, discord.PartialMessage],
-        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
-        role: discord.Role,
-    ):
-        if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
-            emoji_name = emoji.name
-        elif isinstance(emoji, str):
-            emoji_name = emoji
-        working_key = copy.deepcopy(self.active_key)
-        working_key.update({str(channel.id): {str(message.id): {emoji_name: role.id}}})
-        await super().write(working_key)
+from utils import checks, errors
 
 
 class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions that give/remove a role when clicked on."):
@@ -36,30 +13,31 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         return await checks.is_admin(ctx)
 
     async def reaction_processor(self, payload: discord.RawReactionActionEvent):
+        # Setup
         if payload.guild_id == None or payload.user_id == self.bot.user.id:
             return
-        guild: discord.Guild = self.bot.get_guild(payload.guild_id)
-        channel: discord.TextChannel = guild.get_channel(payload.channel_id)
-        message: discord.PartialMessage = channel.get_partial_message(payload.message_id)
-        author: discord.Member = guild.get_member(payload.user_id)
+        guild = self.bot.get_guild(payload.guild_id)
+        ctx = await self.bot.get_context(
+            await guild.get_channel(payload.channel_id).get_partial_message(payload.message_id).fetch()
+        )
+        reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
-        reaction_dict_manager = GuildReactionManager(guild, instances.guild_collection)
-        await reaction_dict_manager.fetch_document()
-        reaction_dict = await reaction_dict_manager.read()
+        # Fetch info
+        reaction_dict = (ctx.guild_doc).setdefault("reactions", {})
         if reaction_dict:
             for key_channel in reaction_dict.keys():
                 channel_dict = reaction_dict[key_channel]
-                if int(key_channel) == channel.id:
+                if int(key_channel) == ctx.channel.id:
                     for key_message in channel_dict.keys():
                         message_dict = channel_dict[key_message]
-                        if int(key_message) == message.id:
+                        if int(key_message) == ctx.message.id:
                             for role_pair in message_dict.keys():
                                 if role_pair == emoji.name:
                                     role = guild.get_role(message_dict[role_pair])
                                     if payload.event_type == "REACTION_ADD":
-                                        await author.add_roles(role)
+                                        await reactor.add_roles(role)
                                     elif payload.event_type == "REACTION_REMOVE":
-                                        await author.remove_roles(role)
+                                        await reactor.remove_roles(role)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -94,10 +72,14 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
         role: discord.Role,
     ):
-        guild_reaction_manager = GuildReactionManager(ctx.guild, instances.guild_collection)
-        await guild_reaction_manager.fetch_document()
-        await guild_reaction_manager.write(channel, message, emoji, role)
+        reaction_dict = ctx.guild_doc.setdefault("reactions", {})
+        if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
+            emoji_name = emoji.name
+        elif isinstance(emoji, str):
+            emoji_name = emoji
+        reaction_dict.update({str(channel.id): {str(message.id): {emoji_name: role.id}}})
         await message.add_reaction(emoji)
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
 

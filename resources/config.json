@@ -51,27 +51,11 @@
         },
         "name": {
           "type": "string"
-        },
-        "collections": {
-          "type": "object",
-          "properties": {
-            "user": {"type": "string"},
-            "guild": {"type": "string"},
-            "bot": {"type": "string"}
-          }
         }
       },
       "required": [
         "uri"
       ]
-    },
-    "extensions": {
-      "type": "object",
-      "properties": {
-        "dir": {
-          "type": "array"
-        }
-      }
     },
     "web": {
       "type": "object",
@@ -90,7 +74,6 @@
   "required": [
     "discord",
     "db",
-    "extensions",
     "web"
   ]
 }

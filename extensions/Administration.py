@@ -1,9 +1,8 @@
 import typing
 
 import discord
-import instances
 from discord.ext import commands
-from utils import checks, errors, managers, permissions
+from utils import checks, errors, permissions
 
 
 class Administration(
@@ -46,10 +45,8 @@ class Administration(
     )
     async def read(self, ctx, *, entity: typing.Optional[typing.Union[discord.Member, discord.Role]]):
         entity = entity or ctx.author
-        permission_level_manager = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection)
-        await permission_level_manager.fetch_document()
-        permission_level = await permission_level_manager.read(entity)
-        await ctx.send(f"{entity.name} has permission level `{permission_level}`")
+        perms = permissions.GuildPermissionManager(ctx)
+        await ctx.send(f"{entity.name} has permission level `{await perms.read(entity)}`")
 
     @permissions.command(
         name="write",
@@ -67,9 +64,8 @@ class Administration(
             attribute = permissions.Permissions.MANAGER
         else:
             raise commands.BadArgument()
-        permission_manager = permissions.GuildPermissionManager(ctx.guild, instances.guild_collection)
-        await permission_manager.fetch_document()
-        await permission_manager.write(entity, attribute)
+        perms = permissions.GuildPermissionManager(ctx)
+        await perms.write(entity, attribute)
         await ctx.message.add_reaction(emoji="✅")
 
     @commands.group(
@@ -85,14 +81,8 @@ class Administration(
 
     @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
     async def prefix(self, ctx, *, prefix: str):
-        config_manager = managers.CommonConfigManager(
-            ctx.guild,
-            instances.guild_collection,
-            "prefix",
-            instances.config_instance["discord"]["commands"]["prefix"],
-        )
-        await config_manager.fetch_document()
-        await config_manager.write(prefix)
+        ctx.guild_doc["prefix"] = prefix
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
     @config.command(
@@ -101,53 +91,8 @@ class Administration(
         description="Sets the role that is given to people who are muted. It must already be configured.",
     )
     async def mute(self, ctx, *, role: discord.Role):
-        config_manager = managers.CommonConfigManager(
-            ctx.guild,
-            instances.guild_collection,
-            "mute_role",
-            0,
-        )
-        await config_manager.fetch_document()
-        await config_manager.write(role.id)
-        await ctx.message.add_reaction(emoji="✅")
-
-    @config.command(
-        name="redirect",
-        brief="Redirects level-up alerts to a certain channel.",
-        description="Redirects level-up alerts to a certain channel. Pass 0 to disable.",
-    )
-    async def redirect(self, ctx, *, channel: discord.TextChannel):
-        config_manager = managers.CommonConfigManager(
-            ctx.guild,
-            instances.guild_collection,
-            "redirect",
-            0,
-        )
-        await config_manager.fetch_document()
-        await config_manager.write(channel.id)
-        await ctx.message.add_reaction(emoji="✅")
-
-    @commands.command(
-        name="color",
-        aliases=["colour", "colourrole", "colorrole"],
-        brief="Swiftly creates role with given color.",
-        description="Swiftly creates a role with the given color. If specified, you can give it to a user.",
-        usage="<R> <G> <B> [Name] [Member]",
-    )
-    async def colorrole(
-        self,
-        ctx: commands.Context,
-        r: int,
-        g: int,
-        b: int,
-        name: typing.Optional[str],
-        member: typing.Optional[discord.Member],
-    ):
-        colourinstance = discord.Colour.from_rgb(r, g, b)
-        name = name or "#" + str(str(hex(r)).strip("0x") + str(hex(g)).strip("0x") + str(hex(b)).strip("0x")).upper()
-        role = await ctx.guild.create_role(name=name, colour=colourinstance)
-        if member:
-            await member.add_roles(role)
+        ctx.guild_doc["mute_role"] = role.id
+        await ctx.guild_doc.update_db()
         await ctx.message.add_reaction(emoji="✅")
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import typing
 
 import discord
@@ -164,6 +165,7 @@ class Starboard(commands.Cog, name="Starboard", description="An alternative to p
         channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:
             await self._sendstar(ctx.guild_doc, pin)
+            await asyncio.sleep(1) # Prevents rate-limiting
         await ctx.guild_doc.update_db()
         await ctx.message.add_reaction("✅")
 

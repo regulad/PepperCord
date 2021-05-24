@@ -37,5 +37,6 @@ class GuildPermissionManager:
 
     async def write(self, role: discord.Role, level: Permissions):
         """Writes a permission level into a role in a guild document"""
-        self.ctx.guild_doc.setdefault("permissions", {})[str(role.id)] = level
+        value = level.value
+        self.ctx.guild_doc.setdefault("permissions", {})[str(role.id)] = value
         await self.ctx.guild_doc.update_db()

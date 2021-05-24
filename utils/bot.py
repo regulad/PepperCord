@@ -54,9 +54,9 @@ class CustomBot(commands.Bot):
         if cls == CustomContext:
             # Kinda jank?
             if message.guild:
-                guild_doc = await Document.find_one_or_insert_document(self._database["guild"], {"_id": message.guild.id})
+                guild_doc = await Document.get_document(self._database["guild"], {"_id": message.guild.id})
             if message.author:
-                user_doc = await Document.find_one_or_insert_document(self._database["user"], {"_id": message.author.id})
+                user_doc = await Document.get_document(self._database["user"], {"_id": message.author.id})
             ctx = cls(prefix=None, view=view, bot=self, guild_doc=guild_doc, user_doc=user_doc, message=message)
         else:
             ctx = cls(prefix=None, view=view, bot=self, message=message)

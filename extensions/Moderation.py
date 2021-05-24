@@ -24,7 +24,7 @@ class Moderation(
     async def unpunish(self):
         for guild in self.bot.guilds:
             # Get the document for the guild
-            guild_doc = await Document.find_one_or_insert_document(self.bot.database["guild"], {"_id": guild.id})
+            guild_doc = await Document.get_document(self.bot.database["guild"], {"_id": guild.id})
             punishment_dict = guild_doc.setdefault("punishments", {})
             # If the punishment dict is present
             if punishment_dict:

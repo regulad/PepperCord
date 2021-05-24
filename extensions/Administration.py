@@ -1,3 +1,4 @@
+import asyncio
 import typing
 
 import discord
@@ -38,6 +39,19 @@ class Administration(
         raise errors.SubcommandNotFound()
 
     @permissions.command(
+        name="disable",
+        aliases=["off", "delete"],
+        brief="Deletes permission data.",
+        description="Deletes all permission data. This reverts permissions to their initial state.",
+    )
+    async def sdisable(self, ctx):
+        try:
+            del ctx.guild_doc["permissions"]
+        except:
+            raise errors.NotConfigured()
+        await ctx.guild_doc.replace_db()
+
+    @permissions.command(
         name="read",
         brief="Displays permission level of entity.",
         description="Gets raw permission level from member or role.",
@@ -66,7 +80,6 @@ class Administration(
             raise commands.BadArgument()
         perms = permissions.GuildPermissionManager(ctx)
         await perms.write(entity, attribute)
-        await ctx.message.add_reaction(emoji="✅")
 
     @commands.group(
         invoke_without_command=True,
@@ -82,8 +95,7 @@ class Administration(
     @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
     async def prefix(self, ctx, *, prefix: str):
         ctx.guild_doc["prefix"] = prefix
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await ctx.guild_doc.replace_db()
 
     @config.command(
         name="mute",
@@ -92,9 +104,43 @@ class Administration(
     )
     async def mute(self, ctx, *, role: discord.Role):
         ctx.guild_doc["mute_role"] = role.id
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await ctx.guild_doc.replace_db()
 
+    @commands.command(
+        name="delete",
+        aliases=["leave"],
+        brief="Deletes all data on the server, then leaves.",
+        description="Deletes all the data the bot has collected and stored on this server, then leaves. Be careful!",
+    )
+    async def delete(self, ctx):
+        message: discord.Message = await ctx.send(
+            f"<a:alarm:841128716507676682> **Warning:** This action is destructive. *Please* only continue if you know what you are doing. <a:alarm:841128716507676682>"
+        )
+        await message.add_reaction(emoji="✅")
+        await message.add_reaction(emoji="❌")
+        def checkForReaction(reaction: discord.reaction, user: typing.Union[discord.Member, discord.User]):
+            return bool(
+                (user.id == ctx.author.id)
+                and (reaction.message == message)
+                and (str(reaction.emoji) in ["✅", "❌"])
+            )
+        try:
+            reaction: discord.Reaction = await self.bot.wait_for(event="reaction_add", check=checkForReaction, timeout=20.0)
+        except asyncio.TimeoutError:
+            await message.clear_reaction(emoji="✅")
+            await message.clear_reaction(emoji="❌")
+            await message.edit(content="Command timed out.")
+            return
+        else:
+            await message.clear_reaction(emoji="✅")
+            await message.clear_reaction(emoji="❌")
+            if str(reaction[0].emoji) == "✅":
+                await message.edit(content="Deleting...")
+            if str(reaction[0].emoji) == "❌":
+                await message.edit(content="Command disabled.")
+                return
+        await ctx.guild_doc.delete_db()
+        await ctx.guild.leave()
 
 def setup(bot):
     bot.add_cog(Administration(bot))

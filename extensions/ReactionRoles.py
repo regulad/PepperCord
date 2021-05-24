@@ -18,9 +18,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
             return
         guild = self.bot.get_guild(payload.guild_id)
         channel = guild.get_channel(payload.channel_id)
-        ctx = await self.bot.get_context(
-            await channel.fetch_message(payload.message_id)
-        )
+        ctx = await self.bot.get_context(await channel.fetch_message(payload.message_id))
         reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
         # Fetch info
@@ -60,6 +58,19 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         raise errors.SubcommandNotFound()
 
     @reactionrole.command(
+        name="disable",
+        aliases=["off", "delete"],
+        brief="Deletes reaction roles.",
+        description="Deletes all reaction roles.",
+    )
+    async def sdisable(self, ctx):
+        try:
+            del ctx.guild_doc["reactions"]
+        except:
+            raise errors.NotConfigured()
+        await ctx.guild_doc.replace_db()
+
+    @reactionrole.command(
         name="add",
         brief="Adds reaction roles.",
         description="Adds reaction roles. The bot must have permissions to add rections in the desired channel.",
@@ -80,8 +91,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
             emoji_name = emoji
         reaction_dict.update({str(channel.id): {str(message.id): {emoji_name: role.id}}})
         await message.add_reaction(emoji)
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await ctx.guild_doc.replace_db()
 
 
 def setup(bot):

@@ -124,8 +124,7 @@ dmypy.json
 .vscode/
 
 # Configuration
-config/
-logs/
+config.yml
 
 # Black
 *.bak

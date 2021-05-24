@@ -1,9 +1,6 @@
 from .permissions import *
 from .errors import *
 
-from discord.ext import commands
-import discord
-
 
 async def has_permission_level(ctx, value: Permissions):
     if not ctx.guild:

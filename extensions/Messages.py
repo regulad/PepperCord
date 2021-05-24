@@ -40,6 +40,19 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
         raise errors.SubcommandNotFound()
 
     @events.command(
+        name="disable",
+        aliases=["off", "delete"],
+        brief="Deletes messages.",
+        description="Deletes all messages.",
+    )
+    async def sdisable(self, ctx):
+        try:
+            del ctx.guild_doc["reactions"]
+        except:
+            raise errors.NotConfigured()
+        await ctx.guild_doc.replace_db()
+
+    @events.command(
         name="add",
         aliases=["set"],
         brief="Sets message displayed when an action occurs.",
@@ -47,8 +60,7 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
     )
     async def setmessage(self, ctx, message_type: str, channel: discord.TextChannel, *, message: str):
         ctx.guild_doc.setdefault("messages", {}).setdefault(message_type, {})[str(channel.id)] = message
-        await ctx.guild_doc.update_db()
-        await ctx.message.add_reaction(emoji="✅")
+        await ctx.guild_doc.replace_db()
 
 
 def setup(bot):

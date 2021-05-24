@@ -20,7 +20,11 @@ class Document(dict):
         before = copy.deepcopy(document)
         return cls(document, collection=collection, query=query, before=before)
 
-    async def update_db(self):
-        """Gets the remote document up-to-date with the remote."""
+    async def replace_db(self):
+        """Gets the local document up-to-date with the database by replacing it."""
         if dict(self) != self._before:
             return await self._collection.replace_one(self._query, dict(self), upsert=True)
+    
+    async def delete_db(self):
+        """Deletes the document from the remote database."""
+        return await self._collection.delete_one(self._query)

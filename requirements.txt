@@ -9,5 +9,6 @@ pyyaml # Parses YAML
 jsonschema # Validates schema
 psutil # System status
 mcstatus # Minecraft Server
+asyncio-dgram # mcstatus fsr
 Pillow # Image editing
 dblpy # top.gg

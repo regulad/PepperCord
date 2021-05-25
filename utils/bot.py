@@ -1,9 +1,10 @@
+import discord
 from discord.ext import commands
 
 from .context import CustomContext
 
 
-class CustomBot(commands.Bot):
+class CustomBotBase(commands.bot.BotBase):
     def __init__(self, command_prefix, help_command, description, *, database, config, **options):
         self._database = database
         self._config = config
@@ -50,3 +51,11 @@ class CustomBot(commands.Bot):
         elif ctx.invoked_with:
             exc = commands.errors.CommandNotFound('Command "{}" is not found'.format(ctx.invoked_with))
             self.dispatch("command_error", ctx, exc)
+
+
+class CustomAutoShardedBot(CustomBotBase, discord.AutoShardedClient):
+    pass
+
+
+class CustomBot(CustomBotBase, discord.Client):
+    pass

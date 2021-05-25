@@ -20,6 +20,11 @@ class Document(dict):
         before = copy.deepcopy(document)
         return cls(document, collection=collection, query=query, before=before)
 
+    @classmethod
+    async def get_from_id(cls, collection: motor.motor_asyncio.AsyncIOMotorCollection, id: int):
+        query = {"_id": id}
+        return await cls.get_document(collection, query)
+
     async def replace_db(self):
         """Gets the local document up-to-date with the database by replacing it."""
         if dict(self) != self._before:

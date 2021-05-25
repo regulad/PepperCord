@@ -7,9 +7,9 @@ class CustomContext(commands.Context):
     async def get_document(self, database):
         """Gets documents from the database to be used later on. Must be called to use guild_doc or user_doc"""
         if self.guild:
-            self._guild_doc = await Document.get_document(database["guild"], {"_id": self.guild.id})
+            self._guild_doc = await Document.get_from_id(database["guild"], self.guild.id)
         if self.author:
-            self._user_doc = await Document.get_document(database["user"], {"_id": self.author.id})
+            self._user_doc = await Document.get_from_id(database["user"], self.author.id)
 
     @property
     def guild_doc(self):

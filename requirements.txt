@@ -1,4 +1,5 @@
 discord.py # It.
+git+https://github.com/Rapptz/discord-ext-menus # Experimental Menu features, very cool
 discord-pretty-help # Makes the help command look nice.
 jishaku  # Useful development tools.
 aiohttp # For asyncronous HTTP requests
@@ -11,4 +12,3 @@ psutil # System status
 mcstatus # Minecraft Server
 asyncio-dgram # mcstatus fsr
 Pillow # Image editing
-dblpy # top.gg

@@ -11,7 +11,7 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
         return await checks.is_admin(ctx)
 
     async def member_message_processor(self, member: discord.Member, event: str):
-        guild_doc = await database.Document.get_document(self.bot.database["guild"], {"_id": member.guild.id})
+        guild_doc = await database.Document.get_from_id(self.bot.database["guild"], member.guild.id)
         messages_dict = guild_doc["messages"][event]
         if messages_dict:
             for channel in messages_dict.keys():

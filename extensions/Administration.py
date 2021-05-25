@@ -1,9 +1,51 @@
-import asyncio
 import typing
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 from utils import checks, errors, permissions
+
+
+class DeleteMenu(menus.Menu):
+    """Confirmation menu for deletng server information."""
+    def __init__(
+        self,
+        *,
+        timeout=180.0,
+        delete_message_after=False,
+        clear_reactions_after=False,
+        check_embeds=False,
+        message=None,
+    ):
+        self.result = None
+
+        super().__init__(
+            timeout=timeout,
+            delete_message_after=delete_message_after,
+            clear_reactions_after=clear_reactions_after,
+            check_embeds=check_embeds,
+            message=message,
+        )
+
+    async def send_initial_message(self, ctx, channel):
+        await channel.send(
+            "<a:alarm:841128716507676682> **Warning:** This action is destructive. *Please* only continue if you know what you are doing. <a:alarm:841128716507676682>"
+        )
+
+    @menus.button("✅")
+    async def confirm(self, payload):
+        self.message.edit("Deleting guild information...")
+        self.result = True
+        self.stop()
+
+    @menus.button("❌")
+    async def reject(self, payload):
+        self.message.edit("Operation cancelled.")
+        self.result = False
+        self.stop()
+
+    async def prompt(self, ctx):
+        await self.start(ctx)
+        return self.result
 
 
 class Administration(
@@ -113,32 +155,9 @@ class Administration(
         description="Deletes all the data the bot has collected and stored on this server, then leaves. Be careful!",
     )
     async def delete(self, ctx):
-        message: discord.Message = await ctx.send(
-            f"<a:alarm:841128716507676682> **Warning:** This action is destructive. *Please* only continue if you know what you are doing. <a:alarm:841128716507676682>"
-        )
-        await message.add_reaction(emoji="✅")
-        await message.add_reaction(emoji="❌")
-
-        def checkForReaction(reaction: discord.reaction, user: typing.Union[discord.Member, discord.User]):
-            return bool((user.id == ctx.author.id) and (reaction.message == message) and (str(reaction.emoji) in ["✅", "❌"]))
-
-        try:
-            reaction: discord.Reaction = await self.bot.wait_for(event="reaction_add", check=checkForReaction, timeout=20.0)
-        except asyncio.TimeoutError:
-            await message.clear_reaction(emoji="✅")
-            await message.clear_reaction(emoji="❌")
-            await message.edit(content="Command timed out.")
-            return
-        else:
-            await message.clear_reaction(emoji="✅")
-            await message.clear_reaction(emoji="❌")
-            if str(reaction[0].emoji) == "✅":
-                await message.edit(content="Deleting...")
-            if str(reaction[0].emoji) == "❌":
-                await message.edit(content="Command disabled.")
-                return
-        await ctx.guild_doc.delete_db()
-        await ctx.guild.leave()
+        if await DeleteMenu().prompt(ctx):
+            await ctx.guild_doc.delete_db()
+            await ctx.guild.leave()
 
 
 def setup(bot):

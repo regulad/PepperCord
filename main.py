@@ -15,7 +15,6 @@ from pretty_help import PrettyHelp
 
 from utils import bot, database
 
-
 config = yaml.load(open("config/config.yml"), Loader=yaml.FullLoader)
 config_schema = json.load(open("resources/config.json"))
 
@@ -31,7 +30,7 @@ db = db_client[config["db"]["name"]]
 
 
 async def get_prefix(bot, message):
-    document = await database.Document.get_document(bot.database["guild"], {"_id": message.guild.id})
+    document = await database.Document.get_from_id(bot.database["guild"], message.guild.id)
     default_prefix = bot.config["discord"]["commands"]["prefix"]
     if message.guild is None:
         return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)
@@ -44,7 +43,17 @@ intents = discord.Intents.default()
 intents.members = True
 intents.presences = True
 
-bot = bot.CustomBot(
+
+shards = config["discord"]["api"].setdefault("shards", 0)
+
+
+if shards > 0:
+    bot_class = bot.CustomAutoShardedBot
+else:
+    bot_class = bot.CustomBot
+
+
+bot_instance = bot_class(
     command_prefix=get_prefix,
     case_insensitive=True,
     intents=intents,
@@ -52,6 +61,7 @@ bot = bot.CustomBot(
     help_command=PrettyHelp(color=discord.Colour.orange()),
     database=db,
     config=config,
+    shard_count=shards,
 )
 
 if __name__ == "__main__":
@@ -59,9 +69,9 @@ if __name__ == "__main__":
         if file.endswith(".py"):
             full_path = "extensions/" + file
             try:
-                bot.load_extension(os.path.splitext(full_path)[0].replace("/", "."))
+                bot_instance.load_extension(os.path.splitext(full_path)[0].replace("/", "."))
             except Exception as e:
                 print(f"Could not load {full_path}: {e}, continuing recursively")
             else:
                 print(f"Loaded {full_path}")
-    bot.run(config["discord"]["api"]["token"])
+    bot_instance.run(config["discord"]["api"]["token"])

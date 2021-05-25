@@ -23,3 +23,7 @@ class LowPrivilege(commands.CheckFailure):
 
 class AlreadyPinned(Exception):
     pass
+
+
+class NotSharded(Exception):
+    pass

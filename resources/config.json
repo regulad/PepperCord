@@ -12,6 +12,10 @@
             "token": {
               "type": "string",
               "pattern": "([a-zA-Z0-9_]{24})\\.([a-zA-Z0-9_]{6})\\.([a-zA-Z0-9_]{27})"
+            },
+            "shards": {
+              "type": "integer",
+              "default": 0
             }
           },
           "required": [
@@ -22,16 +26,19 @@
           "type": "object",
           "properties": {
             "prefix": {
-              "type": "string"
+              "type": "string",
+              "default": "~"
             },
             "cooldown": {
               "type": "object",
               "properties": {
                 "rate": {
-                  "type": "number"
+                  "type": "number",
+                  "default": 4
                 },
                 "per": {
-                  "type": "number"
+                  "type": "number",
+                  "default": 10
                 }
               }
             }
@@ -50,7 +57,8 @@
           "format": "uri"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "default": "peppercord"
         }
       },
       "required": [
@@ -62,18 +70,19 @@
       "properties": {
         "base": {
           "type": "string",
-          "format": "uri"
+          "format": "uri",
+          "default": "https://www.regulad.xyz/PepperCord"
         },
         "github": {
           "type": "string",
-          "format": "uri"
+          "format": "uri",
+          "default": "https://github.com/regulad/PepperCord"
         }
       }
     }
   },
   "required": [
     "discord",
-    "db",
-    "web"
+    "db"
   ]
 }

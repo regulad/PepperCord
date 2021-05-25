@@ -32,6 +32,8 @@ class ErrorHandling(commands.Cog, name="Error Handling", description="Listeners 
             await ctx.send(
                 f"Slow the brakes, speed racer! We don't want any rate limiting... Try executing your command again in `{round(e.retry_after, 1)}` seconds."
             )
+        elif isinstance(e, errors.NotSharded):
+            await ctx.send("This bot is not sharded.")
         elif isinstance(e, commands.UserInputError):
             await ctx.send(f"Command is valid, but input is invalid. Try `{ctx.prefix}help {ctx.command}`.")
         elif isinstance(e, (commands.MissingPermissions, errors.LowPrivilege)):

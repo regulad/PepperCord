@@ -1,8 +1,9 @@
 from discord.ext import commands
-from utils import errors
 
 
-class BotCheck(commands.Cog, name="Bot Checks", description="Global bot checks."):
+class Cooldown(commands.Cog):
+    """The cooldown system prevents abuse of the bot."""
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -18,14 +19,9 @@ class BotCheck(commands.Cog, name="Bot Checks", description="Global bot checks."
         retry_after = bucket.update_rate_limit()
         if retry_after:
             raise commands.CommandOnCooldown(bucket, retry_after)
-        # Blacklist
-        if ctx.guild != None and ctx.guild_doc.setdefault("blacklisted", False):
-            raise errors.Blacklisted()
-        elif ctx.user_doc.setdefault("blacklisted", False):
-            raise errors.Blacklisted()
         else:
             return True
 
 
 def setup(bot):
-    bot.add_cog(BotCheck(bot))
+    bot.add_cog(Cooldown(bot))

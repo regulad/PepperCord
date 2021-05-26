@@ -28,33 +28,25 @@ jsonschema.validate(
 db_client = motor.motor_asyncio.AsyncIOMotorClient(config["db"]["uri"])
 db = db_client[config["db"]["name"]]
 
-
-async def get_prefix(bot, message):
-    document = await database.Document.get_from_id(bot.database["guild"], message.guild.id)
-    default_prefix = bot.config["discord"]["commands"]["prefix"]
-    if message.guild is None:
-        return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)
-    else:
-        guild_prefix = document.setdefault("prefix", default_prefix)
-        return commands.when_mentioned_or(f"{guild_prefix} ", guild_prefix)(bot, message)
-
-
+# Configure Intents
 intents = discord.Intents.default()
 intents.members = True
 intents.presences = True
 
-
+# Configure Sharding
 shards = config["discord"]["api"].setdefault("shards", 0)
-
-
 if shards > 0:
     bot_class = bot.CustomAutoShardedBot
+elif shards == -1:
+    bot_class = bot.CustomAutoShardedBot
+    shards = None
 else:
     bot_class = bot.CustomBot
+    shards = None
 
-
+# Configure bot
 bot_instance = bot_class(
-    command_prefix=get_prefix,
+    command_prefix=config["discord"]["commands"]["prefix"],
     case_insensitive=True,
     intents=intents,
     description="https://github.com/regulad/PepperCord",
@@ -74,4 +66,4 @@ if __name__ == "__main__":
                 print(f"Could not load {full_path}: {e}, continuing recursively")
             else:
                 print(f"Loaded {full_path}")
-    bot_instance.run(config["discord"]["api"]["token"])
+    bot_instance.run(bot_instance.config["discord"]["api"]["token"])

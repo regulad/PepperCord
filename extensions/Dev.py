@@ -30,8 +30,12 @@ class ShardMenu(menus.Menu):
     async def send_initial_message(self, ctx, channel):
         embed = discord.Embed(
             title=f"Info for shard {self.shard_info.id}",
-            description="",
-        )
+        ).add_field(name="Online:", value=not self.shard_info.is_closed())
+        return await channel.send(embed=embed)
+
+    @menus.button("🔄")
+    async def reconnect(self, payload):
+        return await self.shard_info.reconnect()
 
 
 class Dev(
@@ -95,9 +99,13 @@ class Dev(
     )
     async def guild(self, ctx, *, guild: typing.Optional[discord.Guild]):
         guild = guild or ctx.guild
-        shard = guild.shard_id
-        if shard is None:
+        try:
+            shard = guild.shard_id
+        except:
             raise errors.NotSharded()
+        else:
+            if shard is None:
+                raise errors.NotSharded()
         await ctx.send(f"{guild.name} uses shard {shard}")
 
     @shard.command(
@@ -110,6 +118,9 @@ class Dev(
             shard_info_instance = self.bot.get_shard(shard_id)
         except:
             raise errors.NotSharded()
+        else:
+            if shard_info_instance is None:
+                raise errors.NotSharded()
         await ShardMenu(shard_info_instance).start(ctx)
 
 

@@ -6,22 +6,14 @@ from .context import CustomContext
 
 class CustomBotBase(commands.bot.BotBase):
     def __init__(self, command_prefix, help_command, description, *, database, config, **options):
-        self._database = database
-        self._config = config
+        self.database = database
+        self.config = config
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
-
-    @property
-    def database(self):
-        return self._database
-
-    @property
-    def config(self):
-        return self._config
 
     async def get_context(self, message, *, cls=CustomContext):
         result = await super().get_context(message, cls=cls)
         if isinstance(result, CustomContext):
-            await result.get_document(self._database)
+            await result.get_documents(self.database)
         return result
 
     async def invoke(self, ctx):

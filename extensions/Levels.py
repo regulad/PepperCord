@@ -1,9 +1,10 @@
+import copy
 import math
 import random
 import typing
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 from utils import checks, errors
 from utils.database import Document
 
@@ -13,14 +14,46 @@ xp_start = 1
 xp_end = 5
 
 
-def get_xp(level: int):
-    xp = level ** xp_to * xp_multiplier
-    return xp
+class UserLevel:
+    """An object that represents the level of a user via their user_doc."""
 
+    def __init__(self, user: typing.Union[discord.User, discord.Member], document: Document) -> None:
+        self.user = user
+        self.document = document
 
-def get_level(xp: typing.Union[int, float]):
-    level = (xp / xp_multiplier) ** (1.0 / xp_to)
-    return math.trunc(level)
+    @classmethod
+    async def get_user(cls, bot, user: typing.Union[discord.User, discord.Member]):
+        """Returns the UserLevel object for a given user."""
+        document = await Document.get_from_id(bot.database["user"], user.id)
+        return cls(user, document)
+
+    def _get_xp(self, level: int):
+        """Gets the xp value for a given level."""
+        xp = level ** xp_to * xp_multiplier
+        return xp
+
+    def _get_level(self, xp: typing.Union[int, float]):
+        """Gets the level for a given amount of xp."""
+        level = (xp / xp_multiplier) ** (1.0 / xp_to)
+        return math.trunc(level)
+
+    @property
+    def xp(self):
+        """Gets the amount of xp for a given user."""
+        return self.document.setdefault("xp", 0)
+
+    @property
+    def level(self):
+        """Gets the level of a given user using their xp."""
+        return self._get_level(self.xp)
+
+    async def increment(self, amount: int):
+        """Increments a the user's xp by a given amount. Returns a tuple of the before xp and the new xp."""
+        current = copy.deepcopy(self.xp)
+        new_xp = current + amount
+        self.document["xp"] = new_xp
+        await self.document.update_db("$set")
+        return (current, new_xp)
 
 
 class Levels(
@@ -38,6 +71,7 @@ class Levels(
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         ctx = await self.bot.get_context(message)
+        level = await UserLevel.get_user(self.bot, ctx.author)
         # Recursion prevention
         if (not ctx.guild) or (ctx.author.bot):
             return
@@ -47,11 +81,7 @@ class Levels(
         if retry_after:
             return
         # Actual processing
-        current_xp = ctx.user_doc.setdefault("xp", 0)
-        current_level = get_level(current_xp)
-        message_xp = random.randrange(xp_start, xp_end)
-        new_xp = current_xp + message_xp
-        new_level = get_level(new_xp)
+        gen_xp = random(xp_start, xp_end)
         # Levelup message
         if new_level > current_level:
             if not ctx.guild_doc.setdefault("levels", {}).setdefault("disabled", True):
@@ -132,27 +162,23 @@ class Levels(
     async def leaderboard(
         self,
         ctx,
-        page: typing.Optional[int],
     ):
         if ctx.guild.large:
             raise errors.TooManyMembers()
-        page = page or 0
-        embed: discord.Embed = discord.Embed(
-            colour=discord.Colour.random(), title=f"{ctx.guild.name}: page {page}"
-        ).set_thumbnail(url=ctx.guild.icon_url)
+        embed: discord.Embed = discord.Embed(colour=discord.Colour.random(), title=f"{ctx.guild.name}").set_thumbnail(
+            url=ctx.guild.icon_url
+        )
         member_xp_dict = {}
         for member in ctx.guild.members:
             member_doc = await Document.get_from_id(self.bot.database["user"], member.id)
             member_xp_dict[member] = member_doc.setdefault("xp", 0)
-        dict_index = page * 15
-        new_dict_index = dict_index + 15
-        sorted_list = sorted(member_xp_dict.items(), key=lambda item: item[1], reverse=True)
-        sorted_dict = dict(sorted_list)
-        for member in list(sorted_dict.keys())[dict_index:new_dict_index]:
-            dict_index += 1
+        sorted_dict = misc.sort_dict(member_xp_dict)
+        i = 0
+        for member in list(sorted_dict.keys())[:10]:
             xp = sorted_dict[member]
+            i += 1
             embed.add_field(
-                name=f"{dict_index}. {member.display_name}",
+                name=f"{i}. {member.display_name}",
                 value=f"Level {round(get_level(xp))} ({round(xp)} XP)",
                 inline=False,
             )

@@ -7,6 +7,7 @@ from utils import checks, errors, permissions
 
 class DeleteMenu(menus.Menu):
     """Confirmation menu for deletng server information."""
+
     def __init__(
         self,
         *,
@@ -27,24 +28,24 @@ class DeleteMenu(menus.Menu):
         )
 
     async def send_initial_message(self, ctx, channel):
-        await channel.send(
+        return await channel.send(
             "<a:alarm:841128716507676682> **Warning:** This action is destructive. *Please* only continue if you know what you are doing. <a:alarm:841128716507676682>"
         )
 
     @menus.button("✅")
     async def confirm(self, payload):
-        self.message.edit("Deleting guild information...")
+        await self.message.edit(content="Deleting guild information...")
         self.result = True
         self.stop()
 
     @menus.button("❌")
     async def reject(self, payload):
-        self.message.edit("Operation cancelled.")
+        await self.message.edit(content="Operation cancelled.")
         self.result = False
         self.stop()
 
     async def prompt(self, ctx):
-        await self.start(ctx)
+        await self.start(ctx, wait=True)
         return self.result
 
 

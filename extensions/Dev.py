@@ -1,4 +1,5 @@
 import typing
+from io import StringIO
 
 import discord
 from discord.ext import commands, menus
@@ -75,7 +76,11 @@ class Dev(
             document = await Document.get_from_id(self.bot.database["guild"], entity.id)
         elif isinstance(entity, (discord.Member, discord.User)):
             document = await Document.get_from_id(self.bot.database["user"], entity.id)
-        await ctx.send(f"```{document}```")
+        buffer = StringIO()
+        buffer.write(str(document))
+        buffer.seek(0)
+        file = discord.File(buffer, f"{entity.id}.json")
+        await ctx.send(file=file)
 
     @commands.group(
         invoke_without_command=True,

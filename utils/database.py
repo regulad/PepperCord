@@ -30,13 +30,6 @@ class Document(dict):
         if dict(self) != self._before:
             return await self._collection.replace_one(self._query, dict(self), upsert=True)
 
-    async def update_db(self, action):
-        """Gets the database up-to-date with the local document by updating the document on the database."""
-        if dict(self) != self._before:
-            return await self._collection.update_one(
-                self._query, {action: dict(set(self._before.items()) - set(self.items()))}, upsert=True
-            )
-
     async def delete_db(self):
         """Deletes the document from the remote database."""
         return await self._collection.delete_one(self._query)

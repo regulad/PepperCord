@@ -69,7 +69,7 @@ db:
 discord:
   api:
     token: UghqQolQCODamh1fS7B7DKkE.tJEE4u.TnJJbmoBbyscPFViH4OSOCX2Fyf # Token for your bot. Selfbots don't work.
-    shards: 0 # Number of shards to use. 0 disables sharding.
+    shards: 0 # Number of shards to use. 0 disables sharding. Pass -1 to let discord decide the number of shards.
   commands:
     prefix: '~' # Prefix for all commands: can be changed per-server by the user
     cooldown:

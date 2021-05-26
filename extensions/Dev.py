@@ -28,10 +28,14 @@ class ShardMenu(menus.Menu):
         )
 
     async def send_initial_message(self, ctx, channel):
-        embed = discord.Embed(
-            title=f"Info for shard {self.shard_info.id}",
-        ).add_field(name="Online:", value=not self.shard_info.is_closed())
-        return await channel.send(embed=embed)
+        embed = (
+            discord.Embed(
+                title=f"Info for shard {self.shard_info.id}/{self.shard_info.shard_count}",
+            )
+            .add_field(name="Online:", value=not self.shard_info.is_closed())
+            .add_field(name="Latency:", value=f"{self.shard_info.latency} ms")
+        )
+        return await ctx.send(embed=embed)
 
     @menus.button("🔄")
     async def reconnect(self, payload):
@@ -50,28 +54,6 @@ class Dev(
         return await self.bot.is_owner(ctx.author)
 
     @commands.command(
-        name="blacklist",
-        description="Tools to blacklist entity from using the bot.",
-        brief="Blacklists declared entity.",
-        usage="<Value> <Entity>",
-    )
-    async def blacklist(
-        self,
-        ctx,
-        value: typing.Optional[bool],
-        *,
-        entity: typing.Optional[typing.Union[discord.User, discord.Member, discord.Guild]],
-    ):
-        value = value or True
-        entity = entity or ctx.guild
-        if isinstance(entity, discord.Guild):
-            document = await Document.get_from_id(self.bot.database["guild"], entity.id)
-        elif isinstance(entity, (discord.Member, discord.User)):
-            document = await Document.get_from_id(self.bot.database["guild"], entity.id)
-        document["blacklisted"] = True
-        await document.replace_db()
-
-    @commands.command(
         name="nick",
         aliases=["nickname"],
         brief="Change nickname.",
@@ -80,6 +62,20 @@ class Dev(
     @commands.guild_only()
     async def nick(self, ctx, *, name: str):
         await ctx.guild.me.edit(nick=name)
+
+    @commands.command(
+        name="raw",
+        aliases=["document"],
+        brief="Get raw document for an entity.",
+        description="Prints an entity's raw document. Be careful! It can contain sensitive information.",
+    )
+    async def raw(self, ctx, entity: typing.Optional[typing.Union[discord.Guild, discord.Member, discord.User]]):
+        entity = entity or ctx.guild
+        if isinstance(entity, discord.Guild):
+            document = await Document.get_from_id(self.bot.database["guild"], entity.id)
+        elif isinstance(entity, (discord.Member, discord.User)):
+            document = await Document.get_from_id(self.bot.database["user"], entity.id)
+        await ctx.send(f"```{document}```")
 
     @commands.group(
         invoke_without_command=True,

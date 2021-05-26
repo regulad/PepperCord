@@ -28,7 +28,7 @@ class DeleteMenu(menus.Menu):
         )
 
     async def send_initial_message(self, ctx, channel):
-        return await channel.send(
+        return await ctx.send(
             "<a:alarm:841128716507676682> **Warning:** This action is destructive. *Please* only continue if you know what you are doing. <a:alarm:841128716507676682>"
         )
 
@@ -134,11 +134,6 @@ class Administration(
     )
     async def config(self, ctx):
         raise errors.SubcommandNotFound()
-
-    @config.command(name="prefix", brief="Sets the bot's prefix.", description="Sets the bot's prefix. It can be any string.")
-    async def prefix(self, ctx, *, prefix: str):
-        ctx.guild_doc["prefix"] = prefix
-        await ctx.guild_doc.replace_db()
 
     @config.command(
         name="mute",

@@ -6,7 +6,7 @@ from utils import checks, errors, permissions
 
 
 class DeleteMenu(menus.Menu):
-    """Confirmation menu for deletng server information."""
+    """Confirmation menu for deleting server information."""
 
     def __init__(
         self,
@@ -29,7 +29,7 @@ class DeleteMenu(menus.Menu):
 
     async def send_initial_message(self, ctx, channel):
         return await ctx.send(
-            "<a:alarm:841128716507676682> **Warning:** This action is destructive. *Please* only continue if you know what you are doing. <a:alarm:841128716507676682>"
+            "**Warning:** This action is destructive. *Please* only continue if you know what you are doing."
         )
 
     @menus.button("✅")
@@ -66,7 +66,7 @@ class Administration(
         description="Send a message as the bot in any channel that you want.",
         usage="<Channel> <Message>",
     )
-    async def doMessage(self, ctx, channel: discord.TextChannel, *, text: str):
+    async def do_message(self, ctx, channel: discord.TextChannel, *, text: str):
         channel = self.bot.get_channel(channel.id)
         await channel.send(text)
 
@@ -90,7 +90,7 @@ class Administration(
     async def sdisable(self, ctx):
         try:
             del ctx.guild_doc["permissions"]
-        except:
+        except KeyError:
             raise errors.NotConfigured()
         await ctx.guild_doc.replace_db()
 

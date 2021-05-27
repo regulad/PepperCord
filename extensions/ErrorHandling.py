@@ -11,11 +11,13 @@ class ErrorHandling(commands.Cog, name="Error Handling", description="Listeners 
         await ctx.message.add_reaction(emoji="❌")
         if isinstance(e, commands.CommandInvokeError):
             e = e.original
-        if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await self.bot.is_owner(ctx.author):
+        if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await ctx.bot.is_owner(ctx.author):
             try:
                 await ctx.reinvoke()
             except Exception as e:
-                await ctx.send(f"During the attempt to reinvoke your command, another exception occured. See: ```{e}```")
+                await ctx.send(
+                    f"During the attempt to reinvoke your command, another exception occurred. See: ```{e}```"
+                )
         elif isinstance(e, errors.AlreadyPinned):
             await ctx.send("This message is already pinned to the starboard.")
         elif isinstance(e, errors.TooManyMembers):
@@ -30,7 +32,8 @@ class ErrorHandling(commands.Cog, name="Error Handling", description="Listeners 
             await ctx.send("No horny! A NSFW channel is required to execute this command.")
         elif isinstance(e, commands.CommandOnCooldown):
             await ctx.send(
-                f"Slow the brakes, speed racer! We don't want any rate limiting... Try executing your command again in `{round(e.retry_after, 1)}` seconds."
+                f"Slow the brakes, speed racer! We don't want any rate limiting... Try executing your command again in "
+                f"`{round(e.retry_after, 1)}` seconds. "
             )
         elif isinstance(e, errors.NotSharded):
             await ctx.send("This bot is not sharded.")
@@ -48,7 +51,8 @@ class ErrorHandling(commands.Cog, name="Error Handling", description="Listeners 
             await ctx.send(f"{e}. Try `{ctx.prefix}help`.")
         else:
             await ctx.send(
-                f"Something went very wrong while processing your command. This can be caused by bad arguments or something worse. Execption: ```{e}``` You can contact support with `{ctx.prefix}support`."
+                f"Something went very wrong while processing your command. This can be caused by bad arguments or "
+                f"something worse. Execption: ```{e}``` You can contact support with `{ctx.prefix}support`. "
             )
 
 

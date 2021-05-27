@@ -15,6 +15,18 @@ xp_start = 1
 xp_end = 5
 
 
+def _get_xp(level: int):
+    """Gets the xp value for a given level."""
+    xp = level ** xp_to * xp_multiplier
+    return xp
+
+
+def _get_level(xp: typing.Union[int, float]):
+    """Gets the level for a given amount of xp."""
+    level = (xp / xp_multiplier) ** (1.0 / xp_to)
+    return math.trunc(level)
+
+
 class UserLevel:
     """An object that represents the level of a user via their user_doc."""
 
@@ -28,16 +40,6 @@ class UserLevel:
         document = await Document.get_from_id(bot.database["user"], user.id)
         return cls(user, document)
 
-    def _get_xp(self, level: int):
-        """Gets the xp value for a given level."""
-        xp = level ** xp_to * xp_multiplier
-        return xp
-
-    def _get_level(self, xp: typing.Union[int, float]):
-        """Gets the level for a given amount of xp."""
-        level = (xp / xp_multiplier) ** (1.0 / xp_to)
-        return math.trunc(level)
-
     @property
     def xp(self):
         """Gets the amount of xp for a given user."""
@@ -46,12 +48,12 @@ class UserLevel:
     @property
     def level(self):
         """Gets the level of a given user using their xp."""
-        return self._get_level(self.xp)
+        return _get_level(self.xp)
 
     @property
     def next(self):
         """Gets the xp required to reach the next level a user may obtain."""
-        return self._get_xp(self.level + 1)
+        return _get_xp(self.level + 1)
 
     async def increment(self, amount: int):
         """Increments a the user's xp by a given amount. Returns a dict with information on the old and new level/xp of the user."""
@@ -59,11 +61,11 @@ class UserLevel:
         new_xp = current + amount
         self.document["xp"] = new_xp
         next_level = self.level + 1
-        next_xp = self._get_xp(next_level)
+        next_xp = _get_xp(next_level)
         return_dict = {
             "old": {
                 "xp": current,
-                "level": self._get_level(current),
+                "level": _get_level(current),
             },
             "new": {"xp": self.xp, "level": self.level},
             "next": {"xp": next_xp, "level": next_level},
@@ -78,14 +80,16 @@ class UserLevel:
 class LevelSource(menus.ListPageSource):
     def __init__(self, data, guild):
         self.guild = guild
-        return super().__init__(data, per_page=10)
+        super().__init__(data, per_page=10)
 
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(title=f"{self.guild.name}'s Leaderboard").set_thumbnail(url=self.guild.icon_url)
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
-                name=f"{iteration + 1}.", value=f"{value.user.mention}: Level {value.level} (`{value.xp}` XP)", inline=False
+                name=f"{iteration + 1}.",
+                value=f"{value.user.mention}: Level {value.level} (`{value.xp}` XP)",
+                inline=False,
             )
         return base_embed
 
@@ -99,11 +103,10 @@ class Levels(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        """on_message grants xp to the user and sends level-up alerts to the guild if the guild privledged so desire."""
+        """on_message grants xp to the user and sends level-up alerts to the guild if the guild privileged so desire."""
         ctx = await self.bot.get_context(message)
-        level = await UserLevel.get_user(self.bot, ctx.author)
         # Prevents levels from being earned outside of a guild and the bot from responding to other bots
-        if (not ctx.guild) or (ctx.author.bot):
+        if (not ctx.guild) or ctx.author.bot:
             return
         # Cooldown: prevents spam/macros
         bucket = self.xp_cd.get_bucket(message)
@@ -114,7 +117,8 @@ class Levels(commands.Cog):
         gen_xp = random.randrange(xp_start, xp_end)
         user_level = UserLevel(ctx.author, ctx.user_doc)
         user_level_up = await user_level.increment(gen_xp)
-        # Levelup message: Makes sure that the user's level actually increased and level-up alerts are not disabled in the guild before sending a level-up alert.
+        # Levelup message: Makes sure that the user's level actually increased and level-up alerts are not disabled in
+        # the guild before sending a level-up alert.
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
             not ctx.guild_doc.setdefault("levels", {}).setdefault("disabled", True)
         ):
@@ -133,7 +137,7 @@ class Levels(commands.Cog):
                 await ctx.guild.get_channel(ctx.guild_doc.setdefault("levels", {})["redirect"]).send(
                     ctx.author.mention, embed=embed
                 )
-            except:
+            except KeyError:
                 await ctx.reply(embed=embed)
 
     @commands.command(
@@ -171,7 +175,10 @@ class Levels(commands.Cog):
         await ctx.guild_doc.replace_db()
 
     @commands.command(
-        name="rank", aliases=["level"], brief="Displays current level & rank.", description="Displays current level & rank."
+        name="rank",
+        aliases=["level"],
+        brief="Displays current level & rank.",
+        description="Displays current level & rank.",
     )
     async def rank(self, ctx, *, user: typing.Optional[discord.Member]):
         user = user or ctx.author
@@ -185,7 +192,9 @@ class Levels(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.command(name="leaderboard", brief="Displays current level & rank.", description="Displays current level & rank.")
+    @commands.command(
+        name="leaderboard", brief="Displays current level & rank.", description="Displays current level & rank."
+    )
     @commands.cooldown(1, 30, commands.cooldowns.BucketType.guild)
     async def leaderboard(self, ctx):
         if ctx.guild.large:

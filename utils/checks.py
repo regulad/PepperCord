@@ -1,5 +1,5 @@
-from .permissions import *
-from .errors import *
+from permissions import *
+from errors import *
 
 
 async def has_permission_level(ctx, value: Permissions):
@@ -7,7 +7,7 @@ async def has_permission_level(ctx, value: Permissions):
         return False
     value = value.value or 3
     has = await GuildPermissionManager(ctx).read(ctx.author)
-    if (has >= value) or await guild_privledged(ctx):
+    if (has >= value) or await guild_privileged(ctx):
         return True
     else:
         raise LowPrivilege(f"Has {has}, needs {value}. ({value - has})")
@@ -25,8 +25,8 @@ async def is_man(ctx):
     return await has_permission_level(ctx, Permissions.MANAGER)
 
 
-async def guild_privledged(ctx):
-    if (ctx.author.guild_permissions.administrator) or (ctx.author.id == ctx.guild.owner_id):
+async def guild_privileged(ctx):
+    if ctx.author.guild_permissions.administrator or (ctx.author.id == ctx.guild.owner_id):
         return True
     else:
         return False

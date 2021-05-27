@@ -10,10 +10,9 @@ import discord
 import jsonschema
 import motor.motor_asyncio
 import yaml
-from discord.ext import commands
 from pretty_help import PrettyHelp
 
-from utils import bot, database
+from utils import bot
 
 config = yaml.load(open("config/config.yml"), Loader=yaml.FullLoader)
 config_schema = json.load(open("resources/config.json"))

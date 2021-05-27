@@ -31,9 +31,8 @@ class CustomBotBase(commands.bot.BotBase):
             self.dispatch("command", ctx)
             try:
                 if await self.can_run(ctx, call_once=True):
-                    async with ctx.typing():
-                        await ctx.command.invoke(ctx)
-                        await ctx.message.add_reaction(emoji="✅")
+                    await ctx.command.invoke(ctx)
+                    await ctx.message.add_reaction(emoji="✅")
                 else:
                     raise commands.errors.CheckFailure("The global check once functions failed.")
             except commands.errors.CommandError as exc:

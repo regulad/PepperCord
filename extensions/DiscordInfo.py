@@ -101,7 +101,7 @@ class DiscordInfo(
         description="Displays information about the bot",
         brief="Get bot info.",
     )
-    async def bot_info(self, ctx):
+    async def invite(self, ctx):
         try:
             base = ctx.bot.config["web"]["base"]
             github = ctx.bot.config["web"]["github"]

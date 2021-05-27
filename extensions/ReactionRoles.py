@@ -5,7 +5,9 @@ from discord.ext import commands
 from utils import checks, errors
 
 
-class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions that give/remove a role when clicked on."):
+class ReactionRoles(
+    commands.Cog, name="Reaction Roles", description="Reactions that give/remove a role when clicked on."
+):
     def __init__(self, bot):
         self.bot = bot
 
@@ -14,7 +16,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
 
     async def reaction_processor(self, payload: discord.RawReactionActionEvent):
         # Setup
-        if payload.guild_id == None or payload.user_id == self.bot.user.id:
+        if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
         guild = self.bot.get_guild(payload.guild_id)
         channel = guild.get_channel(payload.channel_id)
@@ -22,7 +24,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
         reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
         # Fetch info
-        reaction_dict = (ctx.guild_doc).setdefault("reactions", {})
+        reaction_dict = ctx.guild_doc.setdefault("reactions", {})
         if reaction_dict:
             for key_channel in reaction_dict.keys():
                 channel_dict = reaction_dict[key_channel]
@@ -66,7 +68,7 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
     async def sdisable(self, ctx):
         try:
             del ctx.guild_doc["reactions"]
-        except:
+        except KeyError:
             raise errors.NotConfigured()
         await ctx.guild_doc.replace_db()
 
@@ -89,6 +91,8 @@ class ReactionRoles(commands.Cog, name="Reaction Roles", description="Reactions 
             emoji_name = emoji.name
         elif isinstance(emoji, str):
             emoji_name = emoji
+        else:
+            emoji_name = None
         reaction_dict.update({str(channel.id): {str(message.id): {emoji_name: role.id}}})
         await message.add_reaction(emoji)
         await ctx.guild_doc.replace_db()

@@ -4,11 +4,13 @@ import motor.motor_asyncio
 
 
 class Document(dict):
-    """Represents a single MonogDB document.
+    """Represents a single MongoDB document.
     .collection: MongoDB collection the document is stored in.
     .query: Query used to find the document."""
 
-    def __init__(self, *args, collection: motor.motor_asyncio.AsyncIOMotorCollection, query: dict, before: dict, **kwargs):
+    def __init__(
+        self, *args, collection: motor.motor_asyncio.AsyncIOMotorCollection, query: dict, before: dict, **kwargs
+    ):
         self._collection = collection
         self._query = query
         self._before = before

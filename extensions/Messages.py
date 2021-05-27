@@ -48,7 +48,7 @@ class Messages(commands.Cog, name="Messages", description="Messages displayed wh
     async def sdisable(self, ctx):
         try:
             del ctx.guild_doc["reactions"]
-        except:
+        except KeyError:
             raise errors.NotConfigured()
         await ctx.guild_doc.replace_db()
 

@@ -123,6 +123,9 @@ dmypy.json
 # Visual Studio Code
 .vscode/
 
+# IDEA
+.idea/
+
 # Configuration
 config.yml
 config/

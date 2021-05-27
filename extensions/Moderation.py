@@ -78,7 +78,7 @@ class Moderation(
     async def mute(self, ctx, *, member: discord.Member):
         try:
             mute_role = ctx.guild.get_role(ctx.guild_doc["mute_role"])
-        except:
+        except KeyError:
             raise errors.NotConfigured()
         await member.add_roles(mute_role)
 
@@ -91,7 +91,7 @@ class Moderation(
     async def unmute(self, ctx, *, member: discord.Member):
         try:
             mute_role = ctx.guild.get_role(ctx.guild_doc["mute_role"])
-        except:
+        except KeyError:
             raise errors.NotConfigured()
         await member.remove_roles(mute_role)
 

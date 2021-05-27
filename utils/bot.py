@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from .context import CustomContext
+from context import CustomContext
 
 
 class CustomBotBase(commands.bot.BotBase):

@@ -22,11 +22,11 @@ class DiscordInfo(
 
     @tasks.loop(seconds=600)
     async def activity_update(self):
-        watchingString = f"with {len(self.bot.users)} users in {len(self.bot.guilds)} servers"
-        await self.bot.change_presence(activity=discord.Game(name=watchingString))
+        watching_string = f"with {len(self.bot.users)} users in {len(self.bot.guilds)} servers"
+        await self.bot.change_presence(activity=discord.Game(name=watching_string))
 
     @activity_update.before_loop
-    async def beforeActivyUpdate(self):
+    async def before_activity_update(self):
         await self.bot.wait_until_ready()
 
     @commands.command(
@@ -36,7 +36,7 @@ class DiscordInfo(
         brief="Get user info.",
         usage="[User (ID/Mention/Name)]",
     )
-    async def whoIs(self, ctx, *, user: typing.Optional[typing.Union[discord.Member, discord.User]]):
+    async def whois(self, ctx, *, user: typing.Optional[typing.Union[discord.Member, discord.User]]):
         if not user:
             user = ctx.author
         try:
@@ -55,7 +55,7 @@ class DiscordInfo(
                 embed = embed.add_field(name="Server join date:", value=f"{user.joined_at} UTC")
                 if user.premium_since:
                     embed = embed.add_field(name="Server boosting since:", value=f"{user.premium_since} UTC")
-        except:
+        except discord.NotFound:
             await ctx.send("Couldn't find information on the user.")
         else:
             await ctx.send(embed=embed)
@@ -68,10 +68,10 @@ class DiscordInfo(
         usage="[Guild ID]",
     )
     @commands.guild_only()
-    async def serverInfo(self, ctx, *, guild: typing.Optional[discord.Guild]):
+    async def server_info(self, ctx, *, guild: typing.Optional[discord.Guild]):
         if not guild:
             guild = ctx.guild
-        guildOwner = guild.owner
+        guild_owner = guild.owner
         try:
             embed = (
                 discord.Embed(
@@ -79,7 +79,7 @@ class DiscordInfo(
                     title=f"Info for {guild.name}\n({guild.id})",
                 )
                 .set_thumbnail(url=guild.icon_url)
-                .add_field(name="Server Owner:", value=guildOwner.display_name)
+                .add_field(name="Server Owner:", value=guild_owner.display_name)
                 .add_field(name="Created at:", value=f"{guild.created_at} UTC")
                 .add_field(name="Roles:", value=len(guild.roles))
                 .add_field(name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}")
@@ -89,11 +89,11 @@ class DiscordInfo(
                 )
                 .add_field(name="Total members:", value=guild.member_count)
             )
-        except:
+        except discord.NotFound:
             await ctx.send("Couldn't find information on your guild.")
         else:
             await ctx.send(embed=embed)
-            await ctx.invoke(self.whoIs, user=guildOwner)
+            await ctx.invoke(self.whois, user=guild_owner)
 
     @commands.command(
         name="botInfo",
@@ -101,21 +101,21 @@ class DiscordInfo(
         description="Displays information about the bot",
         brief="Get bot info.",
     )
-    async def botInfo(self, ctx):
+    async def bot_info(self, ctx):
         try:
-            base = self.bot.config["web"]["base"]
-            github = self.bot.config["web"]["github"]
+            base = ctx.bot.config["web"]["base"]
+            github = ctx.bot.config["web"]["github"]
             embed = (
                 discord.Embed(
                     colour=discord.Colour.orange(),
-                    title=f"Hi, I'm {self.bot.user.name}! Nice to meet you!",
+                    title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
                     description=f"**Important Links**: [Website]({base}) | [Donate]({base}/donate)\n **GitHub**: [Repository]({github}) | [Issues]({github}/issues) | [Pull Requests]({github}/pulls)\n*For support, use GitHub issues.*",
                 )
-                .set_thumbnail(url=self.bot.user.avatar_url)
+                .set_thumbnail(url=ctx.bot.user.avatar_url)
                 .add_field(
                     name="Invite:",
                     value=discord.utils.oauth_url(
-                        client_id=str(self.bot.user.id),
+                        client_id=str(ctx.bot.user.id),
                         permissions=discord.Permissions(permissions=3157650678),
                         guild=ctx.guild,
                         scopes=("bot", "applications.commands"),
@@ -124,7 +124,7 @@ class DiscordInfo(
                 )
                 .add_field(
                     name="Bot status:",
-                    value=f"Online, servicing {len(self.bot.users)} users in {len(self.bot.guilds)} servers",
+                    value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
                 )
                 .add_field(
                     name="System resources:",
@@ -136,11 +136,11 @@ class DiscordInfo(
                     inline=False,
                 )
             )
-        except:
+        except psutil.Error:
             await ctx.send("Had trouble fetching information about the bot. Try again later.")
         else:
             await ctx.send(embed=embed)
-            await ctx.invoke(self.whoIs, user=self.bot.user)
+            await ctx.invoke(self.whois, user=self.bot.user)
 
     @commands.command(
         name="snowflakeLookup",
@@ -149,9 +149,9 @@ class DiscordInfo(
         brief="Get time snowflake is/was created.",
         usage="<Snowflake>",
     )
-    async def snowflakeLookup(self, ctx, *, snowflake: int):
-        snowflakeTime = discord.utils.snowflake_time(snowflake)
-        await ctx.send(f"Snowflake was created at {snowflakeTime} UTC.")
+    async def snowflake_lookup(self, ctx, *, snowflake: int):
+        snowflake_time = discord.utils.snowflake_time(snowflake)
+        await ctx.send(f"Snowflake was created at {snowflake_time} UTC.")
 
 
 def setup(bot):

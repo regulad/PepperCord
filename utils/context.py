@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from database import Document
+from .database import Document
 
 
 class CustomContext(commands.Context):

@@ -1,5 +1,5 @@
-from permissions import *
-from errors import *
+from .permissions import *
+from .errors import *
 
 
 async def has_permission_level(ctx, value: Permissions):

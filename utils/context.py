@@ -7,7 +7,7 @@ class CustomContext(commands.Context):
     def __init__(self, **attrs):
         self.guild_doc = None
         self.user_doc = None
-        super().__init__(attrs)
+        super().__init__(**attrs)
 
     async def get_documents(self, database):
         """Gets documents from the database to be used later on. Must be called to use guild_doc or user_doc"""

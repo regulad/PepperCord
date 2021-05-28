@@ -11,6 +11,35 @@ class CustomBotBase(commands.bot.BotBase):
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
 
     async def get_context(self, message, *, cls=CustomContext):
+        r"""|coro|
+
+        Returns the invocation context from the message.
+
+        This is a more low-level counter-part for :meth:`.process_commands`
+        to allow users more fine grained control over the processing.
+
+        The returned context is not guaranteed to be a valid invocation
+        context, :attr:`.Context.valid` must be checked to make sure it is.
+        If the context is not valid then it is not a valid candidate to be
+        invoked under :meth:`~.Bot.invoke`.
+
+        Parameters
+        -----------
+        message: :class:`discord.Message`
+            The message to get the invocation context from.
+        cls
+            The factory class that will be used to create the context.
+            By default, this is :class:`.Context`. Should a custom
+            class be provided, it must be similar enough to :class:`.Context`\'s
+            interface.
+
+        Returns
+        --------
+        :class:`.Context`
+            The invocation context. The type of this can change via the
+            ``cls`` parameter.
+        """
+
         result = await super().get_context(message, cls=cls)
         if isinstance(result, CustomContext):
             await result.get_documents(self.database)

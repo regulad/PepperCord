@@ -38,7 +38,10 @@ class UserLevel:
     async def get_user(cls, bot, user: typing.Union[discord.Member, discord.User]):
         """Returns the UserLevel object for a given user."""
         document = await Document.get_from_id(bot.database["user"], user.id)
-        return cls(user, document)
+        if user.bot:
+            return None
+        else:
+            return cls(user, document)
 
     @property
     def xp(self):
@@ -56,7 +59,8 @@ class UserLevel:
         return _get_xp(self.level + 1)
 
     async def increment(self, amount: int):
-        """Increments a the user's xp by a given amount. Returns a dict with information on the old and new level/xp of the user."""
+        """Increments a the user's xp by a given amount. Returns a dict with information on the old and new level/xp
+        of the user."""
         current = copy.deepcopy(self.xp)
         new_xp = current + amount
         self.document["xp"] = new_xp
@@ -87,8 +91,8 @@ class LevelSource(menus.ListPageSource):
         base_embed = discord.Embed(title=f"{self.guild.name}'s Leaderboard").set_thumbnail(url=self.guild.icon_url)
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
-                name=f"{iteration + 1}.",
-                value=f"{value.user.mention}: Level {value.level} (`{value.xp}` XP)",
+                name=f"{iteration + 1}: {value.user.display_name}",
+                value=f"Level {value.level} (`{value.xp}` XP)",
                 inline=False,
             )
         return base_embed
@@ -183,14 +187,17 @@ class Levels(commands.Cog):
     async def rank(self, ctx, *, user: typing.Optional[discord.Member]):
         user = user or ctx.author
         user_doc = await UserLevel.get_user(self.bot, user)
-        embed = (
-            discord.Embed(colour=user.colour, title=f"{user.display_name}'s level")
-            .add_field(name="XP:", value=f"```{user_doc.xp}```")
-            .add_field(name="Level:", value=f"```{user_doc.level}```")
-            .add_field(name="To next:", value=f"```{round(user_doc.next - user_doc.xp)}```")
-            .set_thumbnail(url=user.avatar_url)
-        )
-        await ctx.send(embed=embed)
+        if user_doc is None:
+            await ctx.send(f"{user.display_name} doesn't have a level.")
+        else:
+            embed = (
+                discord.Embed(colour=user.colour, title=f"{user_doc.user.display_name}'s level")
+                .add_field(name="XP:", value=f"```{user_doc.xp}```")
+                .add_field(name="Level:", value=f"```{user_doc.level}```")
+                .add_field(name="To next:", value=f"```{round(user_doc.next - user_doc.xp)}```")
+                .set_thumbnail(url=user_doc.user.avatar_url)
+            )
+            await ctx.send(embed=embed)
 
     @commands.command(
         name="leaderboard", brief="Displays current level & rank.", description="Displays current level & rank."
@@ -201,7 +208,9 @@ class Levels(commands.Cog):
             raise errors.TooManyMembers()
         member_xps = []
         for member in ctx.guild.members:
-            member_xps.append(await UserLevel.get_user(ctx.bot, member))
+            xp = await UserLevel.get_user(ctx.bot, member)
+            if xp is not None:
+                member_xps.append(xp)
         sorted_xps = sorted(member_xps, key=operator.attrgetter("xp"), reverse=True)
         source = LevelSource(sorted_xps, ctx.guild)
         pages = menus.MenuPages(source=source)

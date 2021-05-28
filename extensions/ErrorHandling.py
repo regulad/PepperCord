@@ -2,7 +2,9 @@ from discord.ext import commands
 from utils import errors
 
 
-class ErrorHandling(commands.Cog, name="Error Handling", description="Listeners & commands for error handling."):
+class ErrorHandling(commands.Cog):
+    """Tools to assist with the handling of errors."""
+
     def __init__(self, bot):
         self.bot = bot
 

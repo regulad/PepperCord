@@ -3,11 +3,9 @@ import discord
 from discord.ext import commands
 
 
-class APIs(
-    commands.Cog,
-    name="APIs",
-    description="Gets random information from all over the internet and beyond.",
-):
+class APIs(commands.Cog):
+    """Gets information from all over the internet."""
+
     def __init__(self, bot):
         self.bot = bot
 

@@ -7,11 +7,9 @@ from utils import checks, errors
 from utils.database import Document
 
 
-class Moderation(
-    commands.Cog,
-    name="Moderation",
-    description="Tools for moderation.",
-):
+class Moderation(commands.Cog):
+    """Tools for moderation in guilds."""
+
     def __init__(self, bot):
         self.bot = bot
 

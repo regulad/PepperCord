@@ -1,7 +1,11 @@
+# TODO: Remove this in favor of per-guild commands.
+
 from discord.ext import commands
 
 
-class Fun(commands.Cog, name="Fun", description="Fun things, normally implemented on a whim."):
+class Fun(commands.Cog):
+    """Fun commands to try."""
+
     def __init__(self, bot):
         self.bot = bot
 

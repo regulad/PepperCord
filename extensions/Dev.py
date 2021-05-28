@@ -43,22 +43,20 @@ class ShardMenu(menus.Menu):
         return await self.shard_info.reconnect()
 
 
-class Dev(
-    commands.Cog,
-    name="Developer",
-    description="Commands for the bot's developer used to operate the bot.",
-):
+class Dev(commands.Cog):
+    """Tools to be used by the bot developer to operate the bot."""
+
     def __init__(self, bot):
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await self.bot.is_owner(ctx.author)
+        return await ctx.bot.is_owner(ctx.author)
 
     @commands.command(
         name="nick",
         aliases=["nickname"],
         brief="Change nickname.",
-        description="Change the bot's nickname, for situations where you do not have privleges to.",
+        description="Change the bot's nickname, for situations where you do not have privileges to.",
     )
     @commands.guild_only()
     async def nick(self, ctx, *, name: str):
@@ -73,9 +71,9 @@ class Dev(
     async def raw(self, ctx, entity: typing.Optional[typing.Union[discord.Guild, discord.Member, discord.User]]):
         entity = entity or ctx.guild
         if isinstance(entity, discord.Guild):
-            document = await Document.get_from_id(self.bot.database["guild"], entity.id)
+            document = await Document.get_from_id(ctx.bot.database["guild"], entity.id)
         elif isinstance(entity, (discord.Member, discord.User)):
-            document = await Document.get_from_id(self.bot.database["user"], entity.id)
+            document = await Document.get_from_id(ctx.bot.database["user"], entity.id)
         buffer = StringIO()
         buffer.write(str(document))
         buffer.seek(0)
@@ -93,36 +91,22 @@ class Dev(
         raise errors.SubcommandNotFound()
 
     @shard.command(
-        name="get",
-        brief="Get guild's shard ID.",
-        description="Get the shard ID for a given guild. Will raise NotSharded if the bot is not sharded.",
-        usage="[Guild|Current Guild]",
-    )
-    async def guild(self, ctx, *, guild: typing.Optional[discord.Guild]):
-        guild = guild or ctx.guild
-        try:
-            shard = guild.shard_id
-        except:
-            raise errors.NotSharded()
-        else:
-            if shard is None:
-                raise errors.NotSharded()
-        await ctx.send(f"{guild.name} uses shard {shard}")
-
-    @shard.command(
         name="info",
         brief="Gets info on a shard.",
         description="Gets info on a shard and presents a menu which can be used to manage the shard.",
     )
-    async def reconnect(self, ctx, *, shard_id: int):
+    async def shard_info(self, ctx, *, shard_id: typing.Optional[typing.Union[discord.Guild, int]]):
+        shard_id = shard_id or ctx.guild
+        if isinstance(shard_id, discord.Guild):
+            shard_id = shard_id.shard_id  # If the argument is a guild, replace shard_id with the shard_id of the guild
         try:
-            shard_info_instance = self.bot.get_shard(shard_id)
-        except:
+            shard_info = ctx.bot.get_shard(shard_id)
+        except AttributeError:
             raise errors.NotSharded()
         else:
-            if shard_info_instance is None:
-                raise errors.NotSharded()
-        await ShardMenu(shard_info_instance).start(ctx)
+            if shard_info is None:
+                await ctx.send("Couldn't find shard.")
+        await ShardMenu(shard_info=shard_info).start(ctx)
 
 
 def setup(bot):

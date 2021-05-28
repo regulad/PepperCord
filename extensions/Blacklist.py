@@ -7,7 +7,8 @@ from utils.database import Document
 
 
 class Blacklist(commands.Cog):
-    """The blacklist system allows the bot owner to take abuse matters into their own hands and prevent a malicious user or guild from abusing the bot."""
+    """The blacklist system allows the bot owner to take abuse matters into their own hands and prevent a malicious
+    user or guild from abusing the bot."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -21,7 +22,7 @@ class Blacklist(commands.Cog):
             return True
 
     async def cog_check(self, ctx):
-        return await self.bot.is_owner(ctx.author)
+        return await ctx.bot.is_owner(ctx.author)
 
     @commands.command(
         name="blacklist",

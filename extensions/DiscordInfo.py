@@ -140,7 +140,7 @@ class DiscordInfo(
             await ctx.send("Had trouble fetching information about the bot. Try again later.")
         else:
             await ctx.send(embed=embed)
-            await ctx.invoke(self.whois, user=self.bot.user)
+            await ctx.invoke(self.whois, user=ctx.bot.user)
 
     @commands.command(
         name="snowflakeLookup",

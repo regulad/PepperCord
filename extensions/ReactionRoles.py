@@ -5,9 +5,9 @@ from discord.ext import commands
 from utils import checks, errors
 
 
-class ReactionRoles(
-    commands.Cog, name="Reaction Roles", description="Reactions that give/remove a role when clicked on."
-):
+class ReactionRoles(commands.Cog):
+    """Creates messages that give roles when reacted to."""
+
     def __init__(self, bot):
         self.bot = bot
 

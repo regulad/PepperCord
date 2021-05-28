@@ -3,7 +3,9 @@ from discord.ext import commands
 from utils import checks, database, errors
 
 
-class Messages(commands.Cog, name="Messages", description="Messages displayed when an event takes place."):
+class Messages(commands.Cog):
+    """Messages sent when an event occurs in a guild."""
+
     def __init__(self, bot):
         self.bot = bot
 

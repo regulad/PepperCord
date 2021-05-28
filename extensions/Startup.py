@@ -1,7 +1,9 @@
 from discord.ext import commands
 
 
-class Startup(commands.Cog, name="Startup", description="Collection of startup listeners."):
+class Startup(commands.Cog):
+    """Things to do on startup."""
+
     def __init__(self, bot):
         self.bot = bot
 

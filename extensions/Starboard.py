@@ -41,7 +41,9 @@ async def _sendstar(document: Document, message: discord.Message):
     messages.append(message.id)
 
 
-class Starboard(commands.Cog, name="Starboard", description="An alternative to pinning messages."):
+class Starboard(commands.Cog):
+    """Alternative way to "pin" messages."""
+
     def __init__(self, bot):
         self.bot = bot
 

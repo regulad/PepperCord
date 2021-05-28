@@ -49,11 +49,9 @@ class DeleteMenu(menus.Menu):
         return self.result
 
 
-class Administration(
-    commands.Cog,
-    name="Administration",
-    description="Tools for administration.",
-):
+class Administration(commands.Cog):
+    """Tools for administrating and configuring guilds."""
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -67,7 +65,7 @@ class Administration(
         usage="<Channel> <Message>",
     )
     async def do_message(self, ctx, channel: discord.TextChannel, *, text: str):
-        channel = self.bot.get_channel(channel.id)
+        channel = ctx.bot.get_channel(channel.id)
         await channel.send(text)
 
     @commands.group(

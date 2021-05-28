@@ -6,7 +6,9 @@ from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 
 
-class Images(commands.Cog, name="Images", description="Image editing funnies."):
+class Images(commands.Cog):
+    """Tools to edit images, and make things with them."""
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -23,8 +25,8 @@ class Images(commands.Cog, name="Images", description="Image editing funnies."):
         buffer = BytesIO()
         save_image = Image.open("resources/blank.png")
         arial_narrow_bold_font = ImageFont.truetype("resources/arial-narrow-bold.ttf", 72)
-        idraw = ImageDraw.Draw(save_image)
-        idraw.text(
+        image_draw = ImageDraw.Draw(save_image)
+        image_draw.text(
             xy=(650, 490),
             text=f"-{pins_left} Pins Remain-",
             stroke_fill="#FFFFFF",

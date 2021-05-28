@@ -27,3 +27,11 @@ class AlreadyPinned(Exception):
 
 class NotSharded(Exception):
     pass
+
+
+class NotInVoiceChannel(commands.CheckFailure):
+    pass
+
+
+class NotAlone(commands.CheckFailure):
+    pass

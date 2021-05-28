@@ -1,0 +1,2 @@
+class NotSharded(Exception):
+    pass

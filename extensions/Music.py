@@ -18,7 +18,7 @@ ytdl_format_options = {
     "quiet": True,
     "no_warnings": True,
     "default_search": "auto",
-    "source_address": "0.0.0.0",  # bind to ipv4 since ipv6 addresses cause issues sometimes (what year are we living in?)
+    "source_address": "0.0.0.0",  # bind to ipv4 since ipv6 addresses cause issues sometimes
 }
 
 ffmpeg_options = {"options": "-vn"}
@@ -205,7 +205,7 @@ class Music(commands.Cog):
         if validators.str_is_url(query):
             url = query
         else:
-            url = "https://youtube.com"  # TODO: Find it!
+            url = f"ytsearch:{query}"
         source = await YTDLSource.from_url(self.file_downloader, url, loop=ctx.bot.loop)
         self.source_cache.guild(ctx.guild).extend(source)
 
@@ -219,7 +219,7 @@ class Music(commands.Cog):
         if validators.str_is_url(query):
             url = query
         else:
-            url = "https://youtube.com"  # TODO: Find it!
+            url = f"ytsearch:{query}"
         source = await YTDLSource.from_url(self.file_downloader, url, loop=ctx.bot.loop)
         self.source_cache.guild(ctx.guild).insert(0, source)
 

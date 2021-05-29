@@ -19,7 +19,7 @@ class Document(dict):
     @classmethod
     async def get_document(cls, collection: motor.motor_asyncio.AsyncIOMotorCollection, query: dict):
         document = (await collection.find_one(query)) or query
-        before = copy.deepcopy(document)
+        before = copy.deepcopy(document)  # Blocking, apparently.
         return cls(document, collection=collection, query=query, before=before)
 
     @classmethod

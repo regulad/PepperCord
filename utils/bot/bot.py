@@ -1,27 +1,14 @@
 import discord
 from discord.ext import commands
 
-from utils.database import Document
-
-
-class CustomContext(commands.Context):
-    def __init__(self, **attrs):
-        self.guild_doc = None
-        self.user_doc = None
-        super().__init__(**attrs)
-
-    async def get_documents(self, database):
-        """Gets documents from the database to be used later on. Must be called to use guild_doc or user_doc"""
-        if self.guild:
-            self.guild_doc = await Document.get_from_id(database["guild"], self.guild.id)
-        if self.author:
-            self.user_doc = await Document.get_from_id(database["user"], self.author.id)
+from .context import CustomContext
 
 
 class CustomBotBase(commands.bot.BotBase):
     def __init__(self, command_prefix, help_command, description, *, database, config, **options):
         self.database = database
         self.config = config
+        self.music_players = []
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
 
     async def get_context(self, message, *, cls=CustomContext):

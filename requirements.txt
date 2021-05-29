@@ -1,4 +1,4 @@
-discord.py # It.
+discord.py[voice]
 git+https://github.com/Rapptz/discord-ext-menus # Experimental Menu features, very cool
 discord-pretty-help # Makes the help command look nice.
 jishaku  # Useful development tools.
@@ -11,3 +11,5 @@ psutil # System status
 mcstatus # Minecraft Server
 asyncio-dgram # mcstatus fsr
 Pillow # Image editing
+youtube_dl
+ffmpeg

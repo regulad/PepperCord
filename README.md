@@ -56,6 +56,13 @@ volumes:
 
 You'll still need to configure networking, but this will be different on every Docker environment.
 
+If you want to run the bot outside of a Docker container, you'll need to install the following dependencies from your favorite package manager:
+
+```
+git
+
+```
+
 ### Configuration
 
 PepperCord uses MongoDB as a data store and YAML for configuration, so you'll need to but your bot's info into `config/config.yml`. 

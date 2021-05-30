@@ -60,7 +60,7 @@ If you want to run the bot outside of a Docker container, you'll need to install
 
 ```
 git
-
+ffmpeg
 ```
 
 ### Configuration

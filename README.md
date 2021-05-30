@@ -1,6 +1,8 @@
 # PepperCord
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
 
+[![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)
+
 ![Python Status](https://img.shields.io/github/workflow/status/regulad/PepperCord/Python?label=Python)
 ![Docker Status](https://img.shields.io/github/workflow/status/regulad/PepperCord/Docker?label=Docker)
 

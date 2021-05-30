@@ -56,6 +56,8 @@ class MusicPlayer:
         return self.voice_client.source
 
     async def play(self):
+        """The task that actually plays the music off of the queue."""
+
         while True:
             if self.voice_client is None:
                 self.queue.clear()
@@ -74,8 +76,4 @@ class MusicPlayer:
                     self.queue.clear()
                     break
 
-                if len(self.voice_client.channel.members) == 1:
-                    await self.voice_client.disconnect()
-                    break
-
-                await asyncio.sleep(5)
+                await asyncio.sleep(3)

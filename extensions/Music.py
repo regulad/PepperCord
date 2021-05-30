@@ -65,16 +65,15 @@ class TrackPlaylist(list):
     @classmethod
     async def from_queue(cls, queue: music.TrackQueue):
         new_playlist = cls()
-        for track in queue:
+        for track in queue.deque:
             new_playlist.append(track)
         return new_playlist
 
     @classmethod
     async def from_sanitized(cls, sanitized: list, *, file_downloader: YoutubeDL):
-        loop = asyncio.get_event_loop()
         new_playlist = cls()
         for url in sanitized:
-            new_playlist.extend(await YTDLSource.from_url(file_downloader, url, loop=loop))
+            new_playlist.extend(await YTDLSource.from_url(file_downloader, url))
         return new_playlist
 
     @property
@@ -86,14 +85,17 @@ class TrackPlaylist(list):
 
 
 class QueuePlaylistSource(menus.ListPageSource):
-    def __init__(self, data: list, msg: str):
+    def __init__(self, entries: list, msg: str):
         self.msg = msg
-        super().__init__(data, per_page=10)
+        super().__init__(entries, per_page=10)
 
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
-        base_embed = discord.Embed(title=self.msg, description=f"{len(page_entries)} total tracks")
+        base_embed = discord.Embed(title=self.msg, description=f"{len(self.entries)} total tracks")
         time_until = 0
+        for track in self.entries[:offset]:
+            duration = track.info["duration"]
+            time_until += duration
         for iteration, value in enumerate(page_entries, start=offset):
             title = value.info["title"]
             duration = value.info["duration"]
@@ -117,6 +119,44 @@ class Music(commands.Cog):
     async def cog_check(self, ctx):
         return await checks.is_alone_or_manager(ctx)
 
+    async def cog_before_invoke(self, ctx):
+        if ctx.voice_client is None:
+            await ctx.author.voice.channel.connect()
+        if ctx.music_player is None:
+            ctx.create_music_player()
+
+    @commands.group(
+        invoke_without_command=True,
+        case_insensitive=True,
+        name="musicplayer",
+        aliases=["p"],
+        brief="Commands for the music player.",
+        description="Commands for controlling the music player.",
+    )
+    async def player(self, ctx):
+        raise errors.SubcommandNotFound()
+
+    @player.command(
+        name="stop",
+        aliases=["s"],
+        brief="Stops playing.",
+        description="Stops playing audio.",
+    )
+    async def pstop(self, ctx):
+        await ctx.music_player.voice_client.disconnect()
+
+    @player.command(
+        name="pause",
+        aliases=["play", "p"],
+        brief="Toggles the music player on and off.",
+        description="Toggles the music player between playing and paused.",
+    )
+    async def ppause(self, ctx):
+        if ctx.music_player.paused:
+            ctx.music_player.voice_client.resume()
+        else:
+            ctx.music_player.voice_client.pause()
+
     @commands.group(
         invoke_without_command=True,
         case_insensitive=True,
@@ -130,26 +170,56 @@ class Music(commands.Cog):
 
     @playlist.command(
         name="save",
-        aliases=["set"],
+        aliases=["set", "store"],
         brief="Sets a playlist.",
         description="Sets user's playlist to the current queue.",
     )
     async def plset(self, ctx):
-        queue = self.source_cache.guild(ctx.guild)
-        ctx.user_doc.setdefault("music", {})["playlist"] = queue.playlist.sanitized
+        playlist = await TrackPlaylist.from_queue(ctx.music_player.queue)
+        ctx.user_doc.setdefault("music", {})["playlist"] = playlist.sanitized
         await ctx.user_doc.replace_db()
 
     @playlist.command(
         name="load",
-        aliases=["get"],
+        aliases=["get", "put"],
         brief="Loads a playlist.",
         description="Loads a playlist into the current queue. Does not overwrite existing queue, "
-                    "it just appends to it.",
+        "it just appends to it.",
     )
     async def plget(self, ctx):
-        user_playlist = ctx.user_doc.setdefault("music", {}).setdefault("playlist", [])
-        user_track_playlist = await TrackPlaylist.from_sanitized(user_playlist, file_downloader=self.file_downloader)
-        self.source_cache.guild(ctx.guild).deque.extend(user_track_playlist)
+        async with ctx.typing():
+            user_playlist = ctx.user_doc.setdefault("music", {}).setdefault("playlist", [])
+            user_track_playlist = await TrackPlaylist.from_sanitized(
+                user_playlist, file_downloader=self.file_downloader
+            )
+            for track in user_track_playlist:
+                await ctx.music_player.queue.put(track)
+
+    @commands.command(
+        name="nowplaying",
+        aliases=["np"],
+        brief="Shows the currently playing track.",
+        description="Shows the currently playing track.",
+    )
+    async def nowplaying(self, ctx):
+        playing_track = ctx.music_player.now_playing
+
+        if playing_track is None:
+            await ctx.send("Nothing is playing.")
+        elif not isinstance(playing_track, YTDLSource):
+            await ctx.send("The currently playing track isn't a song.")
+        else:
+            info = playing_track.info
+            embed = discord.Embed(title=info["title"], description=info["webpage_url"])
+            try:
+                embed.set_thumbnail(url=info["thumbnail"])
+            except KeyError:
+                pass
+            try:
+                embed.set_author(name=info["uploader"], url=info["uploader_url"])
+            except KeyError:
+                pass
+            await ctx.send(embed=embed)
 
     @commands.group(
         invoke_without_command=True,
@@ -160,8 +230,7 @@ class Music(commands.Cog):
         description="Commands for the active queue currently being played.",
     )
     async def queuecommand(self, ctx):
-        queue = self.source_cache.guild(ctx.guild)
-        source = QueuePlaylistSource(list(queue.deque), "Current songs on queue:")
+        source = QueuePlaylistSource(list(ctx.music_player.queue.deque), "Current tracks on queue:")
         pages = menus.MenuPages(source=source)
         await pages.start(ctx)
 
@@ -172,8 +241,7 @@ class Music(commands.Cog):
         description="Deletes all items on the queue, leaving behind a blank slate.",
     )
     async def qclear(self, ctx):
-        queue = self.source_cache.guild(ctx.guild)
-        queue.clear()
+        ctx.music_player.queue.clear()
         ctx.voice_client.stop()
 
     @queuecommand.command(
@@ -184,8 +252,7 @@ class Music(commands.Cog):
     )
     async def qpop(self, ctx, *, index: int):
         index = (index - 1) or 0
-        queue = self.source_cache.guild(ctx.guild)
-        queue.deque.pop(index)
+        ctx.music_player.queue.deque.pop(index)
 
     @queuecommand.group(
         invoke_without_command=True,
@@ -196,15 +263,17 @@ class Music(commands.Cog):
         description="Adds a supported song to the current queue.",
     )
     async def play(self, ctx, *, query: str):
-        if validators.str_is_url(query):
-            url = query
-        else:
-            url = f"ytsearch:{query}"
-        source = await YTDLSource.from_url(self.file_downloader, url)
-        menu_source = QueuePlaylistSource(source, "Added:")
-        pages = menus.MenuPages(source=menu_source)
-        await pages.start(ctx)
-        self.source_cache.guild(ctx.guild).deque.extend(source)
+        async with ctx.typing():
+            if validators.str_is_url(query):
+                url = query
+            else:
+                url = f"ytsearch:{query}"
+            source = await YTDLSource.from_url(self.file_downloader, url)
+            menu_source = QueuePlaylistSource(source, "Added:")
+            pages = menus.MenuPages(source=menu_source)
+            await pages.start(ctx)
+            for track in source:
+                await ctx.music_player.queue.put(track)
 
     @play.command(
         name="top",
@@ -213,16 +282,20 @@ class Music(commands.Cog):
         description="Adds a supported song to the top of the current queue.",
     )
     async def pt(self, ctx, *, query):
-        if validators.str_is_url(query):
-            url = query
+        if not len(list(ctx.music_player.queue)) > 0:
+            await ctx.invoke(self.play, query=query)
         else:
-            url = f"ytsearch:{query}"
-        source = await YTDLSource.from_url(self.file_downloader, url)
-        menu_source = QueuePlaylistSource(source, "Added to top:")
-        pages = menus.MenuPages(source=menu_source)
-        await pages.start(ctx)
-        self.source_cache.guild(ctx.guild).deque.extendleft(0, source)
-
+            async with ctx.typing():
+                if validators.str_is_url(query):
+                    url = query
+                else:
+                    url = f"ytsearch:{query}"
+                source = await YTDLSource.from_url(self.file_downloader, url)
+                menu_source = QueuePlaylistSource(source, "Added to top:")
+                pages = menus.MenuPages(source=menu_source)
+                await pages.start(ctx)
+                for track in source:
+                    ctx.music_player.queue.deque.appendleft(track)
 
 
 def setup(bot):

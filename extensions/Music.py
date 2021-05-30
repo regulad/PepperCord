@@ -1,4 +1,5 @@
 import asyncio
+from typing import Union
 
 import discord
 from youtube_dl import YoutubeDL
@@ -26,18 +27,19 @@ ffmpeg_options = {"options": "-vn"}
 class YTDLSource(discord.PCMVolumeTransformer):
     """Represents a source from YoutubeDL that has the ability to have it's volume changed."""
 
-    def __init__(self, source: discord.FFmpegPCMAudio, volume=0.5, *, info):
+    def __init__(self, source: discord.FFmpegPCMAudio, volume=0.5, *, info, invoker):
         super().__init__(source, volume)
 
         self.info = info
+        self.invoker = invoker
 
     @property
     def url(self):
         return self.info["webpage_url"]
 
     @classmethod
-    async def from_url(cls, file_downloader: YoutubeDL, url: str):
-        """Returns a YTDLSource or list of YTDLSource instances (If url refers to a playlist) from a url."""
+    async def from_url(cls, file_downloader: YoutubeDL, url: str, invoker: Union[discord.Member, discord.User]):
+        """Returns a list of YTDLSources from a playlist or song."""
 
         loop = asyncio.get_event_loop()
         info = await loop.run_in_executor(None, lambda: file_downloader.extract_info(url, download=False))
@@ -48,14 +50,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
             # Url refers to a playlist, so a list of instances must be returned.
 
             for entry in info["entries"]:
-                track = cls(discord.FFmpegPCMAudio(entry["url"], **ffmpeg_options), info=entry)
+                track = cls(discord.FFmpegPCMAudio(entry["url"], **ffmpeg_options), info=entry, invoker=invoker)
                 tracks.append(track)
 
         else:
-            # Url refers to a single track, so a single instance must be returned.
+            # Url refers to a single track, so a list containing only a single instance must be returned.
 
-            track = cls(discord.FFmpegPCMAudio(info["url"], **ffmpeg_options), info=info)
-
+            track = cls(discord.FFmpegPCMAudio(info["url"], **ffmpeg_options), info=info, invoker=invoker)
             tracks.append(track)
 
         return tracks
@@ -63,17 +64,19 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 class TrackPlaylist(list):
     @classmethod
-    async def from_queue(cls, queue: music.TrackQueue):
+    def from_queue(cls, queue: music.TrackQueue):
         new_playlist = cls()
         for track in queue.deque:
             new_playlist.append(track)
         return new_playlist
 
     @classmethod
-    async def from_sanitized(cls, sanitized: list, *, file_downloader: YoutubeDL):
+    async def from_sanitized(
+        cls, sanitized: list, user: Union[discord.Member, discord.User], *, file_downloader: YoutubeDL
+    ):
         new_playlist = cls()
         for url in sanitized:
-            new_playlist.extend(await YTDLSource.from_url(file_downloader, url))
+            new_playlist.extend(await YTDLSource.from_url(file_downloader, url, user))
         return new_playlist
 
     @property
@@ -100,10 +103,11 @@ class QueuePlaylistSource(menus.ListPageSource):
             title = value.info["title"]
             duration = value.info["duration"]
             url = value.info["webpage_url"]
+            invoker = value.invoker
             time_until += duration
             base_embed.add_field(
                 name=f"{iteration + 1}: {converters.duration_to_str(time_until)} left",
-                value=f"[{title}]({url}): {converters.duration_to_str(duration)} long",
+                value=f"[{title}]({url}): {converters.duration_to_str(duration)} long, added by {invoker.display_name}",
                 inline=False,
             )
         return base_embed
@@ -129,7 +133,7 @@ class Music(commands.Cog):
         invoke_without_command=True,
         case_insensitive=True,
         name="musicplayer",
-        aliases=["p"],
+        aliases=["p", "mp"],
         brief="Commands for the music player.",
         description="Commands for controlling the music player.",
     )
@@ -157,6 +161,15 @@ class Music(commands.Cog):
         else:
             ctx.music_player.voice_client.pause()
 
+    @player.command(
+        name="skip",
+        aliases=["sk"],
+        brief="Skips to the next song on the queue.",
+        description="Skips the music player to the next song on the queue.",
+    )
+    async def pskip(self, ctx):
+        ctx.music_player.voice_client.stop()
+
     @commands.group(
         invoke_without_command=True,
         case_insensitive=True,
@@ -175,7 +188,7 @@ class Music(commands.Cog):
         description="Sets user's playlist to the current queue.",
     )
     async def plset(self, ctx):
-        playlist = await TrackPlaylist.from_queue(ctx.music_player.queue)
+        playlist = TrackPlaylist.from_queue(ctx.music_player.queue)
         ctx.user_doc.setdefault("music", {})["playlist"] = playlist.sanitized
         await ctx.user_doc.replace_db()
 
@@ -190,7 +203,7 @@ class Music(commands.Cog):
         async with ctx.typing():
             user_playlist = ctx.user_doc.setdefault("music", {}).setdefault("playlist", [])
             user_track_playlist = await TrackPlaylist.from_sanitized(
-                user_playlist, file_downloader=self.file_downloader
+                user_playlist, ctx.author, file_downloader=self.file_downloader
             )
             for track in user_track_playlist:
                 await ctx.music_player.queue.put(track)
@@ -210,7 +223,11 @@ class Music(commands.Cog):
             await ctx.send("The currently playing track isn't a song.")
         else:
             info = playing_track.info
-            embed = discord.Embed(title=info["title"], description=info["webpage_url"])
+            embed = discord.Embed(title=info["title"], description=info["webpage_url"]).add_field(
+                name="Duration:", value=converters.duration_to_str(info["duration"])
+            ).add_field(
+                name="Added by:", value=playing_track.invoker.display_name
+            )
             try:
                 embed.set_thumbnail(url=info["thumbnail"])
             except KeyError:
@@ -268,7 +285,7 @@ class Music(commands.Cog):
                 url = query
             else:
                 url = f"ytsearch:{query}"
-            source = await YTDLSource.from_url(self.file_downloader, url)
+            source = await YTDLSource.from_url(self.file_downloader, url, ctx.author)
             menu_source = QueuePlaylistSource(source, "Added:")
             pages = menus.MenuPages(source=menu_source)
             await pages.start(ctx)
@@ -290,7 +307,7 @@ class Music(commands.Cog):
                     url = query
                 else:
                     url = f"ytsearch:{query}"
-                source = await YTDLSource.from_url(self.file_downloader, url)
+                source = await YTDLSource.from_url(self.file_downloader, url, ctx.author)
                 menu_source = QueuePlaylistSource(source, "Added to top:")
                 pages = menus.MenuPages(source=menu_source)
                 await pages.start(ctx)

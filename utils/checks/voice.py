@@ -18,7 +18,7 @@ async def is_alone(ctx):
 
     await is_in_voice(ctx)
     channel = ctx.author.voice.channel
-    if len(channel.members) > 1:
+    if len(channel.members) > 2:
         raise errors.NotAlone()
     else:
         return True

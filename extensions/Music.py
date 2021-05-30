@@ -1,4 +1,5 @@
 import asyncio
+import random
 from typing import Union
 
 import discord
@@ -80,7 +81,7 @@ class TrackPlaylist(list):
         return new_playlist
 
     @property
-    def sanitized(self):
+    def sanitized(self) -> list:
         new_list = []
         for track in self:
             new_list.append(track.url)
@@ -201,7 +202,11 @@ class Music(commands.Cog):
     )
     async def plget(self, ctx):
         async with ctx.typing():
-            user_playlist = ctx.user_doc.setdefault("music", {}).setdefault("playlist", [])
+            try:
+                user_playlist = ctx.user_doc.setdefault("music", {})["playlist"]
+            except KeyError:
+                await ctx.send("You don't have a playlist saved.")
+                return
             user_track_playlist = await TrackPlaylist.from_sanitized(
                 user_playlist, ctx.author, file_downloader=self.file_downloader
             )
@@ -252,6 +257,15 @@ class Music(commands.Cog):
         await pages.start(ctx)
 
     @queuecommand.command(
+        name="shuffle",
+        brief="Shuffles the current queue.",
+        description="Shuffles the current queue. Note that this changes the queue.",
+    )
+    async def qshuffle(self, ctx):
+        if len(list(ctx.music_player.queue.deque)) > 0:
+            random.shuffle(ctx.music_player.queue.deque)
+
+    @queuecommand.command(
         name="clear",
         aliases=["delete"],
         brief="Deletes all items on the queue.",
@@ -268,8 +282,7 @@ class Music(commands.Cog):
         description="Pops a track of the queue. Index starts at 1.",
     )
     async def qpop(self, ctx, *, index: int):
-        index = (index - 1) or 0
-        ctx.music_player.queue.deque.pop(index)
+        del ctx.music_player.queue.deque[index - 1]
 
     @queuecommand.group(
         invoke_without_command=True,

@@ -59,15 +59,26 @@ class CustomCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
-        if (isinstance(ctx.author, discord.User) and (ctx.author == self.bot.user)) or (
-            isinstance(ctx.author, discord.Member) and (ctx.author == ctx.guild.me)
-        ):
+
+        if ctx.author == self.bot.user or ctx.author == ctx.guild.me:
             return
-        commands_dict = ctx.guild_doc.setdefault("commands", {})
-        command_no_whitespace = ctx.message.content.strip()
-        command_words = command_no_whitespace.split()
-        effective_command = command_words[0]
-        custom_commands = CustomCommand.from_dict(commands_dict.setdefault("commands", {}))
+        if ctx.guild is None:
+            return
+
+        try:
+            commands_dict = ctx.guild_doc["commands"]
+        except KeyError:
+            return
+
+        if ctx.message.content is None:
+            return
+        else:
+            command_no_whitespace = ctx.message.content.strip()
+            command_words = command_no_whitespace.split()
+            effective_command = command_words[0]
+
+        custom_commands = CustomCommand.from_dict(commands_dict)
+
         for custom_command in custom_commands:
             if custom_command.command == effective_command:
                 await ctx.send(custom_command.message)
@@ -93,7 +104,7 @@ class CustomCommands(commands.Cog):
     )
     async def ccadd(self, ctx, command: str, message: str):
         custom_command = CustomCommand(command=command, message=message)
-        ctx.guild_doc.setdefault("commands", {}).setdefault("commands", {}).update(custom_command.as_dict)  # What?
+        ctx.guild_doc.setdefault("commands", {}).update(custom_command.as_dict)  # What?
         await ctx.guild_doc.replace_db()
 
     @customcommands.command(
@@ -104,7 +115,7 @@ class CustomCommands(commands.Cog):
     )
     async def ccdel(self, ctx, command: str):
         try:
-            del ctx.guild_doc.setdefault("commands", {}).setdefault("commands", {})[command]
+            del ctx.guild_doc.setdefault("commands", {})[command]
         except KeyError:
             raise commands.CommandNotFound(f"""Command "{command}" is not found""")
         else:

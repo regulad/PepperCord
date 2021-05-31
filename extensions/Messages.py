@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
-from utils import checks, database, errors
+
+from utils import checks, errors
 
 
 async def member_message_processor(bot, member: discord.Member, event: str):
@@ -22,7 +23,6 @@ class Messages(commands.Cog):
 
     async def cog_check(self, ctx):
         return await checks.is_admin(ctx)
-
 
     @commands.Cog.listener()
     async def on_member_join(self, member):

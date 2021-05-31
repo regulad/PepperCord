@@ -2,8 +2,8 @@ import typing
 
 import discord
 from discord.ext import commands
+
 from utils import errors
-from utils.database import Document
 
 
 class Blacklist(commands.Cog):

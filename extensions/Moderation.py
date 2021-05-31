@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands, tasks
 
 from utils import checks, errors
-from utils.database import Document
 
 
 class Moderation(commands.Cog):

@@ -1,7 +1,8 @@
-import discord
-from discord.ext import commands
-import motor.motor_asyncio
 from typing import Union
+
+import discord
+import motor.motor_asyncio
+from discord.ext import commands
 
 from utils.music import MusicPlayer
 from .context import CustomContext

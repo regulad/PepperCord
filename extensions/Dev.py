@@ -3,8 +3,8 @@ from io import StringIO
 
 import discord
 from discord.ext import commands, menus
+
 from utils import errors
-from utils.database import Document
 
 
 class ShardMenu(menus.Menu):

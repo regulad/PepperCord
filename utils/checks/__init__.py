@@ -1,2 +1,2 @@
-from .voice import *
 from .permissions import *
+from .voice import *

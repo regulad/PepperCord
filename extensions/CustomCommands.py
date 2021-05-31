@@ -70,7 +70,7 @@ class CustomCommands(commands.Cog):
         except KeyError:
             return
 
-        if ctx.message.content is None:
+        if len(ctx.message.content) == 0:
             return
         else:
             command_no_whitespace = ctx.message.content.strip()
@@ -93,7 +93,7 @@ class CustomCommands(commands.Cog):
         description="Tools for configuration of custom commands.",
     )
     async def customcommands(self, ctx):
-        commands_dict = ctx.guild_document.setdefault("commands", {}).setdefault("commands", {})
+        commands_dict = ctx.guild_document.setdefault("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
         pages = menus.MenuPages(source=source)
@@ -104,7 +104,7 @@ class CustomCommands(commands.Cog):
     )
     async def ccadd(self, ctx, command: str, message: str):
         custom_command = CustomCommand(command=command, message=message)
-        ctx.guild_document.setdefault("commands", {}).update(custom_command.as_dict)  # What?
+        ctx.guild_document.setdefault("commands", {}).update(custom_command.as_dict)
         await ctx.guild_document.replace_db()
 
     @customcommands.command(

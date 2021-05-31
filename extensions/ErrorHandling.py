@@ -1,4 +1,5 @@
 from discord.ext import commands
+
 from utils import errors
 
 
@@ -23,12 +24,12 @@ class ErrorHandling(commands.Cog):
             except Exception as e:
                 if len(str(e)) > 0:
                     await ctx.send(
-                        f"During the attempt to reinvoke your command, {e.__class__.__name__} raised an exception. "
+                        f"During the attempt to reinvoke your command, `{e.__class__.__name__}` raised an exception. "
                         f"See: ```{e}``` "
                     )
                 else:
                     await ctx.send(
-                        f"During the attempt to reinvoke your command, {e.__class__.__name__} raised an exception. "
+                        f"During the attempt to reinvoke your command, `{e.__class__.__name__}` raised an exception. "
                     )
         # Bulk
         if isinstance(e, errors.NotInVoiceChannel):

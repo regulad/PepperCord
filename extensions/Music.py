@@ -3,8 +3,8 @@ import random
 from typing import Union
 
 import discord
-from youtube_dl import YoutubeDL
 from discord.ext import commands, menus
+from youtube_dl import YoutubeDL
 
 from utils import checks, validators, errors, converters, music
 
@@ -121,8 +121,16 @@ class Music(commands.Cog):
         self.bot = bot
         self.file_downloader = YoutubeDL(ytdl_format_options)
 
-    async def cog_check(self, ctx):
-        return await checks.is_alone_or_manager(ctx)
+    async def cog_check(self, ctx):  # Meh.
+        await checks.is_in_voice(ctx)
+        try:
+            await checks.is_alone(ctx)
+        except commands.CheckFailure:
+            try:
+                await checks.is_man(ctx)
+            except commands.CheckFailure:
+                raise errors.NotAlone()
+        return True
 
     async def cog_before_invoke(self, ctx):
         if ctx.voice_client is None:
@@ -226,10 +234,10 @@ class Music(commands.Cog):
             await ctx.send("The currently playing track isn't a song.")
         else:
             info = playing_track.info
-            embed = discord.Embed(title=info["title"], description=info["webpage_url"]).add_field(
-                name="Duration:", value=converters.duration_to_str(info["duration"])
-            ).add_field(
-                name="Added by:", value=playing_track.invoker.display_name
+            embed = (
+                discord.Embed(title=info["title"], description=info["webpage_url"])
+                .add_field(name="Duration:", value=converters.duration_to_str(info["duration"]))
+                .add_field(name="Added by:", value=playing_track.invoker.display_name)
             )
             try:
                 embed.set_thumbnail(url=info["thumbnail"])

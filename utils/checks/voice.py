@@ -1,7 +1,7 @@
 """Checks for voice."""
 
 import utils.errors as errors
-from .permissions import *
+from .permissions import is_man
 
 
 async def is_in_voice(ctx):
@@ -22,22 +22,3 @@ async def is_alone(ctx):
         raise errors.NotAlone()
     else:
         return True
-
-
-async def is_alone_or_manager(ctx):
-    """Returns true if the user is alone or is a manager, raises utils.errors.NotAlone if they arent."""
-
-    await is_in_voice(ctx)
-    try:
-        await is_man(ctx)
-    except errors.LowPrivilege:
-        pass
-    else:
-        return True  # Short-circuit
-    try:
-        await is_alone(ctx)
-    except errors.NotAlone:
-        pass
-    else:
-        return True  # Short-circuit
-    raise errors.NotAlone()  # If no conditions are met

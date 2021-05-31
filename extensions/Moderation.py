@@ -19,11 +19,11 @@ class Moderation(commands.Cog):
     def cog_unload(self):
         self.unpunish.stop()
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(seconds=60)
     async def unpunish(self):
         for guild in self.bot.guilds:
             # Get the document for the guild
-            guild_doc = await Document.get_from_id(self.bot.database["guild"], guild.id)
+            guild_doc = await self.bot.get_document(guild)
             punishment_dict = guild_doc.setdefault("punishments", {})
             # If the punishment dict is present
             if punishment_dict:
@@ -76,7 +76,7 @@ class Moderation(commands.Cog):
     )
     async def mute(self, ctx, *, member: discord.Member):
         try:
-            mute_role = ctx.guild.get_role(ctx.guild_doc["mute_role"])
+            mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
         except KeyError:
             raise errors.NotConfigured()
         await member.add_roles(mute_role)
@@ -89,7 +89,7 @@ class Moderation(commands.Cog):
     )
     async def unmute(self, ctx, *, member: discord.Member):
         try:
-            mute_role = ctx.guild.get_role(ctx.guild_doc["mute_role"])
+            mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
         except KeyError:
             raise errors.NotConfigured()
         await member.remove_roles(mute_role)
@@ -103,8 +103,8 @@ class Moderation(commands.Cog):
     )
     async def timemute(self, ctx, member: discord.Member, unpunishtime: int = 10):
         await ctx.invoke(self.mute, member=member)
-        ctx.guild_doc.setdefault("punishments", {})[str(member.id)] = {"mute": time.time() + (unpunishtime * 60)}
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("punishments", {})[str(member.id)] = {"mute": time.time() + (unpunishtime * 60)}
+        await ctx.guild_document.replace_db()
         await ctx.message.add_reaction(emoji="⏰")
 
     @commands.command(
@@ -115,8 +115,8 @@ class Moderation(commands.Cog):
     )
     async def timeban(self, ctx, member: discord.Member, unpunishtime: int = 10):
         await ctx.invoke(self.mute, member=member)
-        ctx.guild_doc.setdefault("punishments", {})[str(member.id)] = {"ban": time.time() + (unpunishtime * 60)}
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("punishments", {})[str(member.id)] = {"ban": time.time() + (unpunishtime * 60)}
+        await ctx.guild_document.replace_db()
         await ctx.message.add_reaction(emoji="⏰")
 
 

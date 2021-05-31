@@ -66,7 +66,7 @@ class CustomCommands(commands.Cog):
             return
 
         try:
-            commands_dict = ctx.guild_doc["commands"]
+            commands_dict = ctx.guild_document["commands"]
         except KeyError:
             return
 
@@ -93,7 +93,7 @@ class CustomCommands(commands.Cog):
         description="Tools for configuration of custom commands.",
     )
     async def customcommands(self, ctx):
-        commands_dict = ctx.guild_doc.setdefault("commands", {}).setdefault("commands", {})
+        commands_dict = ctx.guild_document.setdefault("commands", {}).setdefault("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
         pages = menus.MenuPages(source=source)
@@ -104,8 +104,8 @@ class CustomCommands(commands.Cog):
     )
     async def ccadd(self, ctx, command: str, message: str):
         custom_command = CustomCommand(command=command, message=message)
-        ctx.guild_doc.setdefault("commands", {}).update(custom_command.as_dict)  # What?
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("commands", {}).update(custom_command.as_dict)  # What?
+        await ctx.guild_document.replace_db()
 
     @customcommands.command(
         name="delete",
@@ -115,11 +115,11 @@ class CustomCommands(commands.Cog):
     )
     async def ccdel(self, ctx, command: str):
         try:
-            del ctx.guild_doc.setdefault("commands", {})[command]
+            del ctx.guild_document.setdefault("commands", {})[command]
         except KeyError:
             raise commands.CommandNotFound(f"""Command "{command}" is not found""")
         else:
-            await ctx.guild_doc.replace_db()
+            await ctx.guild_document.replace_db()
 
 
 def setup(bot):

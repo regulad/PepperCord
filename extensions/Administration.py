@@ -87,10 +87,10 @@ class Administration(commands.Cog):
     )
     async def sdisable(self, ctx):
         try:
-            del ctx.guild_doc["permissions"]
+            del ctx.guild_document["permissions"]
         except KeyError:
             raise errors.NotConfigured()
-        await ctx.guild_doc.replace_db()
+        await ctx.guild_document.replace_db()
 
     @permissions.command(
         name="read",
@@ -139,8 +139,8 @@ class Administration(commands.Cog):
         description="Sets the role that is given to people who are muted. It must already be configured.",
     )
     async def mute(self, ctx, *, role: discord.Role):
-        ctx.guild_doc["mute_role"] = role.id
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document["mute_role"] = role.id
+        await ctx.guild_document.replace_db()
 
     @commands.command(
         name="delete",
@@ -150,7 +150,7 @@ class Administration(commands.Cog):
     )
     async def delete(self, ctx):
         if await DeleteMenu().prompt(ctx):
-            await ctx.guild_doc.delete_db()
+            await ctx.guild_document.delete_db()
             await ctx.guild.leave()
 
 

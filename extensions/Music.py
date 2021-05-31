@@ -127,8 +127,6 @@ class Music(commands.Cog):
     async def cog_before_invoke(self, ctx):
         if ctx.voice_client is None:
             await ctx.author.voice.channel.connect()
-        if ctx.music_player is None:
-            ctx.create_music_player()
 
     @commands.group(
         invoke_without_command=True,
@@ -190,8 +188,8 @@ class Music(commands.Cog):
     )
     async def plset(self, ctx):
         playlist = TrackPlaylist.from_queue(ctx.music_player.queue)
-        ctx.user_doc.setdefault("music", {})["playlist"] = playlist.sanitized
-        await ctx.user_doc.replace_db()
+        ctx.author_document.setdefault("music", {})["playlist"] = playlist.sanitized
+        await ctx.author_document.replace_db()
 
     @playlist.command(
         name="load",
@@ -203,7 +201,7 @@ class Music(commands.Cog):
     async def plget(self, ctx):
         async with ctx.typing():
             try:
-                user_playlist = ctx.user_doc.setdefault("music", {})["playlist"]
+                user_playlist = ctx.author_document.setdefault("music", {})["playlist"]
             except KeyError:
                 await ctx.send("You don't have a playlist saved.")
                 return

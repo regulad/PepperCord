@@ -70,10 +70,7 @@ class Dev(commands.Cog):
     )
     async def raw(self, ctx, entity: typing.Optional[typing.Union[discord.Guild, discord.Member, discord.User]]):
         entity = entity or ctx.guild
-        if isinstance(entity, discord.Guild):
-            document = await Document.get_from_id(ctx.bot.database["guild"], entity.id)
-        elif isinstance(entity, (discord.Member, discord.User)):
-            document = await Document.get_from_id(ctx.bot.database["user"], entity.id)
+        document = await ctx.bot.get_document(entity)
         buffer = StringIO()
         buffer.write(str(document))
         buffer.seek(0)

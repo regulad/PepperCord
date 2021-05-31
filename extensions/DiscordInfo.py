@@ -22,7 +22,7 @@ class DiscordInfo(
 
     @tasks.loop(seconds=600)
     async def activity_update(self):
-        watching_string = f"with {len(self.bot.users)} users in {len(self.bot.guilds)} servers"
+        watching_string = f"in {len(self.bot.guilds)} guild(s) | {self.bot.config['web']['base']}"
         await self.bot.change_presence(activity=discord.Game(name=watching_string))
 
     @activity_update.before_loop

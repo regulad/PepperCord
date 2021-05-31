@@ -14,9 +14,9 @@ class Blacklist(commands.Cog):
         self.bot = bot
 
     async def bot_check(self, ctx):
-        if ctx.guild is not None and ctx.guild_doc.setdefault("blacklisted", False):
+        if ctx.guild is not None and ctx.guild_document.setdefault("blacklisted", False):
             raise errors.Blacklisted()
-        elif ctx.user_doc.setdefault("blacklisted", False):
+        elif ctx.author_document.setdefault("blacklisted", False):
             raise errors.Blacklisted()
         else:
             return True
@@ -39,10 +39,7 @@ class Blacklist(commands.Cog):
     ):
         value = value or True
         entity = entity or ctx.guild
-        if isinstance(entity, discord.Guild):
-            document = await Document.get_from_id(ctx.bot.database["guild"], entity.id)
-        elif isinstance(entity, (discord.Member, discord.User)):
-            document = await Document.get_from_id(ctx.bot.database["user"], entity.id)
+        document = await ctx.bot.get_document(entity)
         document["blacklisted"] = value
         await document.replace_db()
 

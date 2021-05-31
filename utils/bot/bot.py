@@ -1,15 +1,66 @@
 import discord
 from discord.ext import commands
+import motor.motor_asyncio
+from typing import Union
 
+from utils.music import MusicPlayer
 from .context import CustomContext
+from .documents import ModelDocument
 
 
 class CustomBotBase(commands.bot.BotBase):
-    def __init__(self, command_prefix, help_command, description, *, database, config, **options):
-        self.database = database
-        self.config = config
-        self.music_players = []
+    def __init__(self, command_prefix, help_command, description=None, *, database, config, **options):
+        self._database = database
+        self._config = config
+
+        self._music_players = []
+        self._documents = []
+        # TODO: Having these objects stored here prevents them from being garbage collected, causing a memory leak.
+
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
+
+    @property
+    def database(self) -> motor.motor_asyncio.AsyncIOMotorDatabase:
+        return self._database
+
+    @property
+    def config(self) -> dict:
+        return self._config
+
+    @property
+    def music_players(self) -> list:
+        return self._music_players
+
+    @property
+    def documents(self) -> list:
+        return self._documents
+
+    def get_music_player(self, voice_client: discord.VoiceClient):
+        """Gets or creates music player from VoiceClient."""
+
+        for player in self.music_players:
+            if player.voice_client == voice_client:
+                return player
+        else:
+            music_player = MusicPlayer(voice_client)
+            self.music_players.append(music_player)
+            return music_player
+
+    async def get_document(self, model: Union[discord.Guild, discord.Member, discord.User]):
+        """Returns a cached document, or a new one if necessary."""
+
+        if isinstance(model, discord.Guild):
+            collection = self.database["guild"]
+        elif isinstance(model, (discord.Member, discord.User)):
+            collection = self.database["user"]
+
+        for document in self.documents:
+            if document.model == model:
+                return document
+        else:
+            document = await ModelDocument.get_from_model(collection, model)
+            self.documents.append(document)
+            return document
 
     async def get_context(self, message, *, cls=CustomContext):
         r"""|coro|
@@ -43,7 +94,7 @@ class CustomBotBase(commands.bot.BotBase):
 
         result = await super().get_context(message, cls=cls)
         if isinstance(result, CustomContext):
-            await result.get_documents(self.database)
+            await result.get_documents()
         return result
 
     async def invoke(self, ctx):

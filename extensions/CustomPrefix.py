@@ -1,15 +1,14 @@
 from discord.ext import commands
 from utils import checks
-from utils.database import Document
 
 
 async def get_prefix(bot, message):
-    document = await Document.get_from_id(bot.database["guild"], message.guild.id)
+    guild_document = await bot.get_document(message.guild)
     default_prefix = bot.config["discord"]["commands"]["prefix"]
     if message.guild is None:
         return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)
     else:
-        prefix = document.setdefault("prefix", default_prefix)
+        prefix = guild_document.setdefault("prefix", default_prefix)
         return commands.when_mentioned_or(f"{prefix} ", prefix)(bot, message)
 
 
@@ -29,10 +28,10 @@ class CustomPrefix(commands.Cog):
     )
     async def prefix(self, ctx, *, prefix: str):
         if prefix == ctx.bot.config["discord"]["commands"]["prefix"]:
-            del ctx.guild_doc["prefix"]
+            del ctx.guild_document["prefix"]
         else:
-            ctx.guild_doc["prefix"] = prefix
-        await ctx.guild_doc.replace_db()
+            ctx.guild_document["prefix"] = prefix
+        await ctx.guild_document.replace_db()
 
 
 def setup(bot):

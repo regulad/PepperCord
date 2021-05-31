@@ -30,17 +30,17 @@ def _get_level(xp: typing.Union[int, float]):
 class UserLevel:
     """An object that represents the level of a user via their user_doc."""
 
-    def __init__(self, user: typing.Union[discord.Member, discord.User], document: Document) -> None:
+    def __init__(self, user: typing.Union[discord.Member, discord.User], document: Document):
         self.user = user
         self.document = document
 
     @classmethod
     async def get_user(cls, bot, user: typing.Union[discord.Member, discord.User]):
         """Returns the UserLevel object for a given user."""
-        document = await Document.get_from_id(bot.database["user"], user.id)
         if user.bot:
             return None
         else:
+            document = await bot.get_document(user)
             return cls(user, document)
 
     @property
@@ -119,12 +119,12 @@ class Levels(commands.Cog):
             return
         # Actual processing: chooses a random number, gets the user's document, then adds the xp value into the document
         gen_xp = random.randrange(xp_start, xp_end)
-        user_level = UserLevel(ctx.author, ctx.user_doc)
+        user_level = UserLevel(ctx.author, ctx.author_document)
         user_level_up = await user_level.increment(gen_xp)
         # Levelup message: Makes sure that the user's level actually increased and level-up alerts are not disabled in
         # the guild before sending a level-up alert.
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
-            not ctx.guild_doc.setdefault("levels", {}).setdefault("disabled", True)
+            not ctx.guild_document.setdefault("levels", {}).setdefault("disabled", True)
         ):
             next_level = user_level_up["next"]["level"]
             next_xp = round(user_level_up["next"]["xp"] - user_level_up["new"]["xp"])
@@ -138,7 +138,7 @@ class Levels(commands.Cog):
                 .set_thumbnail(url=ctx.author.avatar_url)
             )
             try:
-                await ctx.guild.get_channel(ctx.guild_doc.setdefault("levels", {})["redirect"]).send(
+                await ctx.guild.get_channel(ctx.guild_document.setdefault("levels", {})["redirect"]).send(
                     ctx.author.mention, embed=embed
                 )
             except KeyError:
@@ -153,8 +153,8 @@ class Levels(commands.Cog):
     @commands.check(checks.is_admin)
     async def redirect(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
-        ctx.guild_doc.setdefault("levels", {})["redirect"] = channel.id
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("levels", {})["redirect"] = channel.id
+        await ctx.guild_document.replace_db()
 
     @commands.command(
         name="disablexp",
@@ -164,8 +164,8 @@ class Levels(commands.Cog):
     )
     @commands.check(checks.is_admin)
     async def disablexp(self, ctx):
-        ctx.guild_doc.setdefault("levels", {})["disabled"] = True
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("levels", {})["disabled"] = True
+        await ctx.guild_document.replace_db()
 
     @commands.command(
         name="enablexp",
@@ -175,8 +175,8 @@ class Levels(commands.Cog):
     )
     @commands.check(checks.is_admin)
     async def enablexp(self, ctx):
-        ctx.guild_doc.setdefault("levels", {})["disabled"] = False
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("levels", {})["disabled"] = False
+        await ctx.guild_document.replace_db()
 
     @commands.command(
         name="rank",

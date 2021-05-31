@@ -28,7 +28,7 @@ class GuildPermissionManager:
         # Gets permission level for each role
         permission_levels = []
         for role in below_roles:
-            active_item = self.ctx.guild_doc.setdefault("permissions", {}).get(str(role.id))
+            active_item = self.ctx.guild_document.setdefault("permissions", {}).get(str(role.id))
             if not active_item:
                 active_item = 0
             permission_levels.append(active_item)
@@ -38,5 +38,5 @@ class GuildPermissionManager:
     async def write(self, role: discord.Role, level: Permissions):
         """Writes a permission level into a role in a guild document"""
         value = level.value
-        self.ctx.guild_doc.setdefault("permissions", {})[str(role.id)] = value
-        await self.ctx.guild_doc.replace_db()
+        self.ctx.guild_document.setdefault("permissions", {})[str(role.id)] = value
+        await self.ctx.guild_document.replace_db()

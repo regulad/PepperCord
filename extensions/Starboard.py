@@ -62,8 +62,8 @@ class Starboard(commands.Cog):
             await guild.get_channel(payload.channel_id).get_partial_message(payload.message_id).fetch()
         )
         # Get documents
-        send_emoji = ctx.guild_doc.setdefault("starboard", {}).setdefault("emoji", "⭐")
-        threshold = ctx.guild_doc.setdefault("starboard", {}).setdefault("threshold", 3)
+        send_emoji = ctx.guild_document.setdefault("starboard", {}).setdefault("emoji", "⭐")
+        threshold = ctx.guild_document.setdefault("starboard", {}).setdefault("threshold", 3)
         # See if reaction count meets threshold
         react_count = None
         for reaction in ctx.message.reactions:
@@ -77,8 +77,8 @@ class Starboard(commands.Cog):
         if react_count is None:
             return
         if react_count >= threshold:
-            await _sendstar(ctx.guild_doc, ctx.message)
-            await ctx.guild_doc.replace_db()
+            await _sendstar(ctx.guild_document, ctx.message)
+            await ctx.guild_document.replace_db()
         else:
             return
 
@@ -92,7 +92,7 @@ class Starboard(commands.Cog):
     )
     async def starboard(self, ctx):
         try:
-            send_channel = ctx.guild.get_channel(ctx.guild_doc.setdefault("starboard", {})["channel"])
+            send_channel = ctx.guild.get_channel(ctx.guild_document.setdefault("starboard", {})["channel"])
         except KeyError:
             raise errors.NotConfigured()
         else:
@@ -109,16 +109,16 @@ class Starboard(commands.Cog):
     @commands.check(checks.is_admin)
     async def sconfig(self, ctx):
         try:
-            send_channel = ctx.guild.get_channel(ctx.guild_doc.setdefault("starboard", {})["channel"])
+            send_channel = ctx.guild.get_channel(ctx.guild_document.setdefault("starboard", {})["channel"])
         except KeyError:
             raise errors.NotConfigured()
         try:
             emoji = await commands.EmojiConverter().convert(
-                ctx, ctx.guild_doc.setdefault("starboard", {}).setdefault("emoji", "⭐")
+                ctx, ctx.guild_document.setdefault("starboard", {}).setdefault("emoji", "⭐")
             )
         except discord.NotFound:
-            emoji = ctx.guild_doc.setdefault("starboard", {}).setdefault("emoji", "⭐")
-        threshold = ctx.guild_doc.setdefault("starboard", {}).setdefault("threshold", 3)
+            emoji = ctx.guild_document.setdefault("starboard", {}).setdefault("emoji", "⭐")
+        threshold = ctx.guild_document.setdefault("starboard", {}).setdefault("threshold", 3)
         embed = (
             discord.Embed(title="Starboard Config")
             .add_field(name="Channel:", value=send_channel.mention)
@@ -135,10 +135,10 @@ class Starboard(commands.Cog):
     )
     async def sdisable(self, ctx):
         try:
-            del ctx.guild_doc["starboard"]
+            del ctx.guild_document["starboard"]
         except KeyError:
             raise errors.NotConfigured()
-        await ctx.guild_doc.replace_db()
+        await ctx.guild_document.replace_db()
 
     @sconfig.command(
         name="channel",
@@ -149,8 +149,8 @@ class Starboard(commands.Cog):
     )
     async def schannel(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
-        ctx.guild_doc.setdefault("starboard", {})["channel"] = channel.id
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("starboard", {})["channel"] = channel.id
+        await ctx.guild_document.replace_db()
 
     @sconfig.command(
         name="emoji",
@@ -161,8 +161,8 @@ class Starboard(commands.Cog):
     async def semoji(self, ctx, *, emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str]):
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
-        ctx.guild_doc.setdefault("starboard", {})["emoji"] = emoji
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("starboard", {})["emoji"] = emoji
+        await ctx.guild_document.replace_db()
 
     @sconfig.command(
         name="threshold",
@@ -171,8 +171,8 @@ class Starboard(commands.Cog):
         usage="<Threshold>",
     )
     async def sthreshold(self, ctx, *, threshold: int):
-        ctx.guild_doc.setdefault("starboard", {})["threshold"] = threshold
-        await ctx.guild_doc.replace_db()
+        ctx.guild_document.setdefault("starboard", {})["threshold"] = threshold
+        await ctx.guild_document.replace_db()
 
     @starboard.command(
         name="pin",
@@ -187,8 +187,8 @@ class Starboard(commands.Cog):
             else:
                 messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
                 message = messages[0]
-        await _sendstar(ctx.guild_doc, message)
-        await ctx.guild_doc.replace_db()
+        await _sendstar(ctx.guild_document, message)
+        await ctx.guild_document.replace_db()
 
     @starboard.command(
         name="convert",
@@ -198,9 +198,9 @@ class Starboard(commands.Cog):
     async def sconvert(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:
-            await _sendstar(ctx.guild_doc, pin)
+            await _sendstar(ctx.guild_document, pin)
             await asyncio.sleep(1)  # Prevents rate-limiting
-        await ctx.guild_doc.replace_db()
+        await ctx.guild_document.replace_db()
 
 
 def setup(bot):

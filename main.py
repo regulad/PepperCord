@@ -48,7 +48,6 @@ bot_instance = bot_class(
     command_prefix=config["discord"]["commands"]["prefix"],
     case_insensitive=True,
     intents=intents,
-    description="https://github.com/regulad/PepperCord",
     help_command=PrettyHelp(color=discord.Colour.orange()),
     database=db,
     config=config,

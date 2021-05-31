@@ -43,3 +43,5 @@ class Document(dict):
         """Deletes the document from the remote database."""
 
         await self.collection.delete_one(self._query)
+        self.clear()
+        self.update(self.query)

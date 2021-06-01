@@ -1,61 +1,66 @@
 import asyncio
-import collections
-from typing import Optional
+from typing import Union
 
 import discord
+from youtube_dl import YoutubeDL
 
 
-class TrackQueue(asyncio.Queue):
-    @property
-    def deque(self) -> collections.deque:  # Nasty, but its a weird property of how the Queue works. This may break!
-        return self._queue
+ytdl_format_options = {
+    "format": "bestaudio/best",
+    "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
+    "restrictfilenames": True,
+    "nocheckcertificate": True,
+    "ignoreerrors": False,
+    "logtostderr": False,
+    "quiet": True,
+    "no_warnings": True,
+    "default_search": "auto",
+    "source_address": "0.0.0.0",  # bind to ipv4 since ipv6 addresses cause issues sometimes
+}
+
+ffmpeg_options = {"options": "-vn"}
 
 
-def play_callback(error: Optional[Exception], *, future: asyncio.Future):
-    if error is not None:
-        future.set_exception(error)
-    else:
-        future.set_result(True)
+class YTDLSource(discord.PCMVolumeTransformer):
+    """Represents a source from YoutubeDL that has the ability to have it's volume changed."""
 
+    def __init__(self, source: discord.FFmpegPCMAudio, volume=0.5, *, info, invoker, file_downloader):
+        super().__init__(source, volume)
 
-def voice_client_play(voice_client: discord.VoiceClient, source) -> asyncio.Future:
-    future = voice_client.loop.create_future()
-    voice_client.play(source, after=lambda exception: play_callback(exception, future=future))
-    return future
-
-
-class MusicPlayer:
-    """Represents a music player that can play from a queue of sources."""
-
-    def __init__(self, voice_client: discord.VoiceClient):
-        self.voice_client = voice_client
-
-        self.queue = TrackQueue()
-
-        self.task = self.voice_client.loop.create_task(self.play())
-
-    def __del__(self):
-        if not self.task.done():
-            self.task.cancel()
+        self.file_downloader = file_downloader
+        self.info = info
+        self.invoker = invoker
 
     @property
-    def playing(self):
-        return self.voice_client.is_playing()
+    def url(self):
+        return self.info["webpage_url"]
 
-    @property
-    def paused(self):
-        return self.voice_client.is_paused()
+    @classmethod
+    async def from_url(cls, file_downloader: YoutubeDL, url: str, invoker: Union[discord.Member, discord.User]):
+        """Returns a list of YTDLSources from a playlist or song."""
 
-    @property
-    def now_playing(self):
-        return self.voice_client.source
+        loop = asyncio.get_event_loop()
+        info = await loop.run_in_executor(None, lambda: file_downloader.extract_info(url, download=False))
 
-    async def play(self):
-        while True:
-            if self.voice_client is None:
-                self.queue.clear()
-                break
+        tracks = []
 
-            track = await self.queue.get()
+        if info.setdefault("entries", None):
+            # Url refers to a playlist, so a list of instances must be returned.
 
-            await voice_client_play(self.voice_client, track)
+            for entry in info["entries"]:
+                track = cls(
+                    discord.FFmpegPCMAudio(entry["url"], **ffmpeg_options), info=entry,
+                    invoker=invoker, file_downloader=file_downloader
+                )
+                tracks.append(track)
+
+        else:
+            # Url refers to a single track, so a list containing only a single instance must be returned.
+
+            track = cls(
+                discord.FFmpegPCMAudio(info["url"], **ffmpeg_options), info=info,
+                invoker=invoker, file_downloader=file_downloader
+            )
+            tracks.append(track)
+
+        return tracks

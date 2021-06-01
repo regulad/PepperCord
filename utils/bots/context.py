@@ -3,7 +3,7 @@ from typing import Optional
 from discord.ext import commands
 
 from utils.database import Document
-from utils.music import MusicPlayer
+from utils.audio import AudioPlayer
 
 
 class CustomContext(commands.Context):
@@ -21,13 +21,13 @@ class CustomContext(commands.Context):
         return self._author_document
 
     @property
-    def music_player(self) -> Optional[MusicPlayer]:
-        """Returns a MusicPlayer. If none exists, it will create one. Requires the voice_client to not be None."""
+    def audio_player(self) -> Optional[AudioPlayer]:
+        """Returns a AudioPlayer. If none exists, it will create one. Requires the voice_client to not be None."""
 
         if self.voice_client is None:
             return None
         else:
-            return self.bot.get_music_player(self.voice_client)
+            return self.bot.get_audio_player(self.voice_client)
 
     async def get_documents(self):  # Eh. Does the job, but a rewrite wouldn't be a bad idea.
         """Gets documents from the database to be used later on. Must be called to use guild_doc or user_doc"""

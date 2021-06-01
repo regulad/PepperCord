@@ -7,11 +7,9 @@ import psutil
 from discord.ext import commands, tasks
 
 
-class DiscordInfo(
-    commands.Cog,
-    name="Discord Info",
-    description="Shows information about things on Discord.",
-):
+class DiscordInfo(commands.Cog):
+    """Get information about things here on Discord."""
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -30,7 +28,25 @@ class DiscordInfo(
         await self.bot.wait_until_ready()
 
     @commands.command(
-        name="whoIs",
+        name="status",
+        aliases=["setstatus"],
+        brief="Sets bot's status.",
+        description="Sets the bot's status. When no status is passed, go back to the default.",
+    )
+    @commands.is_owner()
+    async def status(self, ctx, *, activity: typing.Optional[str]):
+        task_is_running = self.activity_update.is_running()
+
+        if activity is None and not task_is_running:
+            self.activity_update.start()
+        elif activity is not None and task_is_running:
+            self.activity_update.cancel()
+            watching_string = f"{activity} | {ctx.bot.config['web']['base']}"
+            await ctx.bot.change_presence(activity=discord.Game(name=watching_string))
+
+
+    @commands.command(
+        name="whois",
         aliases=["user", "member", "userInfo", "memberInfo", "pfp"],
         description="Displays information about a user.",
         brief="Get user info.",
@@ -96,9 +112,9 @@ class DiscordInfo(
             await ctx.invoke(self.whois, user=guild_owner)
 
     @commands.command(
-        name="botInfo",
-        aliases=["bot", "invite", "donate", "bug", "bugreport", "support"],
-        description="Displays information about the bot.",
+        name="botinfo",
+        aliases=["bot", "invite", "donate", "bug", "support"],
+        description="Displays information about the bots",
         brief="Get bots info.",
     )
     async def invite(self, ctx):
@@ -109,7 +125,9 @@ class DiscordInfo(
                 discord.Embed(
                     colour=discord.Colour.orange(),
                     title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
-                    description=f"**Important Links**: [Website]({base}) | [Donate]({base}/donate)\n **GitHub**: [Repository]({github}) | [Issues]({github}/issues) | [Pull Requests]({github}/pulls)\n*For support, use GitHub issues.*",
+                    description=f"**Important Links**: [Website]({base}) | [Donate]({base}/donate)\n"
+                                f"**GitHub**: [Repository]({github}) | [Issues]({github}/issues) | "
+                                f"[Pull Requests]({github}/pulls)\n*For support, use GitHub issues.*",
                 )
                 .set_thumbnail(url=ctx.bot.user.avatar_url)
                 .add_field(
@@ -143,8 +161,7 @@ class DiscordInfo(
             await ctx.invoke(self.whois, user=ctx.bot.user)
 
     @commands.command(
-        name="snowflakeLookup",
-        aliases=["snowflake", "snowflakeTime"],
+        name="snowflake",
         description="Returns the exact time in UTC when a snowflake is/was created.",
         brief="Get time snowflake is/was created.",
         usage="<Snowflake>",

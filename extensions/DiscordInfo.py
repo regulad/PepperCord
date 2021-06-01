@@ -97,8 +97,8 @@ class DiscordInfo(
 
     @commands.command(
         name="botInfo",
-        aliases=["bots", "invite", "donate", "bug", "bugreport", "support"],
-        description="Displays information about the bots",
+        aliases=["bot", "invite", "donate", "bug", "bugreport", "support"],
+        description="Displays information about the bot.",
         brief="Get bots info.",
     )
     async def invite(self, ctx):

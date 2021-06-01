@@ -202,7 +202,6 @@ class Levels(commands.Cog):
     @commands.command(
         name="leaderboard", brief="Displays current level & rank.", description="Displays current level & rank."
     )
-    @commands.cooldown(1, 30, commands.cooldowns.BucketType.guild)
     async def leaderboard(self, ctx):
         member_xps = []
         for member in ctx.guild.members:

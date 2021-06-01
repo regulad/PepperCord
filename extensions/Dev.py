@@ -54,7 +54,9 @@ class Dev(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await ctx.bot.is_owner(ctx.author)
+        if not await ctx.bot.is_owner(ctx.author):
+            raise commands.NotOwner('You do not own this bot.')
+        return True
 
     @commands.command(
         name="nick",

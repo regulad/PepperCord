@@ -19,7 +19,7 @@ class Moderation(commands.Cog):
         self.unpunish.stop()
 
     @tasks.loop(seconds=60)
-    async def unpunish(self):
+    async def unpunish(self):  # Ehhhhhh.....
         for guild in self.bot.guilds:
             # Get the document for the guild
             guild_doc = await self.bot.get_document(guild)
@@ -52,18 +52,22 @@ class Moderation(commands.Cog):
         brief="Delete a set amount of messages.",
         description="Delete a specified amount of messages in the current channel.",
     )
+    @commands.bot_has_permissions(manage_messages=True)
     async def purge(self, ctx, messages: int):
         await ctx.channel.purge(limit=messages + 1)
 
     @commands.command(name="kick", brief="Kicks user from the server.", description="Kicks user from the server.")
+    @commands.bot_has_permissions(kick_members=True)
     async def kick(self, ctx, member: discord.Member, *, reason: str = ""):
         await member.kick(reason=reason)
 
     @commands.command(name="ban", brief="Bans user from the server.", description="Bans user from the server.")
+    @commands.bot_has_permissions(ban_members=True)
     async def ban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
         await ctx.guild.ban(user=member, reason=reason)
 
     @commands.command(name="unban", brief="Unbans user from the server.", description="Unbans user from the server.")
+    @commands.bot_has_permissions(ban_members=True)
     async def unban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
         await ctx.guild.unban(user=member, reason=reason)
 
@@ -73,6 +77,7 @@ class Moderation(commands.Cog):
         brief="Mutes user from typing in text channels.",
         description="Mutes user from typing in text channels. Must be configured first.",
     )
+    @commands.bot_has_permissions(manage_roles=True)
     async def mute(self, ctx, *, member: discord.Member):
         try:
             mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
@@ -86,6 +91,7 @@ class Moderation(commands.Cog):
         brief="Unmutes user from typing in text channels.",
         description="Unmutes user from typing in text channels. Must be configured first.",
     )
+    @commands.bot_has_permissions(manage_roles=True)
     async def unmute(self, ctx, *, member: discord.Member):
         try:
             mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
@@ -100,6 +106,7 @@ class Moderation(commands.Cog):
         description="Mutes a user then schedueles their unmuting",
         usage="<Member> [Time (Minutes)]",
     )
+    @commands.bot_has_permissions(manage_roles=True)
     async def timemute(self, ctx, member: discord.Member, unpunishtime: int = 10):
         await ctx.invoke(self.mute, member=member)
         ctx.guild_document.setdefault("punishments", {})[str(member.id)] = {"mute": time.time() + (unpunishtime * 60)}
@@ -112,6 +119,7 @@ class Moderation(commands.Cog):
         description="Mutes a user then schedueles their unmuting",
         usage="<Member> [Time (Minutes)]",
     )
+    @commands.bot_has_permissions(ban_members=True)
     async def timeban(self, ctx, member: discord.Member, unpunishtime: int = 10):
         await ctx.invoke(self.mute, member=member)
         ctx.guild_document.setdefault("punishments", {})[str(member.id)] = {"ban": time.time() + (unpunishtime * 60)}

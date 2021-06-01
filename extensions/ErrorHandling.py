@@ -2,18 +2,32 @@ import discord
 from discord.ext import commands, menus
 
 from extensions.Starboard import AlreadyPinned
-from utils import checks
+from utils import checks, bots
 
 known_errors = {
     checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
+
     checks.NotInVoiceChannel: "You must be in a voice channel to execute this command.",
+
     commands.UserInputError: "You entered a bad argument.",
+
     AlreadyPinned: "This message is already pinned to the starboard.",
+
+    commands.NSFWChannelRequired: "This command displays explicit content. "
+                                  "You can only use it in channels marked as NSFW.",
+
+    commands.CommandOnCooldown: "You'll need to wait before you can execute this command again.",
+
     commands.NotOwner: "Only the bot's owner may execute this command.",
+
     checks.LowPrivilege: "You are not authorized to run this command. Ask a server administrator if you believe "
                          "this is an error.",
+
+    bots.NotConfigured: "This feature must be configured before use. Ask a server administrator.",
+
     commands.BotMissingPermissions: "The bot was unable to perform the action requested, "
                                     "since it is missing permissions required to do so. Try re-inviting the bot.",
+
     commands.CheckFailure: "A check failed.",
 }
 
@@ -67,13 +81,13 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
+        safe_reinvoke = isinstance(error, (commands.CommandOnCooldown, commands.CheckFailure))
         await ctx.message.add_reaction("‼️")
-
-        if isinstance(error, commands.CommandNotFound):
-            return
-
-        menu = ErrorMenu(error)
-        await menu.start(ctx)
+        if await ctx.bot.is_owner(ctx.author) and safe_reinvoke:
+            await ctx.message.add_reaction("🔁")
+            await ctx.reinvoke()
+        else:
+            await ErrorMenu(error).start(ctx)
 
 
 def setup(bot):

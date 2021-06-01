@@ -3,8 +3,6 @@ import typing
 import discord
 from discord.ext import commands
 
-from utils import bots
-
 
 class Blacklisted(commands.CheckFailure):
     pass

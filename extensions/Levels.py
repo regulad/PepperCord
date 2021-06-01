@@ -7,7 +7,7 @@ import typing
 import discord
 from discord.ext import commands, menus
 
-from utils import checks, bots, database
+from utils import checks, database
 
 xp_to = 2.8
 xp_multiplier = 1.7

@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands, menus
 from youtube_dl import YoutubeDL
 
-from utils import checks, validators, errors, converters, music
+from utils import checks, validators, converters, music, bots
 
 # Not sure what the deal with these is, but the d.py docs suggested it so ¯\_(ツ)_/¯
 ytdl_format_options = {
@@ -129,7 +129,7 @@ class Music(commands.Cog):
             try:
                 await checks.is_man(ctx)
             except commands.CheckFailure:
-                raise errors.NotAlone()
+                raise music.NotAlone
         return True
 
     async def cog_before_invoke(self, ctx):
@@ -145,7 +145,7 @@ class Music(commands.Cog):
         description="Commands for controlling the music player.",
     )
     async def player(self, ctx):
-        raise errors.SubcommandNotFound()
+        pass
 
     @player.command(
         name="stop",
@@ -186,7 +186,7 @@ class Music(commands.Cog):
         description="Commands for playlists. Each user can have their own playlist, which persists between guilds.",
     )
     async def playlist(self, ctx):
-        raise errors.SubcommandNotFound()
+        pass
 
     @playlist.command(
         name="save",

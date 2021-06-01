@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from utils import checks, errors
+from utils import checks, bots
 
 
 async def member_message_processor(bot, member: discord.Member, event: str):
@@ -9,7 +9,7 @@ async def member_message_processor(bot, member: discord.Member, event: str):
     messages_dict = guild_doc["messages"][event]
     if messages_dict:
         for channel in messages_dict.keys():
-            active_channel = self.bot.get_channel(int(channel))
+            active_channel = bot.get_channel(int(channel))
             message = messages_dict[channel]
             embed = discord.Embed(colour=member.colour, description=message)
             await active_channel.send(member.mention, embed=embed)
@@ -41,7 +41,7 @@ class Messages(commands.Cog):
         description="Configures what is displayed when a certain event occurs.",
     )
     async def events(self, ctx):
-        raise errors.SubcommandNotFound()
+        pass
 
     @events.command(
         name="disable",
@@ -53,7 +53,7 @@ class Messages(commands.Cog):
         try:
             del ctx.guild_document["reactions"]
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         await ctx.guild_document.replace_db()
 
     @events.command(

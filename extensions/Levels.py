@@ -7,8 +7,7 @@ import typing
 import discord
 from discord.ext import commands, menus
 
-from utils import checks, errors
-from utils.database import Document
+from utils import checks, bots, database
 
 xp_to = 2.8
 xp_multiplier = 1.7
@@ -31,7 +30,7 @@ def _get_level(xp: typing.Union[int, float]):
 class UserLevel:
     """An object that represents the level of a user via their user_doc."""
 
-    def __init__(self, user: typing.Union[discord.Member, discord.User], document: Document):
+    def __init__(self, user: typing.Union[discord.Member, discord.User], document: database.Document):
         self.user = user
         self.document = document
 
@@ -110,7 +109,7 @@ class Levels(commands.Cog):
     async def on_message(self, message: discord.Message):
         """on_message grants xp to the user and sends level-up alerts to the guild if the guild privileged so desire."""
         ctx = await self.bot.get_context(message)
-        # Prevents levels from being earned outside of a guild and the bot from responding to other bots
+        # Prevents levels from being earned outside of a guild and the bots from responding to other bots
         if (not ctx.guild) or ctx.author.bot:
             return
         # Cooldown: prevents spam/macros
@@ -205,8 +204,6 @@ class Levels(commands.Cog):
     )
     @commands.cooldown(1, 30, commands.cooldowns.BucketType.guild)
     async def leaderboard(self, ctx):
-        if ctx.guild.large:
-            raise errors.TooManyMembers()
         member_xps = []
         for member in ctx.guild.members:
             xp = await UserLevel.get_user(ctx.bot, member)

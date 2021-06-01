@@ -56,7 +56,7 @@ volumes:
 
 You'll still need to configure networking, but this will be different on every Docker environment.
 
-If you want to run the bot outside of a Docker container, you'll need to install the following dependencies from your favorite package manager:
+If you want to run the bot outside a Docker container, you'll need to install the following dependencies from your favorite package manager:
 
 ```
 git

@@ -1,6 +1,6 @@
 discord.py[voice]
 git+https://github.com/Rapptz/discord-ext-menus # Experimental Menu features, very cool
-discord-pretty-help # Makes the help command look nice.
+discord-pretty-help # Makes the help command look nice. Bad.
 jishaku  # Useful development tools.
 aiohttp # For asynchronous HTTP requests
 motor # For asynchronous MongoDB

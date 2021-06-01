@@ -10,7 +10,7 @@ from .documents import ModelDocument
 
 
 class CustomBotBase(commands.bot.BotBase):
-    def __init__(self, command_prefix, help_command, description=None, *, database, config, **options):
+    def __init__(self, command_prefix, help_command=commands.HelpCommand(), description=None, *, database, config, **options):
         self._database = database
         self._config = config
 

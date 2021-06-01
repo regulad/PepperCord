@@ -4,7 +4,7 @@ import typing
 import discord
 from discord.ext import commands, tasks
 
-from utils import checks, errors
+from utils import checks, bots
 
 
 class Moderation(commands.Cog):
@@ -77,7 +77,7 @@ class Moderation(commands.Cog):
         try:
             mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         await member.add_roles(mute_role)
 
     @commands.command(
@@ -90,7 +90,7 @@ class Moderation(commands.Cog):
         try:
             mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         await member.remove_roles(mute_role)
 
     @commands.command(

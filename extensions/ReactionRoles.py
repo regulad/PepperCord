@@ -3,7 +3,7 @@ import typing
 import discord
 from discord.ext import commands
 
-from utils import checks, errors
+from utils import bots, checks
 
 
 class ReactionRoles(commands.Cog):
@@ -58,7 +58,7 @@ class ReactionRoles(commands.Cog):
         description="Configures reaction roles.",
     )
     async def reactionrole(self, ctx):
-        raise errors.SubcommandNotFound()
+        pass
 
     @reactionrole.command(
         name="disable",
@@ -70,13 +70,13 @@ class ReactionRoles(commands.Cog):
         try:
             del ctx.guild_document["reactions"]
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         await ctx.guild_document.replace_db()
 
     @reactionrole.command(
         name="add",
         brief="Adds reaction roles.",
-        description="Adds reaction roles. The bot must have permissions to add rections in the desired channel.",
+        description="Adds reaction roles. The bots must have permissions to add rections in the desired channel.",
         usage="<Channel> <Message> <Emoji> <Role>",
     )
     async def add(

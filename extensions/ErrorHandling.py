@@ -1,79 +1,81 @@
-from discord.ext import commands
+import time
 
-from utils import errors
+import discord
+from discord.ext import commands, menus
+
+from extensions.Starboard import AlreadyPinned
+from utils import checks
+
+known_errors = {
+    checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
+    checks.NotInVoiceChannel: "You must be in a voice channel to execute this command.",
+    commands.UserInputError: "You entered a bad argument.",
+    AlreadyPinned: "This message is already pinned to the starboard.",
+    commands.NotOwner: "Only the bot's owner may execute this command.",
+    checks.LowPrivilege: "You are not authorized to run this command. Ask a server administrator if you believe "
+                         "this is an error.",
+    commands.BotMissingPermissions: "The bot was unable to perform the action requested, "
+                                    "since it is missing permissions required to do so. Try re-inviting the bot.",
+    commands.CheckFailure: "A check failed.",
+}
+
+
+def find_error(error):
+    try:
+        return known_errors[error.__class__]
+    except KeyError:
+        return None
+
+
+class ErrorMenu(menus.Menu):
+    def __init__(self, error: Exception):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+
+        self.error = error
+
+        super().__init__()
+
+    async def send_initial_message(self, ctx, channel):
+        error_response = find_error(self.error)
+
+        embed = discord.Embed(
+            colour=discord.Colour.red(), title="An error has occurred."
+        )
+
+        if len(str(self.error)) > 0:
+            embed.add_field(
+                name=f"Type: {self.error.__class__.__name__}", value=f"```{str(self.error)}```"
+            )
+        else:
+            embed.description = f"**Type: {self.error.__class__.__name__}**"
+
+        if error_response is not None:
+            embed.set_footer(text=f"Tip: {error_response}")
+
+        return await ctx.send(embed=embed)
+
+    @menus.button("🛑")
+    async def on_stop(self, payload):
+        await self.message.delete()
+        self.stop()
 
 
 class ErrorHandling(commands.Cog):
-    """Tools to assist with the handling of errors."""
+    """Handles raised errors."""
 
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, e):
-        # Reaction
-        await ctx.message.add_reaction(emoji="❌")
-        # Weirdness
-        if isinstance(e, commands.CommandInvokeError):
-            e = e.original
-        # Owner reinvoke
-        if isinstance(e, (commands.CheckFailure, commands.CommandOnCooldown)) and await ctx.bot.is_owner(ctx.author):
-            await ctx.message.add_reaction(emoji="🔁")
-            try:
-                await ctx.reinvoke()
-            except Exception as e:
-                if len(str(e)) > 0:
-                    await ctx.send(
-                        f"During the attempt to reinvoke your command, `{e.__class__.__name__}` raised an exception. "
-                        f"See: ```{e}``` "
-                    )
-                else:
-                    await ctx.send(
-                        f"During the attempt to reinvoke your command, `{e.__class__.__name__}` raised an exception. "
-                    )
-        # Bulk
-        if isinstance(e, errors.NotInVoiceChannel):
-            await ctx.send("You must be in a voice channel to execute this command.")
-        elif isinstance(e, errors.NotAlone):
-            await ctx.send("You must be alone or privileged to execute this command.")
-        elif isinstance(e, errors.AlreadyPinned):
-            await ctx.send("This message is already pinned to the starboard.")
-        elif isinstance(e, errors.TooManyMembers):
-            await ctx.send("This command doesn't work very well in large servers and has been disabled there. Sorry!")
-        elif isinstance(e, errors.Blacklisted):
-            await ctx.send("You have been blacklisted from utilizing this instance of the bot.")
-        elif isinstance(e, commands.BotMissingPermissions):
-            await ctx.send(f"I'm missing permissions I need to function. To re-invite me, see `{ctx.prefix}invite`.")
-        elif isinstance(e, commands.NoPrivateMessage):
-            await ctx.send(f"This commands can only be executed in a server.")
-        elif isinstance(e, commands.NSFWChannelRequired):
-            await ctx.send("No horny! A NSFW channel is required to execute this command.")
-        elif isinstance(e, commands.CommandOnCooldown):
-            await ctx.send(
-                f"Slow the brakes, speed racer! We don't want any rate limiting... Try executing your command again in "
-                f"`{round(e.retry_after, 1)}` seconds. "
-            )
-        elif isinstance(e, errors.NotSharded):
-            await ctx.send("This bot is not sharded.")
-        elif isinstance(e, commands.UserInputError):
-            await ctx.send(f"Command is valid, but input is invalid. Try `{ctx.prefix}help {ctx.command}`.")
-        elif isinstance(e, errors.LowPrivilege):
-            await ctx.send(f"You are missing required permissions. {e}")
-        elif isinstance(e, commands.MissingPermissions):
-            await ctx.send("You are missing required permissions.")
-        elif isinstance(e, commands.CheckFailure):
-            await ctx.send("You cannot run this command.")
-        elif isinstance(e, errors.SubcommandNotFound):
-            await ctx.send(f"You need to specify a subcommand. Try `{ctx.prefix}help`.")
-        elif isinstance(e, errors.NotConfigured):
-            await ctx.send("This command must be configured first. Ask an admin.")
-        elif isinstance(e, commands.CommandNotFound):
-            await ctx.send(f"{e}. Try `{ctx.prefix}help`.")
-        else:
-            await ctx.send(
-                f"Something went very wrong while processing your command. This can be caused by bad arguments or "
-                f"something worse. Exception: ```{e}``` You can contact support with `{ctx.prefix}support`. "
-            )
+    async def on_command_error(self, ctx, error):
+        await ctx.message.add_reaction("‼️")
+
+        if isinstance(error, commands.CommandNotFound):
+            return
+
+        menu = ErrorMenu(error)
+        await menu.start(ctx)
 
 
 def setup(bot):

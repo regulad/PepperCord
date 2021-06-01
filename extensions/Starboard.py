@@ -4,20 +4,23 @@ import typing
 import discord
 from discord.ext import commands
 
-from utils import checks, errors
-from utils.database import Document
+from utils import checks, bots, database
 
 
-async def _sendstar(document: Document, message: discord.Message):
+class AlreadyPinned(Exception):
+    pass
+
+
+async def send_star(document: database.Document, message: discord.Message):
     # Get channel
     try:
         send_channel = message.guild.get_channel(document.setdefault("starboard", {})["channel"])
     except KeyError:
-        raise errors.NotConfigured()
+        raise bots.NotConfigured
     # Get already pinned messages
     messages = document.setdefault("starboard", {}).setdefault("messages", [])
     if message.id in messages:
-        raise errors.AlreadyPinned()
+        raise AlreadyPinned
     # Setup embed
     embed = discord.Embed(colour=message.author.colour, description=message.content).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
@@ -50,7 +53,7 @@ class Starboard(commands.Cog):
 
     async def cog_check(self, ctx):
         if not ctx.guild:
-            raise commands.NoPrivateMessage()
+            raise commands.NoPrivateMessage
         return True
 
     @commands.Cog.listener()
@@ -78,7 +81,7 @@ class Starboard(commands.Cog):
         if react_count is None:
             return
         if react_count >= threshold:
-            await _sendstar(ctx.guild_document, ctx.message)
+            await send_star(ctx.guild_document, ctx.message)
             await ctx.guild_document.replace_db()
         else:
             return
@@ -95,7 +98,7 @@ class Starboard(commands.Cog):
         try:
             send_channel = ctx.guild.get_channel(ctx.guild_document.setdefault("starboard", {})["channel"])
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         else:
             await ctx.send(send_channel.mention)
 
@@ -112,7 +115,7 @@ class Starboard(commands.Cog):
         try:
             send_channel = ctx.guild.get_channel(ctx.guild_document.setdefault("starboard", {})["channel"])
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         try:
             emoji = await commands.EmojiConverter().convert(
                 ctx, ctx.guild_document.setdefault("starboard", {}).setdefault("emoji", "⭐")
@@ -138,7 +141,7 @@ class Starboard(commands.Cog):
         try:
             del ctx.guild_document["starboard"]
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         await ctx.guild_document.replace_db()
 
     @sconfig.command(
@@ -188,7 +191,7 @@ class Starboard(commands.Cog):
             else:
                 messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
                 message = messages[0]
-        await _sendstar(ctx.guild_document, message)
+        await send_star(ctx.guild_document, message)
         await ctx.guild_document.replace_db()
 
     @starboard.command(
@@ -199,7 +202,7 @@ class Starboard(commands.Cog):
     async def sconvert(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:
-            await _sendstar(ctx.guild_document, pin)
+            await send_star(ctx.guild_document, pin)
             await asyncio.sleep(1)  # Prevents rate-limiting
         await ctx.guild_document.replace_db()
 

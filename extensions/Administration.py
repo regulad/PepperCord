@@ -3,7 +3,7 @@ import typing
 import discord
 from discord.ext import commands, menus
 
-from utils import checks, errors, permissions
+from utils import checks, permissions, bots
 
 
 class DeleteMenu(menus.Menu):
@@ -61,8 +61,8 @@ class Administration(commands.Cog):
 
     @commands.command(
         name="message",
-        brief="Send a message as the bot.",
-        description="Send a message as the bot in any channel that you want.",
+        brief="Send a message as the bots.",
+        description="Send a message as the bots in any channel that you want.",
         usage="<Channel> <Message>",
     )
     async def do_message(self, ctx, channel: discord.TextChannel, *, text: str):
@@ -78,7 +78,7 @@ class Administration(commands.Cog):
         description="Read & write permissions of various entities on the server. Level 0 means that the entity has no permissions, level 1 means that they have manager permissions (think controlling music or reading audit logs), level 2 means that they have moderator privileges, and level 3 means that they have administrator privileges.",
     )
     async def permissions(self, ctx):
-        raise errors.SubcommandNotFound()
+        pass
 
     @permissions.command(
         name="disable",
@@ -90,7 +90,7 @@ class Administration(commands.Cog):
         try:
             del ctx.guild_document["permissions"]
         except KeyError:
-            raise errors.NotConfigured()
+            raise bots.NotConfigured
         await ctx.guild_document.replace_db()
 
     @permissions.command(
@@ -119,7 +119,7 @@ class Administration(commands.Cog):
         elif value == "Man" or value == "Manager" or value == "man" or value == "manager":
             attribute = permissions.Permissions.MANAGER
         else:
-            raise commands.BadArgument()
+            raise commands.BadArgument
         perms = permissions.GuildPermissionManager(ctx)
         await perms.write(entity, attribute)
 
@@ -128,11 +128,11 @@ class Administration(commands.Cog):
         case_insensitive=True,
         name="configuration",
         aliases=["config"],
-        brief="Configures bot.",
-        description="Configures bot in the scope of this server.",
+        brief="Configures bots.",
+        description="Configures bots in the scope of this server.",
     )
     async def config(self, ctx):
-        raise errors.SubcommandNotFound()
+        pass
 
     @config.command(
         name="mute",
@@ -147,7 +147,7 @@ class Administration(commands.Cog):
         name="delete",
         aliases=["leave"],
         brief="Deletes all data on the server, then leaves.",
-        description="Deletes all the data the bot has collected and stored on this server, then leaves. Be careful!",
+        description="Deletes all the data the bots has collected and stored on this server, then leaves. Be careful!",
     )
     async def delete(self, ctx):
         if await DeleteMenu().prompt(ctx):

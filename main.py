@@ -12,7 +12,7 @@ import motor.motor_asyncio
 import yaml
 from pretty_help import PrettyHelp
 
-from utils import bot
+from utils import bots
 
 config = yaml.load(open("config/config.yml"), Loader=yaml.FullLoader)
 config_schema = json.load(open("resources/config.json"))
@@ -35,20 +35,20 @@ intents.presences = True
 # Configure Sharding
 shards = config["discord"]["api"].setdefault("shards", 0)
 if shards > 0:
-    bot_class = bot.CustomAutoShardedBot
+    bot_class = bots.CustomAutoShardedBot
 elif shards == -1:
-    bot_class = bot.CustomAutoShardedBot
+    bot_class = bots.CustomAutoShardedBot
     shards = None
 else:
-    bot_class = bot.CustomBot
+    bot_class = bots.CustomBot
     shards = None
 
 # Configure bot
-bot_instance = bot_class(
+bot = bot_class(
     command_prefix=config["discord"]["commands"]["prefix"],
     case_insensitive=True,
-    intents=intents,
     help_command=PrettyHelp(color=discord.Colour.orange()),
+    intents=intents,
     database=db,
     config=config,
     shard_count=shards,
@@ -58,10 +58,6 @@ if __name__ == "__main__":
     for file in os.listdir("extensions/"):
         if file.endswith(".py"):
             full_path = "extensions/" + file
-            try:
-                bot_instance.load_extension(os.path.splitext(full_path)[0].replace("/", "."))
-            except Exception as e:
-                print(f"Could not load {full_path}: {e}, continuing recursively")
-            else:
-                print(f"Loaded {full_path}")
-    bot_instance.run(bot_instance.config["discord"]["api"]["token"])
+            bot.load_extension(os.path.splitext(full_path)[0].replace("/", "."))
+
+    bot.run(bot.config["discord"]["api"]["token"])

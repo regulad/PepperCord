@@ -9,7 +9,10 @@ class Startup(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"Logged in as {self.bot.user.name}#{self.bot.user.discriminator} ({self.bot.user.id})")
+        print(
+            f"Logged in as {self.bot.user.name}#{self.bot.user.discriminator} ({self.bot.user.id}), "
+            f"{len(self.bot.extensions)} extensions loaded."
+        )
 
 
 def setup(bot):

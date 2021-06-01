@@ -2,14 +2,14 @@ from discord.ext import commands
 
 
 class NoDMs(commands.Cog):
-    """Disables use of the bot in DMs."""
+    """Disables use of the bots in DMs."""
 
     def __init__(self, bot):
         self.bot = bot
 
     async def bot_check_once(self, ctx):
         if ctx.guild is None:
-            raise commands.NoPrivateMessage()
+            raise commands.NoPrivateMessage
         return True
 
 

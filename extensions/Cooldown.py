@@ -2,7 +2,7 @@ from discord.ext import commands
 
 
 class Cooldown(commands.Cog):
-    """The cooldown system prevents abuse of the bot."""
+    """The cooldown system prevents abuse of the bots."""
 
     def __init__(self, bot):
         self.bot = bot

@@ -1,2 +1,0 @@
-class AlreadyPinned(Exception):
-    pass

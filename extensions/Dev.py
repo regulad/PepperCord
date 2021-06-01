@@ -4,7 +4,11 @@ from io import StringIO
 import discord
 from discord.ext import commands, menus
 
-from utils import errors
+from utils import checks
+
+
+class ShardNotFound(Exception):
+    pass
 
 
 class ShardMenu(menus.Menu):
@@ -34,7 +38,7 @@ class ShardMenu(menus.Menu):
                 title=f"Info for shard {self.shard_info.id}/{self.shard_info.shard_count}",
             )
             .add_field(name="Online:", value=not self.shard_info.is_closed())
-            .add_field(name="Latency:", value=f"{self.shard_info.latency} ms")
+            .add_field(name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms")
         )
         return await ctx.send(embed=embed)
 
@@ -44,7 +48,7 @@ class ShardMenu(menus.Menu):
 
 
 class Dev(commands.Cog):
-    """Tools to be used by the bot developer to operate the bot."""
+    """Tools to be used by the bots developer to operate the bots."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -56,10 +60,10 @@ class Dev(commands.Cog):
         name="nick",
         aliases=["nickname"],
         brief="Change nickname.",
-        description="Change the bot's nickname, for situations where you do not have privileges to.",
+        description="Change the bots's nickname, for situations where you do not have privileges to.",
     )
     @commands.guild_only()
-    async def nick(self, ctx, *, name: str):
+    async def nick(self, ctx, *, name: typing.Optional[str]):
         await ctx.guild.me.edit(nick=name)
 
     @commands.command(
@@ -77,32 +81,24 @@ class Dev(commands.Cog):
         file = discord.File(buffer, f"{entity.id}.json")
         await ctx.send(file=file)
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="shard",
-        brief="Tools for managing shards.",
-        description="Tools for managing shards like getting & restarting.",
-    )
-    async def shard(self, ctx):
-        raise errors.SubcommandNotFound()
-
-    @shard.command(
-        name="info",
+    @commands.command(
+        name="shardinfo",
+        aliases=["si"],
         brief="Gets info on a shard.",
         description="Gets info on a shard and presents a menu which can be used to manage the shard.",
     )
+    @commands.check(checks.bot_is_sharded)
     async def shard_info(self, ctx, *, shard_id: typing.Optional[typing.Union[discord.Guild, int]]):
         shard_id = shard_id or ctx.guild
+
         if isinstance(shard_id, discord.Guild):
             shard_id = shard_id.shard_id  # If the argument is a guild, replace shard_id with the shard_id of the guild
-        try:
-            shard_info = ctx.bot.get_shard(shard_id)
-        except AttributeError:
-            raise errors.NotSharded()
-        else:
-            if shard_info is None:
-                await ctx.send("Couldn't find shard.")
+
+        shard_info = ctx.bot.get_shard(shard_id)
+
+        if shard_info is None:
+            raise ShardNotFound
+
         await ShardMenu(shard_info=shard_info).start(ctx)
 
 

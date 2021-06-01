@@ -24,8 +24,8 @@ class CustomPrefix(commands.Cog):
 
     @commands.command(
         name="prefix",
-        brief="Sets the bot's prefix.",
-        description="Sets the bot's prefix. It can be any string, and will only apply to this server.",
+        brief="Sets the bots's prefix.",
+        description="Sets the bots's prefix. It can be any string, and will only apply to this server.",
     )
     async def prefix(self, ctx, *, prefix: str):
         if prefix == ctx.bot.config["discord"]["commands"]["prefix"]:

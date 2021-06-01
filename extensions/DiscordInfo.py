@@ -63,7 +63,7 @@ class DiscordInfo(
     @commands.command(
         name="serverInfo",
         aliases=["guildInfo", "server", "guild"],
-        description="Displays information about the server the bot is in.",
+        description="Displays information about the server the bots is in.",
         brief="Get server info.",
         usage="[Guild ID]",
     )
@@ -97,9 +97,9 @@ class DiscordInfo(
 
     @commands.command(
         name="botInfo",
-        aliases=["bot", "invite", "donate", "bug", "bugreport", "support"],
-        description="Displays information about the bot",
-        brief="Get bot info.",
+        aliases=["bots", "invite", "donate", "bug", "bugreport", "support"],
+        description="Displays information about the bots",
+        brief="Get bots info.",
     )
     async def invite(self, ctx):
         try:
@@ -118,7 +118,7 @@ class DiscordInfo(
                         client_id=str(ctx.bot.user.id),
                         permissions=discord.Permissions(permissions=3157650678),
                         guild=ctx.guild,
-                        scopes=("bot", "applications.commands"),
+                        scopes=("bots", "applications.commands"),
                     ),
                     inline=False,
                 )
@@ -137,7 +137,7 @@ class DiscordInfo(
                 )
             )
         except psutil.Error:
-            await ctx.send("Had trouble fetching information about the bot. Try again later.")
+            await ctx.send("Had trouble fetching information about the bots. Try again later.")
         else:
             await ctx.send(embed=embed)
             await ctx.invoke(self.whois, user=ctx.bot.user)

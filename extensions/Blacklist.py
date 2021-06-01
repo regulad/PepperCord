@@ -3,21 +3,25 @@ import typing
 import discord
 from discord.ext import commands
 
-from utils import errors
+from utils import bots
+
+
+class Blacklisted(commands.CheckFailure):
+    pass
 
 
 class Blacklist(commands.Cog):
-    """The blacklist system allows the bot owner to take abuse matters into their own hands and prevent a malicious
-    user or guild from abusing the bot."""
+    """The blacklist system allows the bots owner to take abuse matters into their own hands and prevent a malicious
+    user or guild from abusing the bots."""
 
     def __init__(self, bot):
         self.bot = bot
 
     async def bot_check(self, ctx):
         if ctx.guild is not None and ctx.guild_document.setdefault("blacklisted", False):
-            raise errors.Blacklisted()
+            raise Blacklisted
         elif ctx.author_document.setdefault("blacklisted", False):
-            raise errors.Blacklisted()
+            raise Blacklisted
         else:
             return True
 
@@ -26,7 +30,7 @@ class Blacklist(commands.Cog):
 
     @commands.command(
         name="blacklist",
-        description="Tools to blacklist entity from using the bot.",
+        description="Tools to blacklist entity from using the bots.",
         brief="Blacklists declared entity.",
         usage="<Value> <Entity>",
     )

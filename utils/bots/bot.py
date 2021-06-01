@@ -3,18 +3,22 @@ from typing import Union
 import discord
 import motor.motor_asyncio
 from discord.ext import commands
+from youtube_dl import YoutubeDL
 
-from utils.music import MusicPlayer
+from utils.music import ytdl_format_options
+from utils.audio import AudioPlayer
 from .context import CustomContext
 from .documents import ModelDocument
 
 
 class CustomBotBase(commands.bot.BotBase):
-    def __init__(self, command_prefix, help_command=commands.HelpCommand(), description=None, *, database, config, **options):
+    def __init__(
+            self, command_prefix, help_command=commands.HelpCommand(), description=None, *, database, config, **options
+    ):
         self._database = database
         self._config = config
 
-        self._music_players = []
+        self._audio_players = []
         self._documents = []
         # TODO: Having these objects stored here prevents them from being garbage collected, causing a memory leak.
 
@@ -30,20 +34,20 @@ class CustomBotBase(commands.bot.BotBase):
 
     @property
     def music_players(self) -> list:
-        return self._music_players
+        return self._audio_players
 
     @property
     def documents(self) -> list:
         return self._documents
 
-    def get_music_player(self, voice_client: discord.VoiceClient):
-        """Gets or creates music player from VoiceClient."""
+    def get_audio_player(self, voice_client: discord.VoiceClient):
+        """Gets or creates audio player from VoiceClient."""
 
         for player in self.music_players:
             if player.voice_client == voice_client:
                 return player
         else:
-            music_player = MusicPlayer(voice_client)
+            music_player = AudioPlayer(voice_client)
             self.music_players.append(music_player)
             return music_player
 

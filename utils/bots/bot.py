@@ -1,11 +1,10 @@
 from typing import Union
+from collections import deque
 
 import discord
 import motor.motor_asyncio
 from discord.ext import commands
-from youtube_dl import YoutubeDL
 
-from utils.music import ytdl_format_options
 from utils.audio import AudioPlayer
 from .context import CustomContext
 from .documents import ModelDocument
@@ -19,8 +18,10 @@ class CustomBotBase(commands.bot.BotBase):
         self._config = config
 
         self._audio_players = []
-        self._documents = []
-        # TODO: Having these objects stored here prevents them from being garbage collected, causing a memory leak.
+        # TODO: Having audio players stored here prevents them from being garbage collected, causing a memory leak.
+        # Ideally, they should be deleted once the VoiceClient ceases to exist.
+        # A subclass of VoiceClient may be a good idea.
+        self._documents = deque(maxlen=1000)
 
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
 

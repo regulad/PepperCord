@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands, menus
 
@@ -6,6 +8,8 @@ from utils import checks, bots
 
 known_errors = {
     checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
+
+    asyncio.QueueFull: "The queue is full. Please wait for this track to finish before you play the next song.",
 
     checks.NotInVoiceChannel: "You must be in a voice channel to execute this command.",
 

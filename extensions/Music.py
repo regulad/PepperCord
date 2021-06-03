@@ -1,18 +1,19 @@
 from typing import Union
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 from youtube_dl import YoutubeDL
 
-from utils import checks, embed_menus, converters, audio, music
+from utils import checks, embed_menus, audio, validators, sources
 
 
 class TrackPlaylist(list):
     @classmethod
-    def from_queue(cls, queue: audio.TrackQueue):
+    def from_queue(cls, queue: audio.AudioQueue):
         new_playlist = cls()
         for track in queue.deque:
-            new_playlist.append(track)
+            if isinstance(track, sources.YTDLSource):
+                new_playlist.append(track)
         return new_playlist
 
     @classmethod
@@ -21,7 +22,7 @@ class TrackPlaylist(list):
     ):
         new_playlist = cls()
         for url in sanitized:
-            new_playlist.extend(await music.YTDLSource.from_url(file_downloader, url, user))
+            new_playlist.extend(await sources.YTDLSource.from_url(file_downloader, url, user))
         return new_playlist
 
     @property
@@ -38,61 +39,12 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def cog_check(self, ctx):  # Meh.
-        await checks.is_in_voice(ctx)
-        try:
-            await checks.is_alone(ctx)
-        except commands.CheckFailure:
-            try:
-                await checks.is_man(ctx)
-            except commands.CheckFailure:
-                raise checks.NotAlone
-        return True
+    async def cog_check(self, ctx):
+        return await checks.is_man(ctx)
 
     async def cog_before_invoke(self, ctx):
         if ctx.voice_client is None:
             await ctx.author.voice.channel.connect()
-
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="audioplayer",
-        aliases=["p", "mp"],
-        brief="Commands for the audio player.",
-        description="Commands for controlling the audio player.",
-    )
-    async def player(self, ctx):
-        pass
-
-    @player.command(
-        name="stop",
-        aliases=["s"],
-        brief="Stops playing.",
-        description="Stops playing audio.",
-    )
-    async def pstop(self, ctx):
-        await ctx.audio_player.voice_client.disconnect()
-
-    @player.command(
-        name="pause",
-        aliases=["play", "p"],
-        brief="Toggles the audio player on and off.",
-        description="Toggles the audio player between playing and paused.",
-    )
-    async def ppause(self, ctx):
-        if ctx.audio_player.paused:
-            ctx.audio_player.voice_client.resume()
-        else:
-            ctx.audio_player.voice_client.pause()
-
-    @player.command(
-        name="skip",
-        aliases=["sk"],
-        brief="Skips to the next song on the queue.",
-        description="Skips the audio player to the next song on the queue.",
-    )
-    async def pskip(self, ctx):
-        ctx.audio_player.voice_client.stop()
 
     @commands.group(
         invoke_without_command=True,
@@ -134,37 +86,52 @@ class Music(commands.Cog):
                 user_playlist, ctx.author, file_downloader=ctx.audio_player.file_downloader
             )
             for track in user_track_playlist:
-                await ctx.audio_player.queue.put(track)
+                ctx.audio_player.queue.put_nowait(track)
 
-    @commands.command(
-        name="nowplaying",
-        aliases=["np"],
-        brief="Shows the currently playing track.",
-        description="Shows the currently playing track.",
+
+    @commands.group(
+        invoke_without_command=True,
+        case_insensitive=True,
+        name="play",
+        aliases=["p", "a", "add"],
+        brief="Adds a song to the queue.",
+        description="Adds a supported song to the current queue.",
     )
-    async def nowplaying(self, ctx):
-        playing_track = ctx.audio_player.now_playing
+    async def play(self, ctx, *, query: str):
+        async with ctx.typing():
+            if validators.str_is_url(query):
+                url = query
+            else:
+                url = f"ytsearch:{query}"
+            source = await sources.YTDLSource.from_url(ctx.audio_player.file_downloader, url, ctx.author)
+            for track in source:
+                ctx.audio_player.queue.put_nowait(track)
+            menu_source = embed_menus.QueueMenuSource(source, "Added:")
+            pages = menus.MenuPages(source=menu_source)
+            await pages.start(ctx)
 
-        if playing_track is None:
-            await ctx.send("Nothing is playing.")
-        elif not isinstance(playing_track, music.YTDLSource):
-            await ctx.send("The currently playing track isn't a song.")
+    @play.command(
+        name="top",
+        aliases=["t"],
+        brief="Adds a song to the top of the queue.",
+        description="Adds a supported song to the top of the current queue.",
+    )
+    @commands.check_any(commands.check(checks.is_man), commands.check(checks.is_alone))
+    async def pt(self, ctx, *, query):
+        if not len(list(ctx.audio_player.queue.deque)) > 0:
+            await ctx.invoke(self.play, query=query)
         else:
-            info = playing_track.info
-            embed = (
-                discord.Embed(title=info["title"], description=info["webpage_url"])
-                .add_field(name="Duration:", value=converters.duration_to_str(info["duration"]))
-                .add_field(name="Added by:", value=playing_track.invoker.display_name)
-            )
-            try:
-                embed.set_thumbnail(url=info["thumbnail"])
-            except KeyError:
-                pass
-            try:
-                embed.set_author(name=info["uploader"], url=info["uploader_url"])
-            except KeyError:
-                pass
-            await ctx.send(embed=embed)
+            async with ctx.typing():
+                if validators.str_is_url(query):
+                    url = query
+                else:
+                    url = f"ytsearch:{query}"
+                source = await sources.YTDLSource.from_url(ctx.audio_player.file_downloader, url, ctx.author)
+                for track in source:
+                    ctx.audio_player.queue.deque.appendleft(track)
+                menu_source = embed_menus.QueueMenuSource(source, "Added to top:")
+                pages = menus.MenuPages(source=menu_source)
+                await pages.start(ctx)
 
 
 def setup(bot):

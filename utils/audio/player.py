@@ -3,12 +3,14 @@ import collections
 from typing import Optional
 
 import discord
+from aiohttp import ClientSession
 from youtube_dl import YoutubeDL
+from easygTTS import AsyncEasyGTTSSession
 
-from utils.music import ytdl_format_options
+from .config import ytdl_format_options
 
 
-class TrackQueue(asyncio.Queue):
+class AudioQueue(asyncio.Queue):
     @property
     def deque(self) -> collections.deque:  # Nasty, but its a weird property of how the Queue works. This may break!
         return self._queue
@@ -33,14 +35,46 @@ class AudioPlayer:
     def __init__(self, voice_client: discord.VoiceClient):
         self.voice_client = voice_client
 
-        self.queue = TrackQueue()
-        self.file_downloader = YoutubeDL(ytdl_format_options)
+        self.queue = AudioQueue()
+
+        self._file_downloader = None
+        self._http_client_session = None
+        self._tts_client_session = None
+        # Set to none so they will only be created when required.
 
         self.task = self.voice_client.loop.create_task(self.play())
 
     def __del__(self):
-        if not self.task.done():
+        if not self.done:
             self.task.cancel()
+
+    @property
+    def file_downloader(self):
+        if self._file_downloader is None:
+            self._file_downloader = YoutubeDL(ytdl_format_options)
+
+        return self._file_downloader
+
+    @property
+    def http_client_session(self):
+        if self._http_client_session is None:
+            self._http_client_session = ClientSession()
+
+        return self._http_client_session
+
+    @property
+    def tts_client_session(self):
+        if self._tts_client_session is None:
+            self._tts_client_session = AsyncEasyGTTSSession(
+                "https://easy-gtts-api.dingus-server.regulad.xyz/", client_session=self.http_client_session
+            )
+            # TODO: This should be loaded from a config variable.
+
+        return self._tts_client_session
+
+    @property
+    def done(self):
+        return self.task.done()
 
     @property
     def playing(self):

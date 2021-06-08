@@ -9,7 +9,7 @@ async def get_prefix(bot, message):
     if message.guild is None:
         return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)
     else:
-        prefix = guild_document.setdefault("prefix", default_prefix)
+        prefix = guild_document.get("prefix", default_prefix)
         return commands.when_mentioned_or(f"{prefix} ", prefix)(bot, message)
 
 
@@ -29,10 +29,9 @@ class CustomPrefix(commands.Cog):
     )
     async def prefix(self, ctx, *, prefix: str):
         if prefix == ctx.bot.config.get("PEPPERCORD_PREFIX", "?"):
-            del ctx.guild_document["prefix"]
+            await ctx.guild_document.update_db({"$unset": {"prefix": 1}})
         else:
-            ctx.guild_document["prefix"] = prefix
-        await ctx.guild_document.replace_db()
+            await ctx.guild_document.update_db({"$set": {"prefix": prefix}})
 
 
 def setup(bot):

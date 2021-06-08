@@ -51,10 +51,10 @@ class Messages(commands.Cog):
     )
     async def sdisable(self, ctx):
         try:
-            del ctx.guild_document["reactions"]
+            ctx.guild_document["reactions"]
         except KeyError:
             raise bots.NotConfigured
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$unset": {"reactions": 1}})
 
     @events.command(
         name="add",
@@ -63,8 +63,7 @@ class Messages(commands.Cog):
         description="Sets message displayed when an action occursm. Message types include on_member_join and on_member_remove.",
     )
     async def setmessage(self, ctx, message_type: str, channel: discord.TextChannel, *, message: str):
-        ctx.guild_document.setdefault("messages", {}).setdefault(message_type, {})[str(channel.id)] = message
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {f"messages.{message_type}.{channel.id}": message}})
 
 
 def setup(bot):

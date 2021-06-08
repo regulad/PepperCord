@@ -25,10 +25,6 @@ class CustomCommand:
             custom_commands.append(custom_command)
         return custom_commands
 
-    @property
-    def as_dict(self):
-        return {self.command: self.message}
-
 
 class CustomCommandSource(menus.ListPageSource):
     def __init__(self, data: list[CustomCommand], guild):
@@ -103,9 +99,7 @@ class CustomCommands(commands.Cog):
         name="add", aliases=["set"], brief="Adds a custom command.", description="Adds a custom command to the guild."
     )
     async def ccadd(self, ctx, command: str, message: str):
-        custom_command = CustomCommand(command=command, message=message)
-        ctx.guild_document.setdefault("commands", {}).update(custom_command.as_dict)
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {f"commands.{command}": message}})
 
     @customcommands.command(
         name="delete",
@@ -115,11 +109,11 @@ class CustomCommands(commands.Cog):
     )
     async def ccdel(self, ctx, command: str):
         try:
-            del ctx.guild_document.setdefault("commands", {})[command]
+            ctx.guild_document.setdefault("commands", {})[command]
         except KeyError:
             raise commands.CommandNotFound(f"""Command "{command}" is not found""")
         else:
-            await ctx.guild_document.replace_db()
+            await ctx.guild_document.update_db({"$unset": {f"commands.{command}": 1}})
 
 
 def setup(bot):

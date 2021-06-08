@@ -8,8 +8,8 @@ from utils.audio import AudioPlayer
 
 class CustomContext(commands.Context):
     def __init__(self, **attrs):
-        self._guild_document = None
-        self._author_document = None
+        self._guild_document: Optional[Document] = None
+        self._author_document: Optional[Document] = None
         super().__init__(**attrs)
 
     @property

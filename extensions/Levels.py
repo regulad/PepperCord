@@ -46,7 +46,7 @@ class UserLevel:
     @property
     def xp(self):
         """Gets the amount of xp for a given user."""
-        return self.document.setdefault("xp", 0)
+        return self.document.get("xp", 0)
 
     @property
     def level(self):
@@ -62,22 +62,14 @@ class UserLevel:
         """Increments a the user's xp by a given amount. Returns a dict with information on the old and new level/xp
         of the user."""
         current = copy.deepcopy(self.xp)
-        new_xp = current + amount
-        self.document["xp"] = new_xp
+        await self.document.update_db({"$inc": {"xp": amount}})
         next_level = self.level + 1
         next_xp = _get_xp(next_level)
         return_dict = {
-            "old": {
-                "xp": current,
-                "level": _get_level(current),
-            },
+            "old": {"xp": current, "level": _get_level(current)},
             "new": {"xp": self.xp, "level": self.level},
             "next": {"xp": next_xp, "level": next_level},
         }
-        # To prevent rounding issues, kinda jank but not horrible
-        if return_dict["old"]["level"] < return_dict["new"]["level"]:
-            self.document["xp"] += 1
-        await self.document.replace_db()
         return return_dict
 
 
@@ -153,8 +145,7 @@ class Levels(commands.Cog):
     @commands.check(checks.is_admin)
     async def redirect(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
         channel = channel or ctx.channel
-        ctx.guild_document.setdefault("levels", {})["redirect"] = channel.id
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {"levels.redirect": channel.id}})
 
     @commands.command(
         name="disablexp",
@@ -164,8 +155,7 @@ class Levels(commands.Cog):
     )
     @commands.check(checks.is_admin)
     async def disablexp(self, ctx):
-        ctx.guild_document.setdefault("levels", {})["disabled"] = True
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {"levels.disabled": True}})
 
     @commands.command(
         name="enablexp",
@@ -175,8 +165,7 @@ class Levels(commands.Cog):
     )
     @commands.check(checks.is_admin)
     async def enablexp(self, ctx):
-        ctx.guild_document.setdefault("levels", {})["disabled"] = False
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {"levels.disabled": False}})
 
     @commands.command(
         name="rank",

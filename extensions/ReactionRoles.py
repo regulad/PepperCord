@@ -68,10 +68,10 @@ class ReactionRoles(commands.Cog):
     )
     async def sdisable(self, ctx):
         try:
-            del ctx.guild_document["reactions"]
+            ctx.guild_document["reactions"]
         except KeyError:
             raise bots.NotConfigured
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$unset": {"reactions": 1}})
 
     @reactionrole.command(
         name="add",
@@ -87,16 +87,14 @@ class ReactionRoles(commands.Cog):
         emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
         role: discord.Role,
     ):
-        reaction_dict = ctx.guild_document.setdefault("reactions", {})
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji_name = emoji.name
         elif isinstance(emoji, str):
             emoji_name = emoji
         else:
             emoji_name = None
-        reaction_dict.update({str(channel.id): {str(message.id): {emoji_name: role.id}}})
         await message.add_reaction(emoji)
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {f"reactions.{channel.id}.{message.id}.{emoji_name}": role.id}})
 
 
 def setup(bot):

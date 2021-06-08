@@ -2,9 +2,5 @@ version: '3'
 services:
   peppercord:
     image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
-    volumes:
-      - 'config:/app/config'
-  mongo:
-    image: mongo
-volumes:
-  config:
+    environment:
+      - PEPPERCORD_TOKEN=YOUR_TOKEN

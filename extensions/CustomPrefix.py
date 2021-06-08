@@ -5,7 +5,7 @@ from utils import checks
 
 async def get_prefix(bot, message):
     guild_document = await bot.get_document(message.guild)
-    default_prefix = bot.config["discord"]["commands"]["prefix"]
+    default_prefix = bot.config.get("PEPPERCORD_PREFIX", "?")
     if message.guild is None:
         return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)
     else:
@@ -28,7 +28,7 @@ class CustomPrefix(commands.Cog):
         description="Sets the bots's prefix. It can be any string, and will only apply to this server.",
     )
     async def prefix(self, ctx, *, prefix: str):
-        if prefix == ctx.bot.config["discord"]["commands"]["prefix"]:
+        if prefix == ctx.bot.config.get("PEPPERCORD_PREFIX", "?"):
             del ctx.guild_document["prefix"]
         else:
             ctx.guild_document["prefix"] = prefix
@@ -41,5 +41,5 @@ def setup(bot):
 
 
 def teardown(bot):
-    bot.command_prefix = bot.config["discord"]["commands"]["prefix"]
+    bot.command_prefix = bot.config.get("PEPPERCORD_PREFIX", "?")
     bot.remove_cog("CustomPrefix")

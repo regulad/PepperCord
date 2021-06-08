@@ -5,8 +5,6 @@ jishaku  # Useful development tools.
 aiohttp # For asynchronous HTTP requests
 motor # For asynchronous MongoDB
 dnspython >= 2.1.0 # For MongoDB SRV connection strings
-pyyaml # Parses YAML
-jsonschema # Validates schema
 psutil # System status
 mcstatus # Minecraft Server
 asyncio-dgram # mcstatus fsr

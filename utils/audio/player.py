@@ -65,11 +65,7 @@ class AudioPlayer:
     @property
     def tts_client_session(self):
         if self._tts_client_session is None:
-            self._tts_client_session = AsyncEasyGTTSSession(
-                "https://easy-gtts-api.dingus-server.regulad.xyz/", client_session=self.http_client_session
-            )
-            # TODO: This should be loaded from a config variable.
-
+            self._tts_client_session = AsyncEasyGTTSSession(client_session=self.http_client_session)
         return self._tts_client_session
 
     @property
@@ -89,10 +85,9 @@ class AudioPlayer:
         return self.voice_client.source
 
     async def play(self):
-        while True:
-            if self.voice_client is None:
-                self.queue.clear()
-                break
+        while self.voice_client is not None:
+            if len(self.voice_client.channel.members) <= 1:
+                await self.voice_client.disconnect()
 
             track = await self.queue.get()
 

@@ -16,9 +16,9 @@ class Blacklist(commands.Cog):
         self.bot = bot
 
     async def bot_check(self, ctx):
-        if ctx.guild is not None and ctx.guild_document.setdefault("blacklisted", False):
+        if ctx.guild is not None and ctx.guild_document.get("blacklisted", False):
             raise Blacklisted
-        elif ctx.author_document.setdefault("blacklisted", False):
+        elif ctx.author_document.get("blacklisted", False):
             raise Blacklisted
         else:
             return True
@@ -43,7 +43,7 @@ class Blacklist(commands.Cog):
         entity = entity or ctx.guild
         document = await ctx.bot.get_document(entity)
         document["blacklisted"] = value
-        await document.replace_db()
+        await document.update_db({"$set": {"blacklisted": True}})
 
 
 def setup(bot):

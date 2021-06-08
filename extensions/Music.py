@@ -65,8 +65,7 @@ class Music(commands.Cog):
     )
     async def plset(self, ctx):
         playlist = TrackPlaylist.from_queue(ctx.audio_player.queue)
-        ctx.author_document.setdefault("audio", {})["playlist"] = playlist.sanitized
-        await ctx.author_document.replace_db()
+        await ctx.author_document.update_db({"$set": {"audio.playlist": playlist.sanitized}})
 
     @playlist.command(
         name="load",

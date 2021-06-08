@@ -18,18 +18,16 @@ class Moderation(commands.Cog):
     def cog_unload(self):
         self.unpunish.stop()
 
-    @tasks.loop(seconds=60)
-    async def unpunish(self):  # Ehhhhhh.....
+    @tasks.loop(seconds=120)
+    async def unpunish(self):
         for guild in self.bot.guilds:
             # Get the document for the guild
             guild_doc = await self.bot.get_document(guild)
-            punishment_dict = guild_doc.setdefault("punishments", {})
+            punishment_dict = guild_doc.get("punishments")
             # If the punishment dict is present
-            if punishment_dict:
-                for user_id in punishment_dict.keys():
-                    user_dict = punishment_dict[user_id]
-                    for punishment in user_dict.keys():
-                        unpunish_time = user_dict[punishment]
+            if punishment_dict is not None:
+                for user_id, user_dict in punishment_dict.values():
+                    for punishment, unpunish_time in user_dict.values():
                         if unpunish_time <= time.time():
                             try:
                                 if punishment == "mute":
@@ -40,8 +38,7 @@ class Moderation(commands.Cog):
                                     user = self.bot.get_user(user_id)
                                     await guild.unban(user=user, reason="Timeban expired.")
                             finally:
-                                del punishment_dict[user_id]
-                                await guild_doc.replace_db()
+                                await guild_doc.update_db({"$unset": {f"punishments.{user_id}.{punishment}": 1}})
 
     async def cog_check(self, ctx):
         return await checks.is_mod(ctx)
@@ -107,10 +104,9 @@ class Moderation(commands.Cog):
         usage="<Member> [Time (Minutes)]",
     )
     @commands.bot_has_permissions(manage_roles=True)
-    async def timemute(self, ctx, member: discord.Member, unpunishtime: int = 10):
+    async def timemute(self, ctx, member: discord.Member, unpunishtime: int = 10):  # Should rewrite to be greedy
         await ctx.invoke(self.mute, member=member)
-        ctx.guild_document.setdefault("punishments", {})[str(member.id)] = {"mute": time.time() + (unpunishtime * 60)}
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {f"punishments.{member.id}.mute": time.time() + (unpunishtime * 60)}})
         await ctx.message.add_reaction(emoji="⏰")
 
     @commands.command(
@@ -120,10 +116,9 @@ class Moderation(commands.Cog):
         usage="<Member> [Time (Minutes)]",
     )
     @commands.bot_has_permissions(ban_members=True)
-    async def timeban(self, ctx, member: discord.Member, unpunishtime: int = 10):
+    async def timeban(self, ctx, member: discord.Member, unpunishtime: int = 10):  # Should rewrite to be greedy
         await ctx.invoke(self.mute, member=member)
-        ctx.guild_document.setdefault("punishments", {})[str(member.id)] = {"ban": time.time() + (unpunishtime * 60)}
-        await ctx.guild_document.replace_db()
+        await ctx.guild_document.update_db({"$set": {f"punishments.{member.id}.ban": time.time() + (unpunishtime * 60)}})
         await ctx.message.add_reaction(emoji="⏰")
 
 

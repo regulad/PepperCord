@@ -7,11 +7,7 @@ class Cooldown(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        self.cooldown = commands.CooldownMapping.from_cooldown(
-            self.bot.config["discord"]["commands"]["cooldown"]["rate"],
-            self.bot.config["discord"]["commands"]["cooldown"]["per"],
-            commands.BucketType.user,
-        )
+        self.cooldown = commands.CooldownMapping.from_cooldown(10, 6, commands.BucketType.user)
 
     async def bot_check_once(self, ctx):
         # Cooldown

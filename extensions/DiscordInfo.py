@@ -20,7 +20,8 @@ class DiscordInfo(commands.Cog):
 
     @tasks.loop(seconds=600)
     async def activity_update(self):
-        watching_string = f"in {len(self.bot.guilds)} guild(s) | {self.bot.config['web']['base']}"
+        watching_string = f"in {len(self.bot.guilds)} guild(s) " \
+                          f"| {self.bot.config.get('PEPPERCORD_WEB', 'https://www.regulad.xyz/PepperCord')}"
         await self.bot.change_presence(activity=discord.Game(name=watching_string))
 
     @activity_update.before_loop
@@ -39,9 +40,10 @@ class DiscordInfo(commands.Cog):
 
         if activity is None and not task_is_running:
             self.activity_update.start()
-        elif activity is not None and task_is_running:
+        else:
             self.activity_update.cancel()
-            watching_string = f"{activity} | {ctx.bot.config['web']['base']}"
+            watching_string = f"{activity} " \
+                              f"| {ctx.bot.config.get('PEPPERCORD_WEB', 'https://www.regulad.xyz/PepperCord')}"
             await ctx.bot.change_presence(activity=discord.Game(name=watching_string))
 
 
@@ -119,15 +121,12 @@ class DiscordInfo(commands.Cog):
     )
     async def invite(self, ctx):
         try:
-            base = ctx.bot.config["web"]["base"]
-            github = ctx.bot.config["web"]["github"]
+            base = ctx.bot.config.get('PEPPERCORD_WEB', 'https://www.regulad.xyz/PepperCord')
             embed = (
                 discord.Embed(
                     colour=discord.Colour.orange(),
                     title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
-                    description=f"**Important Links**: [Website]({base}) | [Donate]({base}/donate)\n"
-                                f"**GitHub**: [Repository]({github}) | [Issues]({github}/issues) | "
-                                f"[Pull Requests]({github}/pulls)\n*For support, use GitHub issues.*",
+                    description=f"**Important Links**: [Website]({base}) | [Donate]({base}/donate)"
                 )
                 .set_thumbnail(url=ctx.bot.user.avatar_url)
                 .add_field(

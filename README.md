@@ -13,8 +13,6 @@
 
 PepperCord was born out of necessity for a simpler alternative to other utility bots.
 
-Always evolving, new updates are pushed frequently.
-
 Features include:
 * Utility
   * Reaction Roles
@@ -67,26 +65,18 @@ ffmpeg
 
 ### Configuration
 
-PepperCord uses MongoDB as a data store and YAML for configuration, so you'll need to but your bot's info into `config/config.yml`. 
+PepperCord uses MongoDB as a datastore, and environment variables for configuration and secrets. (For ease of use in docker.)
 
-Here is an example:
+Environment variables:
 
-```yaml
-db:
-  uri: mongodb://localhost # Connection URI to your MongoDB server
-  name: peppercord # Name of the DB on your PepperCord server
-discord:
-  api:
-    token: UghqQolQCODamh1fS7B7DKkE.tJEE4u.TnJJbmoBbyscPFViH4OSOCX2Fyf # Token for your bot. Selfbots don't work.
-    shards: 0 # Number of shards to use. 0 disables sharding. Pass -1 to let discord decide the number of shards.
-  commands:
-    prefix: '~' # Prefix for all commands: can be changed per-server by the user
-    cooldown:
-      rate: 6 # Amount of commands that can be executed...
-      per: 10 # ...per this amount of time in seconds
-web:
-  base: https://www.regulad.xyz/PepperCord # Base domain for donate button and more
-  github: https://github.com/regulad/PepperCord # GitHub Repo
-```
+#### Secrets
 
-No more configuration must be performed on behalf of the hoster.
+* `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://localhost:27107`.
+* `PEPPERCORD_TOKEN`: Discord token.
+
+#### Config
+
+* `PEPPERCORD_SHARDS`: Number of shards to use on Discord. Default is `0`.
+* `PEPPERCORD_DB_NAME`: Name of the primary database. Default is `peppercord`.
+* `PEPPERCORD_PREFIX`: Command prefix. Default is `?`.
+* `PEPPERCORD_WEB`: Website used in some commands. Default is `https://www.regulad.xyz/PepperCord`.

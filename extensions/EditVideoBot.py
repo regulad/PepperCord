@@ -49,31 +49,14 @@ class EditVideoBot(commands.Cog):
                 media_url = embed.url
 
                 extension = splitext(media_url)[1].strip(".")
-
-                if extension == "mp4" or extension == "gif" or extension == "mov" or extension == "webm":
-                    out_extension = "mp4"
-                elif extension == "png" or extension == "jpeg" or extension == "jpg":
-                    out_extension = "png"
-                else:
-                    raise NoMedia
             elif message.attachments:
                 attachment: discord.Attachment = message.attachments[0]
 
                 media_url = attachment.url
-
-                if attachment.content_type.endswith("gif") or attachment.content_type.startswith("video"):
-                    out_extension = "mp4"
-                elif attachment.content_type.startswith("image"):
-                    out_extension = "png"
-                else:
-                    raise NoMedia
             else:
                 raise NoMedia
 
-            if "togif" in evb_commands:
-                out_extension = "gif"
-
-            if out_extension is None or media_url is None:
+            if media_url is None:
                 raise NoMedia
 
             extension = splitext(media_url)[1].strip(".")
@@ -81,9 +64,9 @@ class EditVideoBot(commands.Cog):
             async with self.client_session.get(media_url) as resp:
                 attachment_bytes = await resp.read()
 
-                output_bytes = await self.evb_session.edit(attachment_bytes, evb_commands, extension)
+                output_bytes, response = await self.evb_session.edit(attachment_bytes, evb_commands, extension)
 
-            file = discord.File(BytesIO(output_bytes), f"output.{out_extension}")
+            file = discord.File(BytesIO(output_bytes), f"output{splitext(response.media_url)[1]}")
             await ctx.send(files=[file])
 
     @commands.command(

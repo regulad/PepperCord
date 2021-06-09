@@ -6,5 +6,5 @@ _site/
 *.log
 Gemfile.lock
 
-# vscode
-.vscode/
+# IDE
+.idea/

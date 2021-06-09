@@ -45,7 +45,7 @@ The optimal way to setup PepperCord is in a controlled Docker container. Below i
 version: '3'
 services:
   peppercord:
-    image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
+    image: regulad/peppercord:latest
     volumes:
       - 'config:/app/config'
   mongo:

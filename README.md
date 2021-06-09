@@ -73,6 +73,7 @@ Environment variables:
 
 * `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://localhost:27107`.
 * `PEPPERCORD_TOKEN`: Discord token.
+* `PEPPERCORD_EVB`: EditVideoBot API Token. `https://pigeonburger.xyz/api/`. If you don't know what it is, don't add the var.
 
 #### Config
 

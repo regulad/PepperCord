@@ -12,3 +12,4 @@ Pillow # Image editing
 youtube_dl
 ffmpeg
 git+https://github.com/regulad/easy-gTTS-py.git
+EVB-API-py

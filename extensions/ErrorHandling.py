@@ -2,8 +2,11 @@ import asyncio
 
 import discord
 from discord.ext import commands, menus
+from evb import LibraryException as EvbException
+from easygTTS import LibraryException as TtsException
 
 from extensions.Starboard import AlreadyPinned
+from extensions.EditVideoBot import NoMedia
 from utils import checks, bots
 
 known_errors = {
@@ -33,6 +36,13 @@ known_errors = {
                                     "since it is missing permissions required to do so. Try re-inviting the bot.",
 
     commands.CheckFailure: "A check failed.",
+
+    NoMedia: "Couldn't find any media to upload, or the media was unknown. "
+             "Did you send an attachment or reply to a message?",
+
+    EvbException: "Something went wrong while trying to use EditVideoBot.",
+
+    TtsException: "Something went wrong while trying to use text_to_speech."
 }
 
 

@@ -31,7 +31,6 @@ class EditVideoBot(commands.Cog):
         usage="<Commands>",
     )
     @commands.cooldown(30, 86400, commands.BucketType.default)
-    @commands.cooldown(1, 90, commands.BucketType.channel)
     async def edit(self, ctx, *, evb_commands: str) -> None:
         async with ctx.typing():
             if not (ctx.message.embeds or ctx.message.attachments):

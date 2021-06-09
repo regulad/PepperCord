@@ -10,6 +10,5 @@ mcstatus # Minecraft Server
 asyncio-dgram # mcstatus fsr
 Pillow # Image editing
 youtube_dl
-ffmpeg
-git+https://github.com/regulad/easy-gTTS-py.git
+easy-gTTS
 EVB-API-py >= 0.2.0

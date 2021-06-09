@@ -1,6 +1,6 @@
 version: '3'
 services:
   peppercord:
-    image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
+    image: regulad/peppercord:latest
     environment:
       - PEPPERCORD_TOKEN=YOUR_TOKEN

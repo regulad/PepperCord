@@ -1,4 +1,4 @@
-import typing
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
@@ -21,22 +21,33 @@ class Blacklist(commands.Cog):
 
     @commands.command(
         name="blacklist",
-        description="Tools to blacklist entity from using the bots.",
+        description="Tool to blacklist entity from using the bot.",
         brief="Blacklists declared entity.",
-        usage="<Value> <Entity>",
     )
     async def blacklist(
         self,
         ctx,
-        value: typing.Optional[bool],
         *,
-        entity: typing.Optional[typing.Union[discord.User, discord.Member, discord.Guild]],
+        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ):
-        value = value or True
         entity = entity or ctx.guild
         document = await ctx.bot.get_document(entity)
-        document["blacklisted"] = value
         await document.update_db({"$set": {"blacklisted": True}})
+
+    @commands.command(
+        name="unblacklist",
+        description="Tool to unblacklist entity from using the bot.",
+        brief="Unlacklists declared entity.",
+    )
+    async def unblacklist(
+        self,
+        ctx,
+        *,
+        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
+    ):
+        entity = entity or ctx.guild
+        document = await ctx.bot.get_document(entity)
+        await document.update_db({"$set": {"blacklisted": False}})
 
 
 def setup(bot):

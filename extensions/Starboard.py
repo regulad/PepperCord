@@ -1,48 +1,48 @@
 import asyncio
-import typing
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
 
 from utils import checks, bots, database
+from utils.attachments import find_url, NoMedia
 
 
 class AlreadyPinned(Exception):
     pass
 
 
-async def send_star(document: database.Document, message: discord.Message):
-    # Get channel
-    try:
-        send_channel = message.guild.get_channel(document.setdefault("starboard", {})["channel"])
-    except KeyError:
+async def send_star(document: database.Document, message: discord.Message) -> discord.Message:
+    send_channel_id: Optional[int] = document.get("starboard", {}).get("channel")
+
+    if send_channel_id is None:
         raise bots.NotConfigured
-    # Get already pinned messages
-    messages = document.setdefault("starboard", {}).get("messages", [])
+
+    send_channel: discord.TextChannel = message.guild.get_channel(send_channel_id)
+
+    messages = document.get("starboard", {}).get("messages", [])
+
     if message.id in messages:
         raise AlreadyPinned
-    # Setup embed
+
     embed = discord.Embed(colour=message.author.colour, description=message.content).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
         url=message.jump_url,
         icon_url=message.author.avatar_url,
     )
-    # Setup attachments
-    if message.attachments:
-        attachment = message.attachments[0]
-        if (
-            attachment.content_type == "image/png"
-            or attachment.content_type == "image/jpeg"
-            or attachment.content_type == "image/gif"
-            or attachment.content_type == "image/webp"
-        ):
-            embed.set_image(url=attachment.url)
-    elif message.embeds:
-        user_embed = message.embeds[0]
-        if user_embed.type == "video" or embed.type == "rich":
-            embed.set_image(url=user_embed.url)
-    await send_channel.send(embed=embed)
-    await document.update_db({"$push": {"starboard.messages": message.id}})  # Should use a transaction or smth
+
+    try:
+        url, source = await find_url(message)
+    except NoMedia:
+        url, source = (None, None)
+    else:
+        if isinstance(source, discord.Attachment) and source.content_type.startswith("image"):
+            embed.set_image(url=url)
+        elif isinstance(source, discord.Embed) and source.type == "image":  # deprecated!... kinda
+            embed.set_image(url=url)
+
+    await document.update_db({"$push": {"starboard.messages": message.id}})
+    return await send_channel.send(embed=embed)
 
 
 class Starboard(commands.Cog):
@@ -149,7 +149,7 @@ class Starboard(commands.Cog):
         description="Sets channel to be used as the starboard.",
         usage="[Channel]",
     )
-    async def schannel(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
+    async def schannel(self, ctx, *, channel: Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         await ctx.guild_document.update_db({"$set": {"starboard.channel": channel.id}})
 
@@ -159,7 +159,7 @@ class Starboard(commands.Cog):
         description="Sets emoji people can react with to star a message. Defaults to ⭐. If a manager placed the reaction, it will get pinned to the starboard instantly.",
         usage="<Emoji>",
     )
-    async def semoji(self, ctx, *, emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str]):
+    async def semoji(self, ctx, *, emoji: Union[discord.Emoji, discord.PartialEmoji, str]):
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
         await ctx.guild_document.update_db({"$set": {"starboard.emoji": emoji}})
@@ -179,21 +179,22 @@ class Starboard(commands.Cog):
         description="Pins a message of your choice to the starboard. You can also reply to a message with the command to pin it.",
         usage="[Message]",
     )
-    async def spin(self, ctx, *, message: typing.Optional[typing.Union[discord.Message, discord.PartialMessage]]):
+    async def spin(self, ctx, *, message: Optional[Union[discord.Message, discord.PartialMessage]]):
         if not isinstance(message, (discord.Message, discord.PartialMessage)):
             if ctx.message.reference:
                 message = ctx.message.reference.resolved
             else:
                 messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
                 message = messages[0]
-        await send_star(ctx.guild_document, message)
+        message: discord.Message = await send_star(ctx.guild_document, message)
+        await ctx.send(message.jump_url)
 
     @starboard.command(
         name="convert",
         brief="Converts pins in channel to pins on starboard.",
         description="Converts pins in channel to pins on starboard. Does not unpin channels.",
     )
-    async def sconvert(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
+    async def sconvert(self, ctx, *, channel: Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:
             await send_star(ctx.guild_document, pin)

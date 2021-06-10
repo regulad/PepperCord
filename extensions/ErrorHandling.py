@@ -6,8 +6,7 @@ from evb import LibraryException as EvbException
 from easygTTS import LibraryException as TtsException
 
 from extensions.Starboard import AlreadyPinned
-from extensions.EditVideoBot import NoMedia
-from utils import checks, bots
+from utils import checks, bots, attachments
 
 known_errors = {
     checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
@@ -37,8 +36,9 @@ known_errors = {
 
     commands.CheckFailure: "A check failed.",
 
-    NoMedia: "Couldn't find any media to upload, or the media was unknown. "
-             "Did you send an attachment or reply to a message?",
+    attachments.WrongMedia: "The media that was found could not be used for the desired action.",
+
+    attachments.NoMedia: "Could not find media to use.",
 
     EvbException: "Something went wrong while trying to use EditVideoBot.",
 

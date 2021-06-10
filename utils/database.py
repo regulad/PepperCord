@@ -53,3 +53,6 @@ class Document(dict):
         await self.collection.delete_one(self._query)
         self.clear()
         self.update(self.query)
+
+
+__all__ = ["Document"]

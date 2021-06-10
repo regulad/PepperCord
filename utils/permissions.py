@@ -39,3 +39,6 @@ class GuildPermissionManager:
         """Writes a permission level into a role in a guild document"""
         value = level.value
         await self.ctx.guild_document.update_db({"$set": {f"permissions.{role.id}": value}})
+
+
+__all__ = ["Permissions", "GuildPermissionManager"]

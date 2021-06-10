@@ -28,3 +28,6 @@ def duration_to_str(duration_strings: float) -> str:
         duration_strings.append(f"{int(round(seconds))} seconds")
 
     return ", ".join(duration_strings)
+
+
+__all__ = ["duration_to_str"]

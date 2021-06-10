@@ -95,28 +95,34 @@ class Levels(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.xp_cd = commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.user)
+        self.cooldown = commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.user)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """on_message grants xp to the user and sends level-up alerts to the guild if the guild privileged so desire."""
         ctx = await self.bot.get_context(message)
-        # Prevents levels from being earned outside of a guild and the bots from responding to other bots
-        if (not ctx.guild) or ctx.author.bot:
-            return
-        # Cooldown: prevents spam/macros
-        bucket = self.xp_cd.get_bucket(message)
-        retry_after = bucket.update_rate_limit()
-        if retry_after:
-            return
-        # Actual processing: chooses a random number, gets the user's document, then adds the xp value into the document
+
+        try:
+            await checks.is_blacklisted(ctx)
+        except checks.Blacklisted:
+            return  # raise
+
+        bucket: commands.Cooldown = self.cooldown.get_bucket(message)
+        retry_after: float = bucket.update_rate_limit()
+
+        if not ctx.guild:
+            return  # raise commands.NoPrivateMessage
+        elif ctx.author.bot:
+            return  # User must a a bot
+        elif retry_after:
+            return  # raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
+
         gen_xp = random.randrange(xp_start, xp_end)
         user_level = UserLevel(ctx.author, ctx.author_document)
         user_level_up = await user_level.increment(gen_xp)
-        # Levelup message: Makes sure that the user's level actually increased and level-up alerts are not disabled in
-        # the guild before sending a level-up alert.
+
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
-            not ctx.guild_document.setdefault("levels", {}).setdefault("disabled", True)
+            not ctx.guild_document.setdefault("levels", {}).get("disabled", True)
         ):
             next_level = user_level_up["next"]["level"]
             next_xp = round(user_level_up["next"]["xp"] - user_level_up["new"]["xp"])
@@ -129,12 +135,15 @@ class Levels(commands.Cog):
                 .add_field(name="To next:", value=f"```{next_xp}```")
                 .set_thumbnail(url=ctx.author.avatar_url)
             )
-            try:
-                await ctx.guild.get_channel(ctx.guild_document.setdefault("levels", {})["redirect"]).send(
+
+            redirect_channel_id: int = ctx.guild_document.setdefault("levels", {}).get("redirect")
+
+            if redirect_channel_id is None:
+                await ctx.reply(embed=embed)
+            else:
+                await ctx.guild.get_channel(redirect_channel_id).send(
                     ctx.author.mention, embed=embed
                 )
-            except KeyError:
-                await ctx.reply(embed=embed)
 
     @commands.command(
         name="redirect",

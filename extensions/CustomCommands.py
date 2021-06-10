@@ -58,7 +58,10 @@ class CustomCommands(commands.Cog):
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
 
-        await checks.is_blacklisted(ctx)
+        try:
+            await checks.is_blacklisted(ctx)
+        except checks.Blacklisted:
+            return
 
         if ctx.guild is None:
             return  # raise commands.NoPrivateMessage

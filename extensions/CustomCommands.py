@@ -49,7 +49,7 @@ class CustomCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        self.cooldown = commands.CooldownMapping.from_cooldown(1, 10, commands.BucketType.channel)
+        self.cooldown = commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.channel)
 
     async def cog_check(self, ctx):
         return await checks.is_admin(ctx)

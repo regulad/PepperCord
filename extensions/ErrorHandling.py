@@ -45,6 +45,10 @@ known_errors = {
     TtsException: "Something went wrong while trying to use text_to_speech.",
 
     checks.Blacklisted: "You have been blacklisted from using this bot.",
+
+    attachments.MediaTooLong: "You can't download media this long.",
+
+    attachments.MediaTooLarge: "This media is too large to be uploaded to discord.",
 }
 
 

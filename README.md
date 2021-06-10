@@ -45,13 +45,9 @@ The optimal way to setup PepperCord is in a controlled Docker container. Below i
 version: '3'
 services:
   peppercord:
-    image: regulad/peppercord:latest
-    volumes:
-      - 'config:/app/config'
+    image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
   mongo:
     image: mongo
-volumes:
-  config:
 ```
 
 You'll still need to configure networking, but this will be different on every Docker environment.
@@ -71,7 +67,7 @@ Environment variables:
 
 #### Secrets
 
-* `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://localhost:27107`.
+* `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://mongo:27107`.
 * `PEPPERCORD_TOKEN`: Discord token.
 * `PEPPERCORD_EVB`: EditVideoBot API Token. `https://pigeonburger.xyz/api/`. If you don't know what it is, don't add the var.
 

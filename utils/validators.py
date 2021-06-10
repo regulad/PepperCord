@@ -7,3 +7,6 @@ def str_is_url(url: str):
         return all([parsed.scheme, parsed.netloc])
     except ValueError:
         return False
+
+
+__all__ = ["str_is_url"]

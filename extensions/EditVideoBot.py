@@ -6,9 +6,7 @@ from discord.ext import commands
 from aiohttp import ClientSession
 from evb import AsyncEditVideoBotSession
 
-
-class NoMedia(Exception):
-    pass
+from utils.attachments import find_url_recurse
 
 
 class EditVideoBot(commands.Cog):
@@ -41,39 +39,19 @@ class EditVideoBot(commands.Cog):
         description="Edit supported media using EditVideoBot.",
         usage="<Commands>",
     )
-    async def edit(self, ctx, *, evb_commands: str) -> None:
+    async def edit(self, ctx, *, evb_commands: str):
         async with ctx.typing():
-            if not (ctx.message.embeds or ctx.message.attachments):
-                if ctx.message.reference:
-                    message: discord.Message = ctx.message.reference.resolved
-                else:
-                    messages = await ctx.channel.history(before=ctx.message.created_at, limit=1).flatten()
-                    message: discord.Message = messages[0]
-            else:
-                message: discord.Message = ctx.message
+            url, source = await find_url_recurse(ctx.message)
 
-            if message.embeds and message.embeds[0].type == "rich":
-                embed: discord.Embed = message.embeds[0]
-
-                media_url = embed.url
-
-                extension = splitext(media_url)[1].strip(".")
-            elif message.attachments:
-                attachment: discord.Attachment = message.attachments[0]
-
-                media_url = attachment.url
-            else:
-                raise NoMedia
-
-            if media_url is None:
-                raise NoMedia
-
-            extension = splitext(media_url)[1].strip(".")
-
-            async with self.client_session.get(media_url) as resp:
+            async with self.client_session.get(url) as resp:
                 attachment_bytes = await resp.read()
 
-                output_bytes, response = await self.evb_session.edit(attachment_bytes, evb_commands, extension)
+            if isinstance(source, discord.Embed) and source.type == "gifv":  # deprecated!... kinda
+                extension: str = "mp4"
+            else:
+                extension: str = splitext(url)[1].strip(".")
+
+            output_bytes, response = await self.evb_session.edit(attachment_bytes, evb_commands, extension)
 
             file = discord.File(BytesIO(output_bytes), f"output{splitext(response.media_url)[1]}")
             await ctx.send(files=[file])

@@ -109,7 +109,7 @@ class CustomCommands(commands.Cog):
     @customcommands.command(
         name="add", aliases=["set"], brief="Adds a custom command.", description="Adds a custom command to the guild."
     )
-    async def ccadd(self, ctx, command: str, message: str):
+    async def ccadd(self, ctx, command: str, *, message: str):
         await ctx.guild_document.update_db({"$set": {f"commands.{command}": message}})
 
     @customcommands.command(
@@ -118,7 +118,7 @@ class CustomCommands(commands.Cog):
         brief="Deletes a custom command.",
         description="Deletes a custom command from the guild.",
     )
-    async def ccdel(self, ctx, command: str):
+    async def ccdel(self, ctx, *, command: str):
         try:
             ctx.guild_document.setdefault("commands", {})[command]
         except KeyError:

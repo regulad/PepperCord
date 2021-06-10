@@ -137,11 +137,10 @@ class Starboard(commands.Cog):
         description="Deletes all starboard data, including config and message cache.",
     )
     async def sdisable(self, ctx):
-        try:
-            ctx.guild_document["starboard"]
-        except KeyError:
+        if ctx.guild_document.get("starboard") is None:
             raise bots.NotConfigured
-        await ctx.guild_document.update_db({"$unset": {"starboard": 1}})
+        else:
+            await ctx.guild_document.update_db({"$unset": {"starboard": 1}})
 
     @sconfig.command(
         name="channel",

@@ -3,9 +3,7 @@ import typing
 import discord
 from discord.ext import commands
 
-
-class Blacklisted(commands.CheckFailure):
-    pass
+from utils import checks
 
 
 class Blacklist(commands.Cog):
@@ -16,12 +14,7 @@ class Blacklist(commands.Cog):
         self.bot = bot
 
     async def bot_check(self, ctx):
-        if ctx.guild is not None and ctx.guild_document.get("blacklisted", False):
-            raise Blacklisted
-        elif ctx.author_document.get("blacklisted", False):
-            raise Blacklisted
-        else:
-            return True
+        return await checks.is_blacklisted(ctx)
 
     async def cog_check(self, ctx):
         return await ctx.bot.is_owner(ctx.author)

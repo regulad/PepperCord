@@ -67,11 +67,10 @@ class ReactionRoles(commands.Cog):
         description="Deletes all reaction roles.",
     )
     async def sdisable(self, ctx):
-        try:
-            ctx.guild_document["reactions"]
-        except KeyError:
+        if ctx.guild_document.get("reactions") is None:
             raise bots.NotConfigured
-        await ctx.guild_document.update_db({"$unset": {"reactions": 1}})
+        else:
+            await ctx.guild_document.update_db({"$unset": {"reactions": 1}})
 
     @reactionrole.command(
         name="add",

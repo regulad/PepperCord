@@ -5,8 +5,21 @@ from discord.ext import commands
 import utils.permissions
 
 
+class Blacklisted(commands.CheckFailure):
+    pass
+
+
 class LowPrivilege(commands.CheckFailure):
     pass
+
+
+async def is_blacklisted(ctx):
+    if ctx.guild is not None and ctx.guild_document.get("blacklisted", False):
+        raise Blacklisted
+    elif ctx.author_document.get("blacklisted", False):
+        raise Blacklisted
+    else:
+        return True
 
 
 async def has_permission_level(ctx, value: utils.permissions.Permissions):

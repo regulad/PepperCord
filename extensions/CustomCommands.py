@@ -60,7 +60,7 @@ class CustomCommands(commands.Cog):
 
         await checks.is_blacklisted(ctx)
 
-        if ctx.guild is None
+        if ctx.guild is None:
             return  # raise commands.NoPrivateMessage
         elif ctx.guild_document.get("commands") is None:
             return  # raise bots.NotConfigured

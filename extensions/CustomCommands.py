@@ -60,12 +60,7 @@ class CustomCommands(commands.Cog):
 
         await checks.is_blacklisted(ctx)
 
-        bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
-        retry_after: float = bucket.update_rate_limit()
-
-        if retry_after:
-            return  # raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
-        elif ctx.guild is None:
+        if ctx.guild is None
             return  # raise commands.NoPrivateMessage
         elif ctx.guild_document.get("commands") is None:
             return  # raise bots.NotConfigured
@@ -82,10 +77,16 @@ class CustomCommands(commands.Cog):
 
             for custom_command in custom_commands:
                 if custom_command.command == effective_command:
-                    await ctx.send(custom_command.message)
-                    break
+                    bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
+                    retry_after: float = bucket.update_rate_limit()
+                    
+                    if retry_after:
+                        return  # raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
+                    else:
+                        await ctx.send(custom_command.message)
+                        break
             else:
-                return  # Just for neatness. Not really required since when this loop breaks the task ends.
+                return  # Just for neatness. Not really required since when this loop breaks or fails the task ends.
 
     @commands.group(
         invoke_without_command=True,

@@ -3,29 +3,41 @@
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)
 
-![Python Status](https://img.shields.io/github/workflow/status/regulad/PepperCord/Python?label=Python)
-![Docker Status](https://img.shields.io/github/workflow/status/regulad/PepperCord/Docker?label=Docker)
-
-![Issues](https://img.shields.io/github/issues/regulad/PepperCord)
-![Forks](https://img.shields.io/github/issues-pr/regulad/PepperCord)
-
 # About
 
 PepperCord was born out of necessity for a simpler alternative to other utility bots.
 
-Features include:
+PepperCord gives you all the features you need to enrich your server.
+
 * Utility
-  * Reaction Roles
-  * Moderation
-  * Starboard
-  * Messages/Logging
+  * Admin Tools
+  * Mod Tools
+  * Privilege System
+* Server personality    
+  * Custom Prefix
+  * Custom Commands
+  * Custom Messages
+  * Proxy Messages
 * Fun
   * Levels
-  * Image commands
-  * ASCII Art
+  * Reaction Roles
+  * Starboard
+* Music
+  * Playlist load/save
+  * Text-To-Speech
+  * Group music control
+* APIs  
+  * Video Editing
+  * Things to do
+  * Cryptocurrencies
+* Gaming  
   * Minecraft
+    * Player status
+    * Server status
 
-If you have any ideas on how to improve the bot, please make a fork and submit your pull request [here](https://github.com/regulad/PepperCord/pulls).
+Have an issue? Think you can make PepperCord better? Join our [support server](https://www.regulad.xyz/discord).
+
+Fully-documented source code is available for those able to make improvements.
 
 # Using
 

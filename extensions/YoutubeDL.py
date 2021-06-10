@@ -40,6 +40,7 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
         description="Download a video from YoutubeDL.",
         usage="<Query>",
     )
+    @commands.cooldown(1, 60, commands.BucketType.user)
     async def download(self, ctx, query: str):
         async with ctx.typing():
             if not str_is_url(query):

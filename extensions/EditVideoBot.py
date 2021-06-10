@@ -23,6 +23,17 @@ class EditVideoBot(commands.Cog):
             client_session=self.client_session,
         )
 
+        self.cooldown = commands.CooldownMapping.from_cooldown(30, 86400, commands.BucketType.default)
+
+    async def cog_check(self, ctx):
+        cooldown: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
+        retry_after: float = cooldown.update_rate_limit()
+
+        if retry_after:
+            raise commands.CommandOnCooldown(cooldown, retry_after)
+        else:
+            return True
+
     @commands.command(
         name="edit",
         aliases=["evb"],
@@ -30,7 +41,6 @@ class EditVideoBot(commands.Cog):
         description="Edit supported media using EditVideoBot.",
         usage="<Commands>",
     )
-    @commands.cooldown(30, 86400, commands.BucketType.default)
     async def edit(self, ctx, *, evb_commands: str) -> None:
         async with ctx.typing():
             if not (ctx.message.embeds or ctx.message.attachments):

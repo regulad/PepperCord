@@ -15,6 +15,14 @@ class WrongMedia(BadMedia):
     pass
 
 
+class MediaTooLarge(BadMedia):
+    pass
+
+
+class MediaTooLong(BadMedia):
+    pass
+
+
 async def find_url(message: discord.Message) -> Tuple[str, Union[discord.Attachment, discord.Embed]]:
     if message.reference:
         referenced_message: Optional[discord.Message] = message.reference.cached_message
@@ -50,4 +58,4 @@ async def find_url_recurse(message: discord.Message) -> Tuple[str, Union[discord
         raise
 
 
-__all__ = ["find_url", "find_url_recurse", "NoMedia", "BadMedia", "WrongMedia"]
+__all__ = ["find_url", "find_url_recurse", "NoMedia", "BadMedia", "WrongMedia", "MediaTooLarge", "MediaTooLong"]

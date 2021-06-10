@@ -12,7 +12,7 @@ from pretty_help import PrettyHelp
 from utils import bots
 
 # Configure the database
-db_client = motor.motor_asyncio.AsyncIOMotorClient(os.environ.get("PEPPERCORD_URI", "mongodb://localhost:27107"))
+db_client = motor.motor_asyncio.AsyncIOMotorClient(os.environ.get("PEPPERCORD_URI", "mongodb://mongo:27107"))
 db = db_client[os.environ.get("PEPPERCORD_DB_NAME", "peppercord")]
 
 # Configure Intents

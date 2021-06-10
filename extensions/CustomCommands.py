@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, menus
 
-from utils import checks
+from utils import checks, bots
 
 
 class CustomCommand:
@@ -49,6 +49,8 @@ class CustomCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+        self.cooldown = commands.CooldownMapping.from_cooldown(1, 10, commands.BucketType.channel)
+
     async def cog_check(self, ctx):
         return await checks.is_admin(ctx)
 
@@ -56,29 +58,34 @@ class CustomCommands(commands.Cog):
     async def on_message(self, message):
         ctx = await self.bot.get_context(message)
 
-        if ctx.author == self.bot.user or ctx.author == ctx.guild.me:
-            return
-        if ctx.guild is None:
-            return
+        await checks.is_blacklisted(ctx)
 
-        try:
-            commands_dict = ctx.guild_document["commands"]
-        except KeyError:
-            return
+        bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
+        retry_after: float = bucket.update_rate_limit()
 
-        if len(ctx.message.content) == 0:
+        if retry_after:
+            return  # raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
+        elif ctx.guild is None:
+            return  # raise commands.NoPrivateMessage
+        elif ctx.guild_document.get("commands") is None:
+            return  # raise bots.NotConfigured
+        elif ctx.author == self.bot.user or ctx.author == ctx.guild.me:
+            return
+        elif len(ctx.message.content) == 0:
             return
         else:
+            custom_commands = CustomCommand.from_dict(ctx.guild_document.get("commands"))
+
             command_no_whitespace = ctx.message.content.strip()
             command_words = command_no_whitespace.split()
             effective_command = command_words[0]
 
-        custom_commands = CustomCommand.from_dict(commands_dict)
-
-        for custom_command in custom_commands:
-            if custom_command.command == effective_command:
-                await ctx.send(custom_command.message)
-                break
+            for custom_command in custom_commands:
+                if custom_command.command == effective_command:
+                    await ctx.send(custom_command.message)
+                    break
+            else:
+                return  # Just for neatness. Not really required since when this loop breaks the task ends.
 
     @commands.group(
         invoke_without_command=True,

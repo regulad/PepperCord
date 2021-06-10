@@ -42,14 +42,17 @@ known_errors = {
 
     EvbException: "Something went wrong while trying to use EditVideoBot.",
 
-    TtsException: "Something went wrong while trying to use text_to_speech."
+    TtsException: "Something went wrong while trying to use text_to_speech.",
+
+    checks.Blacklisted: "You have been blacklisted from using this bot.",
 }
 
 
 def find_error(error):
-    try:
-        return known_errors[error.__class__]
-    except KeyError:
+    for known_error, response in known_errors.items():
+        if isinstance(error, known_error):
+            return response
+    else:
         return None
 
 

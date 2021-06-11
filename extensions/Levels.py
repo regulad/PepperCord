@@ -2,26 +2,26 @@ import copy
 import math
 import operator
 import random
-import typing
+from typing import Union, Optional
 
 import discord
 from discord.ext import commands, menus
 
 from utils import checks, database
 
-xp_to = 2.8
-xp_multiplier = 1.7
-xp_start = 1
+xp_to = 2.3
+xp_multiplier = 1.6
+xp_start = 2
 xp_end = 5
 
 
-def _get_xp(level: int):
+def _get_xp(level: float):
     """Gets the xp value for a given level."""
     xp = level ** xp_to * xp_multiplier
     return xp
 
 
-def _get_level(xp: typing.Union[int, float]):
+def _get_level(xp: float):
     """Gets the level for a given amount of xp."""
     level = (xp / xp_multiplier) ** (1.0 / xp_to)
     return math.trunc(level)
@@ -30,13 +30,14 @@ def _get_level(xp: typing.Union[int, float]):
 class UserLevel:
     """An object that represents the level of a user via their user_doc."""
 
-    def __init__(self, user: typing.Union[discord.Member, discord.User], document: database.Document):
+    def __init__(self, user: Union[discord.Member, discord.User], document: database.Document):
         self.user = user
         self.document = document
 
     @classmethod
-    async def get_user(cls, bot, user: typing.Union[discord.Member, discord.User]):
+    async def get_user(cls, bot, user: Union[discord.Member, discord.User]):
         """Returns the UserLevel object for a given user."""
+
         if user.bot:
             return None
         else:
@@ -44,23 +45,26 @@ class UserLevel:
             return cls(user, document)
 
     @property
-    def xp(self):
+    def xp(self) -> float:
         """Gets the amount of xp for a given user."""
         return self.document.get("xp", 0)
 
     @property
-    def level(self):
+    def level(self) -> float:
         """Gets the level of a given user using their xp."""
+
         return _get_level(self.xp)
 
     @property
-    def next(self):
+    def next(self) -> float:
         """Gets the xp required to reach the next level a user may obtain."""
+
         return _get_xp(self.level + 1)
 
     async def increment(self, amount: int):
         """Increments a the user's xp by a given amount. Returns a dict with information on the old and new level/xp
         of the user."""
+
         current = copy.deepcopy(self.xp)
         await self.document.update_db({"$inc": {"xp": amount}})
         next_level = self.level + 1
@@ -88,6 +92,27 @@ class LevelSource(menus.ListPageSource):
                 inline=False,
             )
         return base_embed
+
+
+class UserLevelMenu(menus.Menu):
+    def __init__(self, source: UserLevel, level_up: bool = False, **kwargs):
+        self.source = source
+        self.level_up = level_up
+
+        super().__init__(**kwargs)
+
+    async def send_initial_message(self, ctx, channel):
+        embed = (
+            discord.Embed(colour=self.source.user.colour, title=f"{self.source.user.display_name}'s level")
+            .add_field(name="XP:", value=f"```{self.source.xp}```")
+            .add_field(name="Level:", value=f"```{self.source.level}```")
+            .add_field(name="To next:", value=f"```{round(self.source.next - self.source.xp)}```")
+            .set_thumbnail(url=self.source.user.avatar_url)
+        )
+        if self.level_up:
+            return await channel.send(f"Level up! {self.source.user.mention}", embed=embed)
+        else:
+            return await channel.send(embed=embed)
 
 
 class Levels(commands.Cog):
@@ -122,28 +147,40 @@ class Levels(commands.Cog):
         user_level_up = await user_level.increment(gen_xp)
 
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
-            not ctx.guild_document.setdefault("levels", {}).get("disabled", True)
+            not ctx.guild_document.get("levels", {}).get("disabled", True)
         ):
-            next_level = user_level_up["next"]["level"]
-            next_xp = round(user_level_up["next"]["xp"] - user_level_up["new"]["xp"])
-            embed = (
-                discord.Embed(
-                    colour=ctx.author.colour,
-                    title="Level up!",
-                    description=f"{ctx.author.display_name} just levelled up to `{next_level}`!",
-                )
-                .add_field(name="To next:", value=f"```{next_xp}```")
-                .set_thumbnail(url=ctx.author.avatar_url)
-            )
-
             redirect_channel_id: int = ctx.guild_document.setdefault("levels", {}).get("redirect")
 
             if redirect_channel_id is None:
-                await ctx.reply(embed=embed)
+                channel = None
             else:
-                await ctx.guild.get_channel(redirect_channel_id).send(
-                    ctx.author.mention, embed=embed
-                )
+                channel = ctx.guild.get_channel(redirect_channel_id)
+
+            await UserLevelMenu(user_level, True).start(ctx, channel=channel)
+
+    @commands.command(
+        name="setxp",
+        brief="Set an amount of xp.",
+        description="Sets a user's xp count to a certain number.",
+        usage="<Xp> [User]",
+    )
+    @commands.is_owner()
+    async def set_xp(self, ctx, xp: int, *, user: Optional[Union[discord.User, discord.Member]]):
+        user: Union[discord.User, discord.Member] = user or ctx.author
+        document: database.Document = await ctx.bot.get_document(user)
+        await document.update_db({"$set": {"xp": xp}})
+
+    @commands.command(
+        name="setlevel",
+        brief="Set an amount of level.",
+        description="Sets a user's level count to a certain number.",
+        usage="<Level> [User]",
+    )
+    @commands.is_owner()
+    async def set_level(self, ctx, level: int, *, user: Optional[Union[discord.User, discord.Member]]):
+        user: Union[discord.User, discord.Member] = user or ctx.author
+        document: database.Document = await ctx.bot.get_document(user)
+        await document.update_db({"$set": {"xp": _get_xp(level)}})
 
     @commands.command(
         name="redirect",
@@ -152,7 +189,7 @@ class Levels(commands.Cog):
         usage="[Channel]",
     )
     @commands.check(checks.is_admin)
-    async def redirect(self, ctx, *, channel: typing.Optional[discord.TextChannel]):
+    async def redirect(self, ctx, *, channel: Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         await ctx.guild_document.update_db({"$set": {"levels.redirect": channel.id}})
 
@@ -182,34 +219,29 @@ class Levels(commands.Cog):
         brief="Displays current level & rank.",
         description="Displays current level & rank.",
     )
-    async def rank(self, ctx, *, user: typing.Optional[discord.Member]):
-        user = user or ctx.author
-        user_doc = await UserLevel.get_user(self.bot, user)
-        if user_doc is None:
-            await ctx.send(f"{user.display_name} doesn't have a level.")
-        else:
-            embed = (
-                discord.Embed(colour=user.colour, title=f"{user_doc.user.display_name}'s level")
-                .add_field(name="XP:", value=f"```{user_doc.xp}```")
-                .add_field(name="Level:", value=f"```{user_doc.level}```")
-                .add_field(name="To next:", value=f"```{round(user_doc.next - user_doc.xp)}```")
-                .set_thumbnail(url=user_doc.user.avatar_url)
-            )
-            await ctx.send(embed=embed)
+    async def rank(self, ctx, *, user: Optional[discord.Member]):
+        async with ctx.typing():
+            user: discord.Member = user or ctx.author
+            user_level: Optional[UserLevel] = await UserLevel.get_user(self.bot, user)
+            if user_level is None:
+                await ctx.send(f"{user.display_name} doesn't have a level.")
+            else:
+                await UserLevelMenu(user_level).start(ctx)
 
     @commands.command(
         name="leaderboard", brief="Displays current level & rank.", description="Displays current level & rank."
     )
     async def leaderboard(self, ctx):
-        member_xps = []
-        for member in ctx.guild.members:
-            xp = await UserLevel.get_user(ctx.bot, member)
-            if xp is not None:
-                member_xps.append(xp)
-        sorted_xps = sorted(member_xps, key=operator.attrgetter("xp"), reverse=True)
-        source = LevelSource(sorted_xps, ctx.guild)
-        pages = menus.MenuPages(source=source)
-        await pages.start(ctx)
+        async with ctx.typing():
+            member_xps = []
+
+            for member in ctx.guild.members:
+                xp = await UserLevel.get_user(ctx.bot, member)
+                if xp is not None:
+                    member_xps.append(xp)
+
+            source = LevelSource(sorted(member_xps, key=operator.attrgetter("xp"), reverse=True), ctx.guild)
+            await menus.MenuPages(source=source).start(ctx)
 
 
 def setup(bot):

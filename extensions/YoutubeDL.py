@@ -1,17 +1,19 @@
 from io import BytesIO
+import asyncio
+from typing import Optional
 
 import discord
-from aiohttp import ClientSession
+from aiohttp import ClientSession, hdrs
 from discord.ext import commands
 from youtube_dl import YoutubeDL
 
 from utils.attachments import MediaTooLarge, MediaTooLong
 from utils.validators import str_is_url
 
-MAX_TIME = 300  # 5 Minutes
+MAX_TIME = 600  # 10 Minutes
 
 ytdl_format_options = {
-    "format": "best",
+    "format": "worst",
     "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
     "restrictfilenames": True,
     "nocheckcertificate": True,
@@ -56,14 +58,26 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
             if info["duration"] > MAX_TIME:
                 raise MediaTooLong(f"Maximum is {MAX_TIME}, actual duration was {info['duration']}.")
 
-            async with self.client_session.get(info['url']) as response:
-                download_bytes: bytes = await response.read()
+            buffer: BytesIO = BytesIO()
 
-            if len(download_bytes) > 8000000:
-                raise MediaTooLarge(f"{round((len(download_bytes) - 8000000) / 8000000, 2)}MB over")
-            else:
-                file = discord.File(BytesIO(download_bytes), f"download.{info['ext']}")
-                await ctx.send(files=[file])
+            async with self.client_session.get(info['url']) as response:
+                if int(response.headers[hdrs.CONTENT_LENGTH]) > 8000000:
+                    raise MediaTooLarge(
+                        f"{round((int(response.headers[hdrs.CONTENT_LENGTH]) - 8000000) / 8000000, 2)}MB over"
+                    )
+                else:
+                    while True:
+                        chunk = await response.content.read(800000)
+
+                        if not chunk:
+                            break
+                        else:
+                            buffer.write(chunk)
+                        await asyncio.sleep(0.5)
+
+            buffer.seek(0)
+            file: discord.File = discord.File(buffer, f"download.{info['ext']}")
+            await ctx.send(ctx.author.mention, files=[file])
 
 
 def setup(bot):

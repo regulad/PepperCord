@@ -54,7 +54,7 @@ class EditVideoBot(commands.Cog):
             output_bytes, response = await self.evb_session.edit(attachment_bytes, evb_commands, extension)
 
             file = discord.File(BytesIO(output_bytes), f"output{splitext(response.media_url)[1]}")
-            await ctx.send(files=[file])
+            await ctx.send(ctx.author.mention, files=[file])
 
     @commands.command(
         name="editsleft",

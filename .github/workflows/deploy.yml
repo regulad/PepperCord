@@ -3,7 +3,8 @@ on:
   workflow_run:
     workflows:
       - "Docker"
-      - "Python"
+    branches:
+      - main
     types:
       - completed
   workflow_dispatch:

@@ -1,4 +1,5 @@
 import typing
+from json import dump
 from io import StringIO
 
 import discord
@@ -37,7 +38,7 @@ class ShardMenu(menus.Menu):
             discord.Embed(
                 title=f"Info for shard {self.shard_info.id}/{self.shard_info.shard_count}",
             )
-            .add_field(name="Online:", value=not self.shard_info.is_closed())
+            .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
             .add_field(name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms")
         )
         return await ctx.send(embed=embed)
@@ -78,7 +79,7 @@ class Dev(commands.Cog):
         entity = entity or ctx.guild
         document = await ctx.bot.get_document(entity)
         buffer = StringIO()
-        buffer.write(str(document))
+        dump(document, buffer)
         buffer.seek(0)
         file = discord.File(buffer, f"{entity.id}.json")
         await ctx.send(file=file)

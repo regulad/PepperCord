@@ -22,8 +22,8 @@ jobs:
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
+    name: Test Image
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
 
@@ -35,20 +35,16 @@ jobs:
           else
             docker build . --file Dockerfile
           fi
-
   # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
   push:
-    # Ensure test job passes before pushing image.
     needs: test
-
+    name: Push Image
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-
     permissions:
       contents: read
       packages: write
-
     steps:
       - uses: actions/checkout@v2
 
@@ -79,3 +75,25 @@ jobs:
 
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
+  deploy:
+    name: Deploy Image
+    needs:
+      - push
+    environment: Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup production-stack.yml
+        run: envsubst < production-stack.yml > subbed.yml
+        env:
+          PEPPERCORD_TOKEN: ${{ secrets.PEPPERCORD_TOKEN }}
+          PEPPERCORD_URI: ${{ secrets.PEPPERCORD_URI }}
+          PEPPERCORD_EVB: ${{ secrets.PEPPERCORD_EVB }}
+      - name: Deploy Stack
+        uses: carlrygart/portainer-stack-deploy@v1
+        with:
+          portainer-host: ${{ secrets.PORTAINER_URL }}
+          username: ${{ secrets.PORTAINER_USERNAME }}
+          password: ${{ secrets.PORTAINER_PASSWORD }}
+          stack-name: "peppercord"
+          stack-definition: "subbed.yml"

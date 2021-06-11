@@ -6,5 +6,6 @@ services:
       - PEPPERCORD_TOKEN=$PEPPERCORD_TOKEN
       - PEPPERCORD_URI=$PEPPERCORD_URI
       - PEPPERCORD_EVB=$PEPPERCORD_EVB
-  mongo:
-    image: mongo
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1

@@ -22,7 +22,7 @@ jobs:
   # Run tests.
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
-    name: Test Image
+    name: Test image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -37,9 +37,24 @@ jobs:
           fi
   # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
+  create_artifact:
+    name: Create Artifact
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+      - name: Export image
+        run: docker image save -o image.tar $IMAGE_NAME
+      - name: Upload image
+        uses: actions/upload-artifact@v2.2.3
+        with:
+          name: ${{ env.IMAGE_NAME }}
+          path: image.tar
   push:
     needs: test
-    name: Push Image
+    name: Push image
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     permissions:
@@ -76,9 +91,8 @@ jobs:
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
   deploy:
-    name: Deploy Image
-    needs:
-      - push
+    name: Deploy image
+    needs: push
     environment: Production
     runs-on: ubuntu-latest
     steps:
@@ -89,7 +103,7 @@ jobs:
           PEPPERCORD_TOKEN: ${{ secrets.PEPPERCORD_TOKEN }}
           PEPPERCORD_URI: ${{ secrets.PEPPERCORD_URI }}
           PEPPERCORD_EVB: ${{ secrets.PEPPERCORD_EVB }}
-      - name: Deploy Stack
+      - name: Deploy stack
         uses: carlrygart/portainer-stack-deploy@v1
         with:
           portainer-host: ${{ secrets.PORTAINER_URL }}

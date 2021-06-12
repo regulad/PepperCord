@@ -2,6 +2,7 @@ version: '3'
 services:
   peppercord:
     image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
+    restart: unless-stopped
     environment:
       - PEPPERCORD_TOKEN=$PEPPERCORD_TOKEN
       - PEPPERCORD_URI=$PEPPERCORD_URI

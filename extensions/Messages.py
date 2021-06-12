@@ -6,11 +6,10 @@ from utils import checks, bots
 
 async def member_message_processor(bot, member: discord.Member, event: str):
     guild_doc = await bot.get_document(member)
-    messages_dict = guild_doc["messages"][event]
+    messages_dict = guild_doc.get("messages", {}).get(event, {})
     if messages_dict:
-        for channel in messages_dict.keys():
+        for channel, message in messages_dict.items():
             active_channel = bot.get_channel(int(channel))
-            message = messages_dict[channel]
             embed = discord.Embed(colour=member.colour, description=message)
             await active_channel.send(member.mention, embed=embed)
 

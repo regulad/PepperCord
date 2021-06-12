@@ -12,6 +12,21 @@ class ShardNotFound(Exception):
     pass
 
 
+class GuildsMenuList(menus.ListPageSource):
+    async def format_page(self, menu, page_entries):
+        offset = menu.current_page * self.per_page
+        base_embed = discord.Embed(title="Guilds")
+        for iteration, value in enumerate(page_entries, start=offset):
+            value: discord.Guild
+
+            base_embed.add_field(
+                name=f"{iteration + 1}: {value.name} ({value.id})",
+                value=f"{value.member_count} members",
+                inline=False,
+            )
+        return base_embed
+
+
 class ShardMenu(menus.Menu):
     def __init__(
         self,
@@ -103,6 +118,14 @@ class Dev(commands.Cog):
             raise ShardNotFound
 
         await ShardMenu(shard_info=shard_info).start(ctx)
+
+    @commands.command(
+        name="guilds",
+        brief="Lists all guilds the bot is in.",
+        description="Lists all guilds that the bot is in. May contain sensitive information!"
+    )
+    async def guilds(self, ctx):
+        await menus.MenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(ctx)
 
 
 def setup(bot):

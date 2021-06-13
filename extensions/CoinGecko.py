@@ -104,6 +104,7 @@ class CoinGecko(commands.Cog):
 
         if not get:
             await ctx.send(f"Couldn't find anything on {coin} in {currency}.")
+            return
 
         await ctx.send(f"{get[coin][currency]} {currency.upper()}")
 

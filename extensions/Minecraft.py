@@ -41,7 +41,7 @@ class Minecraft(commands.Cog):
 
     @commands.command(
         name="javaserver",
-        aliases=["mcstatus", "jestatus" "java"],
+        aliases=["mcstatus", "jestatus", "java"],
         description="Gets Minecraft: Java Edition server status.",
         brief="Gets Minecraft: JE server.",
         usage="[Server:Port]",

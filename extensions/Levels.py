@@ -235,7 +235,7 @@ class Levels(commands.Cog):
         async with ctx.typing():
             member_xps = []
 
-            for member in ctx.guild.members:
+            for member in ctx.guild.members[:1000]:  # To prevent DB from exploding
                 xp = await UserLevel.get_user(ctx.bot, member)
                 if xp is not None:
                     member_xps.append(xp)

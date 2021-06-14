@@ -76,7 +76,7 @@ class CustomCommands(commands.Cog):
 
             command_no_whitespace = ctx.message.content.strip()
             command_words = command_no_whitespace.split()
-            effective_command = command_words[0]
+            effective_command = command_words[0].lower()
 
             for custom_command in custom_commands:
                 if custom_command.command == effective_command:
@@ -110,7 +110,7 @@ class CustomCommands(commands.Cog):
         name="add", aliases=["set"], brief="Adds a custom command.", description="Adds a custom command to the guild."
     )
     async def ccadd(self, ctx, command: str, *, message: str):
-        await ctx.guild_document.update_db({"$set": {f"commands.{command}": message}})
+        await ctx.guild_document.update_db({"$set": {f"commands.{command.lower()}": message}})
 
     @customcommands.command(
         name="delete",
@@ -120,11 +120,11 @@ class CustomCommands(commands.Cog):
     )
     async def ccdel(self, ctx, *, command: str):
         try:
-            ctx.guild_document.setdefault("commands", {})[command]
+            ctx.guild_document.get("commands", {})[command.lower()]
         except KeyError:
             raise commands.CommandNotFound(f"""Command "{command}" is not found""")
         else:
-            await ctx.guild_document.update_db({"$unset": {f"commands.{command}": 1}})
+            await ctx.guild_document.update_db({"$unset": {f"commands.{command.lower()}": 1}})
 
 
 def setup(bot):

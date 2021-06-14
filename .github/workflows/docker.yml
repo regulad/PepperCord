@@ -86,24 +86,24 @@ jobs:
 
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
-  deploy:
-    name: Deploy image
-    needs: push
-    environment: Production
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup production-stack.yml
-        run: envsubst < production-stack.yml > subbed.yml
-        env:
-          PEPPERCORD_TOKEN: ${{ secrets.PEPPERCORD_TOKEN }}
-          PEPPERCORD_URI: ${{ secrets.PEPPERCORD_URI }}
-          PEPPERCORD_EVB: ${{ secrets.PEPPERCORD_EVB }}
-      - name: Deploy stack
-        uses: carlrygart/portainer-stack-deploy@v1
-        with:
-          portainer-host: ${{ secrets.PORTAINER_URL }}
-          username: ${{ secrets.PORTAINER_USERNAME }}
-          password: ${{ secrets.PORTAINER_PASSWORD }}
-          stack-name: "peppercord"
-          stack-definition: "subbed.yml"
+#  deploy:
+#    name: Deploy image
+#    needs: push
+#    environment: Production
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Setup production-stack.yml
+#        run: envsubst < production-stack.yml > subbed.yml
+#        env:
+#          PEPPERCORD_TOKEN: ${{ secrets.PEPPERCORD_TOKEN }}
+#          PEPPERCORD_URI: ${{ secrets.PEPPERCORD_URI }}
+#          PEPPERCORD_EVB: ${{ secrets.PEPPERCORD_EVB }}
+#      - name: Deploy stack
+#        uses: carlrygart/portainer-stack-deploy@v1
+#        with:
+#          portainer-host: ${{ secrets.PORTAINER_URL }}
+#          username: ${{ secrets.PORTAINER_USERNAME }}
+#          password: ${{ secrets.PORTAINER_PASSWORD }}
+#          stack-name: "peppercord"
+#          stack-definition: "subbed.yml"

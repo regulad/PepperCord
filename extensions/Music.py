@@ -76,16 +76,17 @@ class Music(commands.Cog):
     )
     async def plget(self, ctx):
         async with ctx.typing():
-            try:
-                user_playlist = ctx.author_document.setdefault("audio", {})["playlist"]
-            except KeyError:
+            if ctx.author_document.get("audio", {}).get("playlist") is None:
                 await ctx.send("You don't have a playlist saved.")
                 return
-            user_track_playlist = await TrackPlaylist.from_sanitized(
-                user_playlist, ctx.author, file_downloader=ctx.audio_player.file_downloader
-            )
-            for track in user_track_playlist:
-                ctx.audio_player.queue.put_nowait(track)
+            else:
+                user_track_playlist = await TrackPlaylist.from_sanitized(
+                    ctx.author_document["audio"]["playlist"],
+                    ctx.author,
+                    file_downloader=ctx.audio_player.file_downloader
+                )
+                for track in user_track_playlist:
+                    ctx.audio_player.queue.put_nowait(track)
 
 
     @commands.group(

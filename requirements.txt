@@ -13,3 +13,4 @@ youtube_dl
 easy-gTTS
 EVB-API-py >= 0.2.0
 aiocoingecko
+topggpy

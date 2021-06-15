@@ -149,7 +149,7 @@ class Levels(commands.Cog):
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
             not ctx.guild_document.get("levels", {}).get("disabled", True)
         ):
-            redirect_channel_id: int = ctx.guild_document.setdefault("levels", {}).get("redirect")
+            redirect_channel_id: int = ctx.guild_document.get("levels", {}).get("redirect")
 
             if redirect_channel_id is None:
                 channel = None
@@ -235,12 +235,17 @@ class Levels(commands.Cog):
         async with ctx.typing():
             member_xps = []
 
-            for member in ctx.guild.members[:1000]:  # To prevent DB from exploding
+            for member in ctx.guild.members[:500]:  # To prevent DB from exploding
                 xp = await UserLevel.get_user(ctx.bot, member)
                 if xp is not None:
                     member_xps.append(xp)
 
             source = LevelSource(sorted(member_xps, key=operator.attrgetter("xp"), reverse=True), ctx.guild)
+
+            if len(ctx.guild.members) > 500:
+                await ctx.send("Please note that in large guilds (Larger than 500 members), "
+                               "the leaderboard may be inaccurate.")
+
             await menus.MenuPages(source=source).start(ctx)
 
 

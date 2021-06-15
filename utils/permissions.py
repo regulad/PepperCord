@@ -28,7 +28,7 @@ class GuildPermissionManager:
         # Gets permission level for each role
         permission_levels = []
         for role in below_roles:
-            active_item = self.ctx.guild_document.setdefault("permissions", {}).get(str(role.id))
+            active_item = self.ctx.guild_document.get("permissions", {}).get(str(role.id))
             if not active_item:
                 active_item = 0
             permission_levels.append(active_item)

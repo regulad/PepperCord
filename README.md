@@ -77,6 +77,16 @@ PepperCord uses MongoDB as a datastore, and environment variables for configurat
 
 Environment variables:
 
+#### Top.gg
+
+* `PEPPERCORD_TOPGG`: Top.gg Token. If you don't know what it is, don't add the var.
+  
+* `PEPPERCORD_TOPGG_WH`: Port to listen for the webhook. Optional.
+* `PEPPERCORD_TOPGG_WH_ROUTE`: Route for the webhook. Optional.
+* `PEPPERCORD_TOPGG_WH_SECRET`: Secret for the webhook. Optional.
+
+If any of the three `TOPGG_WH` params are missing, the bot will not open webserver.
+
 #### Secrets
 
 * `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://mongo:27107`.

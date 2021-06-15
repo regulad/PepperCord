@@ -1,9 +1,10 @@
-from typing import Union
+from typing import Union, Optional
 from collections import deque
 
 import discord
 import motor.motor_asyncio
 from discord.ext import commands
+from topgg import DBLClient, WebhookManager
 
 from utils.audio import AudioPlayer
 from .context import CustomContext
@@ -20,10 +21,25 @@ class CustomBotBase(commands.bot.BotBase):
         self._audio_players = []
         # TODO: Having audio players stored here prevents them from being garbage collected, causing a memory leak.
         # Ideally, they should be deleted once the VoiceClient ceases to exist.
-        # A subclass of VoiceClient may be a good idea.
+        # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
+
         self._documents = deque(maxlen=1000)
 
+        self._state = {}
+
+        self.topggpy: Optional[DBLClient] = None  # Also not perfect, but it's better than the alternative.
+        self.topgg_webhook: Optional[WebhookManager] = None
+
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
+
+    def __getitem__(self, item):
+        return self._state.__getitem__(item)
+
+    def __delitem__(self, item):
+        return self._state.__delitem__(item)
+
+    def __setitem__(self, item, value):
+        return self._state.__setitem__(item, value)
 
     @property
     def database(self) -> motor.motor_asyncio.AsyncIOMotorDatabase:
@@ -52,13 +68,15 @@ class CustomBotBase(commands.bot.BotBase):
             self.music_players.append(music_player)
             return music_player
 
-    async def get_document(self, model: Union[discord.Guild, discord.Member, discord.User]):
+    async def get_document(self, model: Optional[Union[discord.Guild, discord.Member, discord.User]]):
         """Returns a cached document, or a new one if necessary."""
 
         if isinstance(model, discord.Guild):
             collection = self.database["guild"]
         elif isinstance(model, (discord.Member, discord.User)):
             collection = self.database["user"]
+        else:
+            return None
 
         for document in self.documents:
             if document.model == model:

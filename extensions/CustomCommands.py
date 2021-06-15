@@ -100,7 +100,7 @@ class CustomCommands(commands.Cog):
         description="Tools for configuration of custom commands.",
     )
     async def customcommands(self, ctx):
-        commands_dict = ctx.guild_document.setdefault("commands", {})
+        commands_dict = ctx.guild_document.get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
         pages = menus.MenuPages(source=source)

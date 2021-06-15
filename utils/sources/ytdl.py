@@ -30,7 +30,7 @@ class YTDLSource(QueueSource):
 
         tracks = []
 
-        if info.setdefault("entries", None):
+        if info.get("entries") is not None:
             # Url refers to a playlist, so a list of instances must be returned.
 
             for entry in info["entries"]:

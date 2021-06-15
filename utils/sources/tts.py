@@ -1,6 +1,6 @@
 from io import BytesIO
 from typing import Union
-from easygTTS import AsyncEasyGTTSSession
+from asyncgTTS import AsyncGTTSSession
 
 import discord
 
@@ -18,7 +18,7 @@ class TTSSource(discord.PCMVolumeTransformer):
 
     @classmethod
     async def from_text(
-        cls, text: str, tts_session: AsyncEasyGTTSSession, invoker: Union[discord.Member, discord.User]
+        cls, text: str, tts_session: AsyncGTTSSession, invoker: Union[discord.Member, discord.User]
     ):
         audio_bytes = await tts_session.synthesize(text)
         with BytesIO(audio_bytes) as buffer:

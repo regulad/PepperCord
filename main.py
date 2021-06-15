@@ -11,14 +11,13 @@ from pretty_help import PrettyHelp
 
 from utils import bots
 
+# Creates the config directory if it doesn't exist. Used by things like TTS.
+if not os.path.exists("config/"):
+    os.mkdir("config/")
+
 # Configure the database
 db_client = motor.motor_asyncio.AsyncIOMotorClient(os.environ.get("PEPPERCORD_URI", "mongodb://mongo:27107"))
 db = db_client[os.environ.get("PEPPERCORD_DB_NAME", "peppercord")]
-
-# Configure Intents
-intents = discord.Intents.default()
-intents.members = True
-intents.presences = True
 
 # Configure Sharding
 shards = int(os.environ.get("PEPPERCORD_SHARDS", "0"))
@@ -36,7 +35,7 @@ bot = bot_class(
     command_prefix=os.environ.get("PEPPERCORD_PREFIX", "?"),
     case_insensitive=True,
     help_command=PrettyHelp(color=discord.Colour.orange()),
-    intents=intents,
+    intents=discord.Intents.all(),  # TODO: Add ability to selectively disable intents via environment variables.
     database=db,
     config=os.environ,
     shard_count=shards,

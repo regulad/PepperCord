@@ -3,9 +3,7 @@ import collections
 from typing import Optional
 
 import discord
-from aiohttp import ClientSession
 from youtube_dl import YoutubeDL
-from easygTTS import AsyncEasyGTTSSession
 
 from .config import ytdl_format_options
 
@@ -38,7 +36,6 @@ class AudioPlayer:
         self.queue = AudioQueue()
 
         self._file_downloader = None
-        self._http_client_session = None
         self._tts_client_session = None
         # Set to none so they will only be created when required.
 
@@ -54,19 +51,6 @@ class AudioPlayer:
             self._file_downloader = YoutubeDL(ytdl_format_options)
 
         return self._file_downloader
-
-    @property
-    def http_client_session(self):
-        if self._http_client_session is None:
-            self._http_client_session = ClientSession()
-
-        return self._http_client_session
-
-    @property
-    def tts_client_session(self):
-        if self._tts_client_session is None:
-            self._tts_client_session = AsyncEasyGTTSSession(client_session=self.http_client_session)
-        return self._tts_client_session
 
     @property
     def done(self):

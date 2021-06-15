@@ -75,9 +75,15 @@ ffmpeg
 
 PepperCord uses MongoDB as a datastore, and environment variables for configuration and secrets. (For ease of use in docker.)
 
-Environment variables:
+#### Config files:
 
-#### Top.gg
+PepperCord uses a folder named `config/` for everything that isn't stored in configuration files.
+
+* `SERVICE_ACCOUNT.JSON`: Google Cloud Service Account authentication information. Used for Google Cloud Text-To-Speech. Not required. If the file is missing, the TextToSpeech extension will not fully load.
+
+#### Environment variables:
+
+##### Top.gg
 
 * `PEPPERCORD_TOPGG`: Top.gg Token. If you don't know what it is, don't add the var.
   
@@ -85,15 +91,15 @@ Environment variables:
 * `PEPPERCORD_TOPGG_WH_ROUTE`: Route for the webhook. Optional.
 * `PEPPERCORD_TOPGG_WH_SECRET`: Secret for the webhook. Optional.
 
-If any of the three `TOPGG_WH` params are missing, the bot will not open webserver.
+If any of the three `TOPGG_WH` params are missing, the bot will not start the webserver.
 
-#### Secrets
+##### Secrets
 
 * `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://mongo:27107`.
 * `PEPPERCORD_TOKEN`: Discord token.
 * `PEPPERCORD_EVB`: EditVideoBot API Token. `https://pigeonburger.xyz/api/`. If you don't know what it is, don't add the var.
 
-#### Config
+##### Config
 
 * `PEPPERCORD_SHARDS`: Number of shards to use on Discord. Default is `0`.
 * `PEPPERCORD_DB_NAME`: Name of the primary database. Default is `peppercord`.

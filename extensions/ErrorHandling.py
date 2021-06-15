@@ -6,6 +6,7 @@ from evb import LibraryException as EvbException
 from asyncgTTS import LibraryException as TtsException
 
 from extensions.Starboard import AlreadyPinned
+from extensions.TextToSpeech import VoiceDoesNotExist
 from utils import checks, bots, attachments
 
 known_errors = {
@@ -32,6 +33,8 @@ known_errors = {
                          "this is an error.",
 
     bots.NotConfigured: "This feature must be configured before use. Ask a server administrator.",
+
+    VoiceDoesNotExist: "This voice doesn't exist. Check voices.",
 
     commands.BotMissingPermissions: "The bot was unable to perform the action requested, "
                                     "since it is missing permissions required to do so. Try re-inviting the bot.",

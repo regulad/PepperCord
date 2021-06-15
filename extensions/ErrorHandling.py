@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands, menus
 from evb import LibraryException as EvbException
-from easygTTS import LibraryException as TtsException
+from asyncgTTS import LibraryException as TtsException
 
 from extensions.Starboard import AlreadyPinned
 from utils import checks, bots, attachments
@@ -25,6 +25,8 @@ known_errors = {
     commands.CommandOnCooldown: "You'll need to wait before you can execute this command again.",
 
     commands.NotOwner: "Only the bot's owner may execute this command.",
+
+    checks.NotVoted: "You have to vote for the bot to use this command. See the vote command.",
 
     checks.LowPrivilege: "You are not authorized to run this command. Ask a server administrator if you believe "
                          "this is an error.",

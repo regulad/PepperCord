@@ -4,5 +4,11 @@ services:
     image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
     environment:
       - PEPPERCORD_TOKEN=YOUR_TOKEN
+    ports:
+      - 5000:5000/tcp
+    volumes:
+      - config:/app/config
   mongo:
     image: mongo
+volumes:
+  config:

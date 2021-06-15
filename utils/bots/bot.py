@@ -1,10 +1,11 @@
 from typing import Union, Optional
-from collections import deque
 
 import discord
 import motor.motor_asyncio
 from discord.ext import commands
 from topgg import DBLClient, WebhookManager
+from aiohttp import ClientSession
+from asyncgTTS import ServiceAccount, AsyncGTTSSession
 
 from utils.audio import AudioPlayer
 from .context import CustomContext
@@ -23,23 +24,16 @@ class CustomBotBase(commands.bot.BotBase):
         # Ideally, they should be deleted once the VoiceClient ceases to exist.
         # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
 
-        self._documents = deque(maxlen=1000)
+        self._documents = []
 
-        self._state = {}
-
-        self.topggpy: Optional[DBLClient] = None  # Also not perfect, but it's better than the alternative.
+        # This block of code is kinda stupid.
+        self.service_account: Optional[ServiceAccount] = None
+        self.gtts_client_session: Optional[ClientSession] = None
+        self.async_gtts_session: Optional[AsyncGTTSSession] = None
+        self.topggpy: Optional[DBLClient] = None
         self.topgg_webhook: Optional[WebhookManager] = None
 
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
-
-    def __getitem__(self, item):
-        return self._state.__getitem__(item)
-
-    def __delitem__(self, item):
-        return self._state.__delitem__(item)
-
-    def __setitem__(self, item, value):
-        return self._state.__setitem__(item, value)
 
     @property
     def database(self) -> motor.motor_asyncio.AsyncIOMotorDatabase:

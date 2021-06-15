@@ -10,7 +10,7 @@ mcstatus # Minecraft Server
 asyncio-dgram # mcstatus fsr
 Pillow # Image editing
 youtube_dl
-easy-gTTS
+async-gTTS
 EVB-API-py >= 0.2.0
 aiocoingecko
 topggpy

@@ -96,8 +96,8 @@ class TextToSpeech(commands.Cog):
 
 
 def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
-    if os.path.exists("config/SERVICE_ACCOUNT.json"):
-        with open("config/SERVICE_ACCOUNT.json") as service_account_fp:
+    if os.path.exists("config/SERVICE_ACCOUNT.JSON"):
+        with open("config/SERVICE_ACCOUNT.JSON") as service_account_fp:
             bot.service_account = ServiceAccount.from_service_account_dict(load(service_account_fp))
 
         bot.gtts_client_session = ClientSession()

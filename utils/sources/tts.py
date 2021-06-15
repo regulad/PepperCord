@@ -1,6 +1,6 @@
 from io import BytesIO
 from typing import Union
-from asyncgTTS import AsyncGTTSSession
+from asyncgTTS import AsyncGTTSSession, TextSynthesizeRequestBody, SynthesisInput, VoiceSelectionParams
 
 import discord
 
@@ -18,9 +18,14 @@ class TTSSource(discord.PCMVolumeTransformer):
 
     @classmethod
     async def from_text(
-        cls, text: str, tts_session: AsyncGTTSSession, invoker: Union[discord.Member, discord.User]
+        cls, text: str, voice: str, tts_session: AsyncGTTSSession, invoker: Union[discord.Member, discord.User]
     ):
-        audio_bytes = await tts_session.synthesize(text)
+        synthesis_input: SynthesisInput = SynthesisInput(text)
+        voice_selection_params: VoiceSelectionParams = VoiceSelectionParams("en-US", voice)
+        text_synthesize_request_body: TextSynthesizeRequestBody = TextSynthesizeRequestBody(
+            synthesis_input, voice_input=voice_selection_params
+        )
+        audio_bytes = await tts_session.synthesize(text_synthesize_request_body)
         with BytesIO(audio_bytes) as buffer:
             buffer.seek(0)
             source = FFmpegPCMAudio(buffer.read(), pipe=True)

@@ -81,7 +81,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: bots.CustomContext) -> None:
-        if not ctx.author_document.get("nopester", False):
+        if not (ctx.author_document.get("nopester", False) or await ctx.bot.is_owner(ctx.author)):
             if len(ctx.author_document.get("votes", [])) > 0:
                 if datetime.datetime.utcfromtimestamp(ctx.author_document["votes"][-1]) \
                         + datetime.timedelta(days=1) > datetime.datetime.utcnow():

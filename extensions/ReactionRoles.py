@@ -15,27 +15,25 @@ class ReactionRoles(commands.Cog):
     async def cog_check(self, ctx):
         return await checks.is_admin(ctx)
 
-    async def reaction_processor(self, payload: discord.RawReactionActionEvent):
-        # Setup
+    async def reaction_processor(self, payload: discord.RawReactionActionEvent):  # Could use a rewrite.
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
+
         guild = self.bot.get_guild(payload.guild_id)
         channel = guild.get_channel(payload.channel_id)
         ctx = await self.bot.get_context(await channel.fetch_message(payload.message_id))
         reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
-        # Fetch info
-        reaction_dict = ctx.guild_document.setdefault("reactions", {})
+
+        reaction_dict = ctx.guild_document.get("reactions", {})
         if reaction_dict:
-            for key_channel in reaction_dict.keys():
-                channel_dict = reaction_dict[key_channel]
+            for key_channel, channel_dict in reaction_dict.items():
                 if int(key_channel) == ctx.channel.id:
-                    for key_message in channel_dict.keys():
-                        message_dict = channel_dict[key_message]
+                    for key_message, message_dict in channel_dict.items():
                         if int(key_message) == ctx.message.id:
-                            for role_pair in message_dict.keys():
-                                if role_pair == emoji.name:
-                                    role = guild.get_role(message_dict[role_pair])
+                            for role_emoji, role_id in message_dict.items():
+                                if role_emoji == emoji.name:
+                                    role = guild.get_role(role_id)
                                     if payload.event_type == "REACTION_ADD":
                                         await reactor.add_roles(role)
                                     elif payload.event_type == "REACTION_REMOVE":

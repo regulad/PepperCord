@@ -58,17 +58,17 @@ class Starboard(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        # Setup
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
+
         guild = self.bot.get_guild(payload.guild_id)
         ctx = await self.bot.get_context(
             await guild.get_channel(payload.channel_id).get_partial_message(payload.message_id).fetch()
         )
-        # Get documents
-        send_emoji = ctx.guild_document.setdefault("starboard", {}).setdefault("emoji", "⭐")
-        threshold = ctx.guild_document.setdefault("starboard", {}).setdefault("threshold", 3)
-        # See if reaction count meets threshold
+
+        send_emoji = ctx.guild_document.get("starboard", {}).get("emoji", "⭐")
+        threshold = ctx.guild_document.get("starboard", {}).get("threshold", 3)
+
         react_count = None
         for reaction in ctx.message.reactions:
             if isinstance(reaction.emoji, (discord.Emoji, discord.PartialEmoji)):
@@ -78,6 +78,7 @@ class Starboard(commands.Cog):
             if reaction_name == send_emoji:
                 react_count = reaction.count
                 break
+
         if react_count is None:
             return
         if react_count >= threshold:
@@ -94,12 +95,10 @@ class Starboard(commands.Cog):
         brief="Starboard setup.",
     )
     async def starboard(self, ctx):
-        try:
-            send_channel = ctx.guild.get_channel(ctx.guild_document.setdefault("starboard", {})["channel"])
-        except KeyError:
+        if ctx.guild_document.get("starboard", {}).get("channe") is None:
             raise bots.NotConfigured
         else:
-            await ctx.send(send_channel.mention)
+            await ctx.send(ctx.guild.get_channel(ctx.guild_document["starboard"]["channel"]).mention)
 
     @starboard.group(
         invoke_without_command=True,
@@ -111,23 +110,23 @@ class Starboard(commands.Cog):
     )
     @commands.check(checks.is_admin)
     async def sconfig(self, ctx):
-        try:
-            send_channel = ctx.guild.get_channel(ctx.guild_document.setdefault("starboard", {})["channel"])
-        except KeyError:
+        if ctx.guild_document.get("starboard", {}).get("channel") is None:
             raise bots.NotConfigured
+
         try:
             emoji = await commands.EmojiConverter().convert(
-                ctx, ctx.guild_document.setdefault("starboard", {}).setdefault("emoji", "⭐")
+                ctx, ctx.guild_document["starboard"].get("emoji", "⭐")
             )
         except discord.NotFound:
-            emoji = ctx.guild_document.setdefault("starboard", {}).setdefault("emoji", "⭐")
-        threshold = ctx.guild_document.setdefault("starboard", {}).setdefault("threshold", 3)
+            emoji = ctx.guild_document["starboard"].get("emoji", "⭐")
+
         embed = (
             discord.Embed(title="Starboard Config")
-            .add_field(name="Channel:", value=send_channel.mention)
+            .add_field(name="Channel:", value=ctx.guild.get_channel(ctx.guild_document["starboard"]["channel"]).mention)
             .add_field(name="Emoji:", value=emoji)
-            .add_field(name="Threshold:", value=threshold)
+            .add_field(name="Threshold:", value=ctx.guild_document["starboard"].get("threshold", 3))
         )
+
         await ctx.send(embed=embed)
 
     @sconfig.command(

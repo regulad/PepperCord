@@ -1,4 +1,5 @@
 from typing import Union, Optional
+from collections import deque
 
 import discord
 import motor.motor_asyncio
@@ -24,7 +25,8 @@ class CustomBotBase(commands.bot.BotBase):
         # Ideally, they should be deleted once the VoiceClient ceases to exist.
         # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
 
-        self._documents = []
+        self._documents = deque(maxlen=700)
+        # This isn't optimal considdering the member cache is uncapped, but having it be uncapped seems to be causing performance issues.
 
         # This block of code is kinda stupid.
         self.service_account: Optional[ServiceAccount] = None
@@ -47,10 +49,6 @@ class CustomBotBase(commands.bot.BotBase):
     def music_players(self) -> list:
         return self._audio_players
 
-    @property
-    def documents(self) -> list:
-        return self._documents
-
     def get_audio_player(self, voice_client: discord.VoiceClient):
         """Gets or creates audio player from VoiceClient."""
 
@@ -72,12 +70,12 @@ class CustomBotBase(commands.bot.BotBase):
         else:
             return None
 
-        for document in self.documents:
+        for document in self._documents:
             if document.model == model:
                 return document
         else:
             document = await ModelDocument.get_from_model(collection, model)
-            self.documents.append(document)
+            self._documents.append(document)
             return document
 
     async def get_context(self, message, *, cls=CustomContext):

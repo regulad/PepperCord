@@ -5,7 +5,7 @@ from utils import checks, bots
 
 
 async def member_message_processor(bot, member: discord.Member, event: str):
-    guild_doc = await bot.get_document(member)
+    guild_doc = await bot.get_guild_document(member.guild)
     messages_dict = guild_doc.get("messages", {}).get(event, {})
     if messages_dict:
         for channel, message in messages_dict.items():

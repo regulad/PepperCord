@@ -7,7 +7,7 @@ from typing import Union, Optional
 import discord
 from discord.ext import commands, menus
 
-from utils import checks, database
+from utils import checks, bots
 
 xp_to = 2.3
 xp_multiplier = 1.6
@@ -30,7 +30,7 @@ def _get_level(xp: float):
 class UserLevel:
     """An object that represents the level of a user via their user_doc."""
 
-    def __init__(self, user: Union[discord.Member, discord.User], document: database.Document):
+    def __init__(self, user: Union[discord.Member, discord.User], document: bots.UserDocument):
         self.user = user
         self.document = document
 
@@ -41,7 +41,7 @@ class UserLevel:
         if user.bot:
             return None
         else:
-            document = await bot.get_document(user)
+            document = await bot.get_user_document(user)
             return cls(user, document)
 
     @property
@@ -167,7 +167,7 @@ class Levels(commands.Cog):
     @commands.is_owner()
     async def set_xp(self, ctx, xp: int, *, user: Optional[Union[discord.User, discord.Member]]):
         user: Union[discord.User, discord.Member] = user or ctx.author
-        document: database.Document = await ctx.bot.get_document(user)
+        document: bots.UserDocument = await ctx.bot.get_user_document(user)
         await document.update_db({"$set": {"xp": xp}})
 
     @commands.command(
@@ -179,7 +179,7 @@ class Levels(commands.Cog):
     @commands.is_owner()
     async def set_level(self, ctx, level: int, *, user: Optional[Union[discord.User, discord.Member]]):
         user: Union[discord.User, discord.Member] = user or ctx.author
-        document: database.Document = await ctx.bot.get_document(user)
+        document: bots.UserDocument = await ctx.bot.get_user_document(user)
         await document.update_db({"$set": {"xp": _get_xp(level)}})
 
     @commands.command(

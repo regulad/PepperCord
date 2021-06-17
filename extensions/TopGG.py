@@ -7,7 +7,7 @@ import discord
 from topgg import DBLClient, WebhookManager
 from topgg.types import BotVoteData
 
-from utils import bots
+from utils import bots, database
 
 
 PESTERING_MESSAGES = [
@@ -22,7 +22,7 @@ def get_top_gg_link(bot_id: int) -> str:
 class VotesMenu(menus.Menu):
     def __init__(
             self,
-            document: bots.UserDocument,
+            document: database.Document,
             *,
             timeout=180.0,
             delete_message_after=False,
@@ -73,7 +73,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
         if int(data["bot"]) == self.bot.user.id:
             user: Optional[discord.User] = self.bot.get_user(int(data["user"]))
             if user is not None:
-                document: bots.UserDocument = await self.bot.get_user_document(user)
+                document: database.Document = await self.bot.get_user_document(user)
                 await document.update_db({"$push": {"votes": datetime.datetime.utcnow().timestamp()}})
 
                 if not document.get("nopester", False):
@@ -128,7 +128,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
     )
     async def votes(self, ctx: bots.CustomContext, *, user: Optional[Union[discord.Member, discord.User]]) -> None:
         user: Union[discord.Member, discord.User] = user or ctx.author
-        document: bots.UserDocument = await self.bot.get_user_document(user)
+        document: database.Document = await self.bot.get_user_document(user)
         await VotesMenu(document).start(ctx)
 
 

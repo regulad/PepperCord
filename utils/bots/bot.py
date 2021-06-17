@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, List, Deque
 from collections import deque
 
 import discord
@@ -7,9 +7,9 @@ from topgg import DBLClient, WebhookManager
 from aiohttp import ClientSession
 from asyncgTTS import ServiceAccount, AsyncGTTSSession
 
+from utils.database import Document
 from utils.audio import AudioPlayer
 from .context import CustomContext
-from .documents import GuildDocument, UserDocument
 
 
 class CustomBotBase(commands.bot.BotBase):
@@ -26,13 +26,14 @@ class CustomBotBase(commands.bot.BotBase):
         self._database = database
         self._config = config
 
-        self._audio_players = []
+        self._audio_players: List[AudioPlayer] = []
         # TODO: Having audio players stored here prevents them from being garbage collected, causing a memory leak.
         # Ideally, they should be deleted once the VoiceClient ceases to exist.
         # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
 
-        self._guild_documents = []
-        self._user_documents = deque(maxlen=500)  # I'm not sure if it's an issue to have too many user documents.
+        self._guild_documents: Deque[Document] = deque(maxlen=350)
+        self._user_documents: Deque[Document] = deque(maxlen=350)
+        # I'm not sure if it's an issue to have too many documents in the cache. It likely is.
 
         # This block of code is kinda stupid.
         self.service_account: Optional[ServiceAccount] = None
@@ -66,27 +67,35 @@ class CustomBotBase(commands.bot.BotBase):
             self.music_players.append(music_player)
             return music_player
 
-    async def get_guild_document(self, model: discord.Guild) -> GuildDocument:
+    async def get_guild_document(self, model: discord.Guild) -> Document:  # This gets called 3 times each message.
         """Returns a cached document, or a new one if necessary."""
 
         for document in self._guild_documents:
-            if document.model == model:
-                return document
+            if document["_id"] == model.id:
+                to_return: Document = document
+                self._guild_documents.remove(to_return)
+                self._guild_documents.append(to_return)
+                break
         else:
-            document: GuildDocument = await GuildDocument.get_from_model(self.database["guild"], model)
-            self._guild_documents.append(document)
-            return document
+            to_return: Document = await Document.get_document(self.database["guild"], {"_id": model.id})
+            self._guild_documents.append(to_return)
 
-    async def get_user_document(self, model: Union[discord.Member, discord.User]) -> UserDocument:
+        return to_return
+
+    async def get_user_document(self, model: Union[discord.Member, discord.User]) -> Document:  # This gets called 2 times.
         """Returns a cached document, or a new one if necessary."""
 
         for document in self._user_documents:
-            if document.model == model:
-                return document
+            if document["_id"] == model.id:
+                to_return: Document = document
+                self._user_documents.remove(to_return)
+                self._user_documents.append(to_return)
+                break
         else:
-            document: UserDocument = await UserDocument.get_from_model(self.database["user"], model)
-            self._user_documents.append(document)
-            return document
+            to_return: Document = await Document.get_document(self.database["user"], {"_id": model.id})
+            self._user_documents.append(to_return)
+
+        return to_return
 
     async def get_context(self, message, *, cls=CustomContext):
         r"""|coro|

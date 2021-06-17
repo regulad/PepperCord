@@ -4,7 +4,7 @@ from utils import checks
 
 
 async def get_prefix(bot, message):
-    guild_document = await bot.get_document(message.guild)
+    guild_document = await bot.get_guild_document(message.guild)
     default_prefix = bot.config.get("PEPPERCORD_PREFIX", "?")
     if message.guild is None:
         return commands.when_mentioned_or(f"{default_prefix} ", default_prefix)(bot, message)

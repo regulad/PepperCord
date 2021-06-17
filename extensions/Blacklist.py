@@ -30,8 +30,11 @@ class Blacklist(commands.Cog):
         *,
         entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ):
-        entity = entity or ctx.guild
-        document = await ctx.bot.get_document(entity)
+        entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
+        if isinstance(entity, discord.Guild):
+            document = await ctx.bot.get_guild_document(entity)
+        elif isinstance(entity, (discord.Member, discord.User)):
+            document = await ctx.bot.get_user_document(entity)
         await document.update_db({"$set": {"blacklisted": True}})
 
     @commands.command(
@@ -45,8 +48,11 @@ class Blacklist(commands.Cog):
         *,
         entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ):
-        entity = entity or ctx.guild
-        document = await ctx.bot.get_document(entity)
+        entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
+        if isinstance(entity, discord.Guild):
+            document = await ctx.bot.get_guild_document(entity)
+        elif isinstance(entity, (discord.Member, discord.User)):
+            document = await ctx.bot.get_user_document(entity)
         await document.update_db({"$set": {"blacklisted": False}})
 
 

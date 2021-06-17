@@ -2,7 +2,6 @@ from typing import Union, Optional
 from collections import deque
 
 import discord
-import motor.motor_asyncio
 from discord.ext import commands
 from topgg import DBLClient, WebhookManager
 from aiohttp import ClientSession
@@ -10,12 +9,19 @@ from asyncgTTS import ServiceAccount, AsyncGTTSSession
 
 from utils.audio import AudioPlayer
 from .context import CustomContext
-from .documents import ModelDocument
+from .documents import GuildDocument, UserDocument
 
 
 class CustomBotBase(commands.bot.BotBase):
     def __init__(
-            self, command_prefix, help_command=commands.HelpCommand(), description=None, *, database, config, **options
+            self,
+            command_prefix,
+            help_command=commands.HelpCommand(),
+            description=None,
+            *,
+            database,
+            config,
+            **options,
     ):
         self._database = database
         self._config = config
@@ -25,8 +31,8 @@ class CustomBotBase(commands.bot.BotBase):
         # Ideally, they should be deleted once the VoiceClient ceases to exist.
         # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
 
-        self._documents = deque(maxlen=700)
-        # This isn't optimal considdering the member cache is uncapped, but having it be uncapped seems to be causing performance issues.
+        self._guild_documents = []
+        self._user_documents = deque(maxlen=500)  # I'm not sure if it's an issue to have too many user documents.
 
         # This block of code is kinda stupid.
         self.service_account: Optional[ServiceAccount] = None
@@ -38,7 +44,7 @@ class CustomBotBase(commands.bot.BotBase):
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
 
     @property
-    def database(self) -> motor.motor_asyncio.AsyncIOMotorDatabase:
+    def database(self):
         return self._database
 
     @property
@@ -60,22 +66,26 @@ class CustomBotBase(commands.bot.BotBase):
             self.music_players.append(music_player)
             return music_player
 
-    async def get_document(self, model: Optional[Union[discord.Guild, discord.Member, discord.User]]):
+    async def get_guild_document(self, model: discord.Guild) -> GuildDocument:
         """Returns a cached document, or a new one if necessary."""
 
-        if isinstance(model, discord.Guild):
-            collection = self.database["guild"]
-        elif isinstance(model, (discord.Member, discord.User)):
-            collection = self.database["user"]
-        else:
-            return None
-
-        for document in self._documents:
+        for document in self._guild_documents:
             if document.model == model:
                 return document
         else:
-            document = await ModelDocument.get_from_model(collection, model)
-            self._documents.append(document)
+            document: GuildDocument = await GuildDocument.get_from_model(self.database["guild"], model)
+            self._guild_documents.append(document)
+            return document
+
+    async def get_user_document(self, model: Union[discord.Member, discord.User]) -> UserDocument:
+        """Returns a cached document, or a new one if necessary."""
+
+        for document in self._user_documents:
+            if document.model == model:
+                return document
+        else:
+            document: UserDocument = await UserDocument.get_from_model(self.database["user"], model)
+            self._user_documents.append(document)
             return document
 
     async def get_context(self, message, *, cls=CustomContext):

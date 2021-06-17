@@ -22,7 +22,7 @@ class Moderation(commands.Cog):
     async def unpunish(self):
         for guild in self.bot.guilds:
             # Get the document for the guild
-            guild_doc = await self.bot.get_document(guild)
+            guild_doc = await self.bot.get_guild_document(guild)
             punishment_dict = guild_doc.get("punishments")
             # If the punishment dict is present
             if punishment_dict is not None:

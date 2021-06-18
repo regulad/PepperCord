@@ -1,4 +1,5 @@
 import asyncio
+from typing import Union, Optional
 
 import discord
 from discord.ext import commands, menus
@@ -57,7 +58,7 @@ known_errors = {
 }
 
 
-def find_error(error):
+def find_error(error) -> Optional[str]:
     for known_error, response in known_errors.items():
         if isinstance(error, known_error):
             return response
@@ -102,11 +103,15 @@ class ErrorMenu(menus.Menu):
 class ErrorHandling(commands.Cog):
     """Handles raised errors."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def on_command_completion(self, ctx: bots.CustomContext) -> None:
+        await ctx.message.add_reaction("✅")
+
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx: bots.CustomContext, error: Exception) -> None:
         safe_reinvoke = isinstance(error, (commands.CommandOnCooldown, commands.CheckFailure))
         await ctx.message.add_reaction("‼️")
         if await ctx.bot.is_owner(ctx.author) and safe_reinvoke:
@@ -116,5 +121,5 @@ class ErrorHandling(commands.Cog):
             await ErrorMenu(error).start(ctx)
 
 
-def setup(bot):
+def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
     bot.add_cog(ErrorHandling(bot))

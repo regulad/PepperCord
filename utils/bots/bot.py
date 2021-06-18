@@ -31,10 +31,6 @@ class CustomBotBase(commands.bot.BotBase):
         # Ideally, they should be deleted once the VoiceClient ceases to exist.
         # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
 
-        self._guild_documents: Deque[Document] = deque(maxlen=350)
-        self._user_documents: Deque[Document] = deque(maxlen=350)
-        # I'm not sure if it's an issue to have too many documents in the cache. It likely is.
-
         # This block of code is kinda stupid.
         self.service_account: Optional[ServiceAccount] = None
         self.gtts_client_session: Optional[ClientSession] = None
@@ -43,10 +39,6 @@ class CustomBotBase(commands.bot.BotBase):
         self.topgg_webhook: Optional[WebhookManager] = None
 
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
-
-    @property
-    def database(self):
-        return self._database
 
     @property
     def config(self) -> dict:
@@ -67,35 +59,15 @@ class CustomBotBase(commands.bot.BotBase):
             self.music_players.append(music_player)
             return music_player
 
-    async def get_guild_document(self, model: discord.Guild) -> Document:  # This gets called 3 times each message.
-        """Returns a cached document, or a new one if necessary."""
+    async def get_guild_document(self, model: discord.Guild) -> Document:
+        """Get's a guild's document from the database."""
 
-        for document in self._guild_documents:
-            if document["_id"] == model.id:
-                to_return: Document = document
-                self._guild_documents.remove(to_return)
-                self._guild_documents.append(to_return)
-                break
-        else:
-            to_return: Document = await Document.get_document(self.database["guild"], {"_id": model.id})
-            self._guild_documents.append(to_return)
+        return await Document.get_document(self._database["guild"], {"_id": model.id})
 
-        return to_return
+    async def get_user_document(self, model: Union[discord.Member, discord.User]) -> Document:
+        """Get's a user's document from the database."""
 
-    async def get_user_document(self, model: Union[discord.Member, discord.User]) -> Document:  # This gets called 2 times.
-        """Returns a cached document, or a new one if necessary."""
-
-        for document in self._user_documents:
-            if document["_id"] == model.id:
-                to_return: Document = document
-                self._user_documents.remove(to_return)
-                self._user_documents.append(to_return)
-                break
-        else:
-            to_return: Document = await Document.get_document(self.database["user"], {"_id": model.id})
-            self._user_documents.append(to_return)
-
-        return to_return
+        return await Document.get_document(self._database["user"], {"_id": model.id})
 
     async def get_context(self, message, *, cls=CustomContext):
         r"""|coro|
@@ -131,33 +103,6 @@ class CustomBotBase(commands.bot.BotBase):
         if isinstance(result, CustomContext):
             await result.get_documents()
         return result
-
-    async def invoke(self, ctx):
-        """|coro|
-
-        Invokes the command given under the invocation context and
-        handles all the internal event dispatch mechanisms.
-
-        Parameters
-        -----------
-        ctx: :class:`.Context`
-            The invocation context to invoke.
-        """
-        if ctx.command is not None:
-            self.dispatch("command", ctx)
-            try:
-                if await self.can_run(ctx, call_once=True):
-                    await ctx.command.invoke(ctx)
-                    await ctx.message.add_reaction(emoji="✅")
-                else:
-                    raise commands.errors.CheckFailure("The global check once functions failed.")
-            except commands.errors.CommandError as exc:
-                await ctx.command.dispatch_error(ctx, exc)
-            else:
-                self.dispatch("command_completion", ctx)
-        elif ctx.invoked_with:
-            exc = commands.errors.CommandNotFound('Command "{}" is not found'.format(ctx.invoked_with))
-            self.dispatch("command_error", ctx, exc)
 
 
 class CustomAutoShardedBot(CustomBotBase, discord.AutoShardedClient):

@@ -85,15 +85,15 @@ class Minecraft(commands.Cog):
 
                     strings.append(text)
 
-                motd: str = "".join(strings)
+                motd: Optional[str] = "".join(strings)
             elif isinstance(status.description, dict) and status.description.get("text") is not None:
-                motd: str = status.description["text"]
+                motd: Optional[str] = status.description["text"]
+            elif isinstance(status.description, str):
+                motd: Optional[str] = status.description
             else:
-                motd: str = status.description
+                motd: Optional[str] = None
 
             embed: discord.Embed = discord.Embed(colour=discord.Colour.dark_gold(), title=server).add_field(
-                name="MOTD:", value=motd, inline=False
-            ).add_field(
                 name="Ping:", value=f"{round(status.latency, 2)}ms"
             ).add_field(
                 name="Players:", value=f"{status.players.online}/{status.players.max}"
@@ -102,6 +102,9 @@ class Minecraft(commands.Cog):
             ).set_thumbnail(
                 url="attachment://favicon.png"
             )
+
+            if motd is not None:
+                embed.insert_field_at(0, name="MOTD:", value=motd)
 
             await ctx.send(embed=embed, file=file)
 

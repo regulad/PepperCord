@@ -51,18 +51,7 @@ If you want to host an instance of the bot yourself, feel free to do so!
 
 ### Setup
 
-The optimal way to setup PepperCord is in a controlled Docker container. Below is a `docker-compose.yml` that you can use to deploy to a Docker instance or swarm.
-
-```yaml
-version: '3'
-services:
-  peppercord:
-    image: docker.pkg.github.com/regulad/peppercord/peppercord:latest
-  mongo:
-    image: mongo
-```
-
-You'll still need to configure networking, but this will be different on every Docker environment.
+Docker is the best way to run an instance of the bot. See the file `docker-compose.yml` for an example compose file.
 
 If you want to run the bot outside a Docker container, you'll need to install the following dependencies from your favorite package manager:
 

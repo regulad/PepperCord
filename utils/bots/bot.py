@@ -1,5 +1,4 @@
-from typing import Union, Optional, List, Deque
-from collections import deque
+from typing import Union, Optional, List
 
 import discord
 from discord.ext import commands
@@ -111,3 +110,9 @@ class CustomAutoShardedBot(CustomBotBase, discord.AutoShardedClient):
 
 class CustomBot(CustomBotBase, discord.Client):
     pass
+
+
+BOT_TYPES = Union[CustomBot, CustomAutoShardedBot]
+
+
+__all__ = ["CustomBot", "CustomAutoShardedBot", "BOT_TYPES"]

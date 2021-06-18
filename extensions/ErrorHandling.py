@@ -103,7 +103,7 @@ class ErrorMenu(menus.Menu):
 class ErrorHandling(commands.Cog):
     """Handles raised errors."""
 
-    def __init__(self, bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
+    def __init__(self, bot: bots.BOT_TYPES):
         self.bot = bot
 
     @commands.Cog.listener()
@@ -112,14 +112,20 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        safe_reinvoke = isinstance(error, (commands.CommandOnCooldown, commands.CheckFailure))
         await ctx.message.add_reaction("‼️")
-        if await ctx.bot.is_owner(ctx.author) and safe_reinvoke:
+
+        if await ctx.bot.is_owner(ctx.author) \
+                and isinstance(error, (commands.CommandOnCooldown, commands.CheckFailure)):
             await ctx.message.add_reaction("🔁")
-            await ctx.reinvoke()
+
+            if ctx.command is not None:
+                await ctx.reinvoke()
+            else:
+                await ctx.message.add_reaction("❌")
+
         else:
             await ErrorMenu(error).start(ctx)
 
 
-def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
+def setup(bot: bots.BOT_TYPES):
     bot.add_cog(ErrorHandling(bot))

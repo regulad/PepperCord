@@ -1,3 +1,5 @@
+from typing import List
+
 import discord
 from discord.ext import commands, menus
 
@@ -46,50 +48,51 @@ class CustomCommandSource(menus.ListPageSource):
 class CustomCommands(commands.Cog):
     """Custom commands for just one guild."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
         self.cooldown = commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.channel)
 
-    async def cog_check(self, ctx):
+    async def cog_check(self, ctx: bots.CustomContext) -> None:
         return await checks.is_admin(ctx)
 
     @commands.Cog.listener()
-    async def on_message(self, message):
-        ctx = await self.bot.get_context(message)
+    async def on_message(self, message: discord.Message) -> None:
+        ctx: bots.CustomContext = await self.bot.get_context(message)
+
+        if ctx.author == ctx.bot.user or ctx.author == ctx.guild.me:
+            return
 
         try:
             await checks.is_blacklisted(ctx)
         except checks.Blacklisted:
-            return
+            return  # raise
 
-        if ctx.guild is None:
-            return  # raise commands.NoPrivateMessage
-        elif ctx.guild_document.get("commands") is None:
-            return  # raise bots.NotConfigured
-        elif ctx.author == self.bot.user or ctx.author == ctx.guild.me:
-            return
-        elif len(ctx.message.content) == 0:
-            return
-        else:
+        if ctx.guild is not None and ctx.guild_document.get("commands") is not None:
             custom_commands = CustomCommand.from_dict(ctx.guild_document.get("commands"))
 
-            command_no_whitespace = ctx.message.content.strip()
-            command_words = command_no_whitespace.split()
-            effective_command = command_words[0].lower()
+            words: List[str] = ctx.message.content.strip().lower().split()
 
             for custom_command in custom_commands:
-                if custom_command.command == effective_command:
-                    bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
-                    retry_after: float = bucket.update_rate_limit()
-                    
-                    if retry_after:
-                        return  # raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
-                    else:
-                        await ctx.send(custom_command.message)
-                        break
+                if custom_command.command.lower() in words:
+                    command: CustomCommand = custom_command
+                    break
             else:
-                return  # Just for neatness. Not really required since when this loop breaks or fails the task ends.
+                return  # No command.
+
+            try:
+                bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
+                retry_after: float = bucket.update_rate_limit()
+
+                if retry_after:
+                    raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
+                else:
+                    await ctx.send(command.message)
+            except Exception as exception:
+                ctx.bot.dispatch("command_error", ctx, exception)
+                # This isn't exactly right since a command wasn't really invoked, but oh well.
+            else:
+                ctx.bot.dispatch("command_completion", ctx)
 
     @commands.group(
         invoke_without_command=True,
@@ -99,7 +102,7 @@ class CustomCommands(commands.Cog):
         brief="Tools for configuration of custom commands.",
         description="Tools for configuration of custom commands.",
     )
-    async def customcommands(self, ctx):
+    async def customcommands(self, ctx: bots.CustomContext) -> None:
         commands_dict = ctx.guild_document.get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
@@ -109,7 +112,7 @@ class CustomCommands(commands.Cog):
     @customcommands.command(
         name="add", aliases=["set"], brief="Adds a custom command.", description="Adds a custom command to the guild."
     )
-    async def ccadd(self, ctx, command: str, *, message: str):
+    async def ccadd(self, ctx: bots.CustomContext, command: str, *, message: str) -> None:
         await ctx.guild_document.update_db({"$set": {f"commands.{command.lower()}": message}})
 
     @customcommands.command(
@@ -118,7 +121,7 @@ class CustomCommands(commands.Cog):
         brief="Deletes a custom command.",
         description="Deletes a custom command from the guild.",
     )
-    async def ccdel(self, ctx, *, command: str):
+    async def ccdel(self, ctx: bots.CustomContext, *, command: str) -> None:
         try:
             ctx.guild_document.get("commands", {})[command.lower()]
         except KeyError:
@@ -127,5 +130,5 @@ class CustomCommands(commands.Cog):
             await ctx.guild_document.update_db({"$unset": {f"commands.{command.lower()}": 1}})
 
 
-def setup(bot):
+def setup(bot: bots.BOT_TYPES):
     bot.add_cog(CustomCommands(bot))

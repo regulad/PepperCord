@@ -94,6 +94,8 @@ class Minecraft(commands.Cog):
                 motd: Optional[str] = None
 
             embed: discord.Embed = discord.Embed(colour=discord.Colour.dark_gold(), title=server).add_field(
+                name="MOTD:", value=motd if motd is not None and len(motd) > 0 else "Couldn't read the MOTD."
+            ).add_field(
                 name="Ping:", value=f"{round(status.latency, 2)}ms"
             ).add_field(
                 name="Players:", value=f"{status.players.online}/{status.players.max}"
@@ -102,9 +104,6 @@ class Minecraft(commands.Cog):
             ).set_thumbnail(
                 url="attachment://favicon.png"
             )
-
-            if motd is not None:
-                embed.insert_field_at(0, name="MOTD:", value=motd)
 
             await ctx.send(embed=embed, file=file)
 

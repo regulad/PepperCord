@@ -34,7 +34,7 @@ class LanguageSource(menus.ListPageSource):
 class TextToSpeech(commands.Cog):
     """Sends Text-To-Speech in the voice chat."""
 
-    def __init__(self, bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
+    def __init__(self, bot: bots.BOT_TYPES):
         self.bot = bot
 
     async def cog_check(self, ctx: bots.CustomContext):
@@ -95,7 +95,7 @@ class TextToSpeech(commands.Cog):
             await menus.MenuPages(source=LanguageSource(voices, per_page=6)).start(ctx)
 
 
-def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
+def setup(bot: bots.BOT_TYPES):
     if os.path.exists("config/SERVICE_ACCOUNT.JSON"):
         with open("config/SERVICE_ACCOUNT.JSON") as service_account_fp:
             bot.service_account = ServiceAccount.from_service_account_dict(load(service_account_fp))
@@ -108,7 +108,7 @@ def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
         bot.add_cog(TextToSpeech(bot))
 
 
-def teardown(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]):
+def teardown(bot: bots.BOT_TYPES):
     if bot.async_gtts_session is not None:
         bot.remove_cog("TextToSpeech")
 

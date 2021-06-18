@@ -65,7 +65,7 @@ class VotesMenu(menus.Menu):
 class TopGGWebhook(commands.Cog, name="Voting"):
     """Vote for the bot on Top.gg for some sick rewards."""
 
-    def __init__(self, bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]) -> None:
+    def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
     @commands.Cog.listener()
@@ -135,11 +135,11 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 class TopGG(commands.Cog):
     """Utilities for interacting with Top.gg."""
 
-    def __init__(self, bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]) -> None:
+    def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
 
-def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]) -> None:
+def setup(bot: bots.BOT_TYPES) -> None:
     if bot.config.get("PEPPERCORD_TOPGG") is not None:
         if isinstance(bot, bots.CustomAutoShardedBot):
             bot.topggpy = DBLClient(bot, bot.config["PEPPERCORD_TOPGG"], autopost=True, post_shard_count=True)
@@ -158,7 +158,7 @@ def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]) -> None:
         bot.add_cog(TopGGWebhook(bot))
 
 
-def teardown(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]) -> None:
+def teardown(bot: bots.BOT_TYPES) -> None:
     if bot.topggpy is not None:
         bot.remove_cog("TopGG")
 

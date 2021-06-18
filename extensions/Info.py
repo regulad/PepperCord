@@ -12,7 +12,7 @@ from utils import bots
 class DiscordInfo(commands.Cog):
     """Get information about things here on Discord."""
 
-    def __init__(self, bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]) -> None:
+    def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
         self.activity_update.start()
@@ -169,5 +169,5 @@ class DiscordInfo(commands.Cog):
                 await ctx.invoke(self.whois, user=ctx.bot.user)
 
 
-def setup(bot: Union[bots.CustomBot, bots.CustomAutoShardedBot]) -> None:
+def setup(bot: bots.BOT_TYPES) -> None:
     bot.add_cog(DiscordInfo(bot))

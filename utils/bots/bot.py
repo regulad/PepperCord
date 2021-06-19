@@ -35,8 +35,6 @@ class CustomBotBase(commands.bot.BotBase):
         self.service_account: Optional[ServiceAccount] = None
         self.gtts_client_session: Optional[ClientSession] = None
         self.async_gtts_session: Optional[AsyncGTTSSession] = None
-        self.topggpy: Optional[DBLClient] = None
-        self.topgg_webhook: Optional[WebhookManager] = None
 
         super().__init__(command_prefix, help_command=help_command, description=description, **options)
 

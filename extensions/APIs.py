@@ -14,6 +14,9 @@ class APIs(commands.Cog):
         self.bot = bot
         self.aiohttp_cs = ClientSession()
 
+    def cog_unload(self) -> None:
+        self.bot.loop.create_task(self.aiohttp_cs.close())
+
     @commands.command(name="bored", description="Do something, stop being bored!", brief="Anti-boredom.")
     async def bored(self, ctx: bots.CustomContext):
         async with self.aiohttp_cs.get("https://www.boredapi.com/api/activity/") as request:
@@ -38,11 +41,3 @@ class APIs(commands.Cog):
 
 def setup(bot: bots.BOT_TYPES):
     bot.add_cog(APIs(bot))
-
-
-def teardown(bot: bots.BOT_TYPES):
-    cog: APIs = bot.get_cog("APIs")
-
-    bot.loop.create_task(cog.aiohttp_cs.close())
-
-    bot.remove_cog("APIs")

@@ -166,7 +166,7 @@ class TopGG(commands.Cog):
     async def totalvotes(self, ctx: bots.CustomContext) -> None:
         async with ctx.typing():
             bot_info: BotData = await self.topggpy.get_bot_info()
-            await ctx.send(f"{ctx.bot.name} has received {bot_info['points']}")
+            await ctx.send(f"{ctx.bot.user.name} has received {bot_info['points']}")
 
 
 def setup(bot: bots.BOT_TYPES) -> None:

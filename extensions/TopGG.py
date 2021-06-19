@@ -23,6 +23,7 @@ class VotesMenu(menus.Menu):
     def __init__(
             self,
             document: database.Document,
+            user: Union[discord.Member, discord.User],
             *,
             timeout=180.0,
             delete_message_after=False,
@@ -31,6 +32,7 @@ class VotesMenu(menus.Menu):
             message=None
     ):
         self.document = document
+        self.user = user
 
         super().__init__(
             timeout=timeout,
@@ -42,14 +44,14 @@ class VotesMenu(menus.Menu):
 
     async def send_initial_message(self, ctx, channel):
         if isinstance(self.document.model, discord.Member):
-            title: str = self.document.model.display_name
+            title: str = self.user.name.display_name
         else:
-            title: str = self.document.model.name
+            title: str = self.user.name
 
         votes: List[float] = self.document.get("votes", [])
 
         if len(votes) > 0:
-            embed = discord.Embed(title=f"{title}'s Votes").set_thumbnail(url=self.document.model.avatar_url).add_field(
+            embed = discord.Embed(title=f"{title}'s Votes").set_thumbnail(url=self.user.avatar_url).add_field(
                 name="Times voted:", value=len(votes)
             ).add_field(
                 name="First voted:", value=f"{datetime.datetime.utcfromtimestamp(votes[0])} UTC"
@@ -129,7 +131,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
     async def votes(self, ctx: bots.CustomContext, *, user: Optional[Union[discord.Member, discord.User]]) -> None:
         user: Union[discord.Member, discord.User] = user or ctx.author
         document: database.Document = await self.bot.get_user_document(user)
-        await VotesMenu(document).start(ctx)
+        await VotesMenu(document, user).start(ctx)
 
 
 class TopGG(commands.Cog):

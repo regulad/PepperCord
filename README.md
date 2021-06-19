@@ -76,11 +76,11 @@ PepperCord uses a folder named `config/` for everything that isn't stored in con
 
 * `PEPPERCORD_TOPGG`: Top.gg Token. If you don't know what it is, don't add the var.
   
-* `PEPPERCORD_TOPGG_WH`: Port to listen for the webhook. Optional.
-* `PEPPERCORD_TOPGG_WH_ROUTE`: Route for the webhook. Optional.
-* `PEPPERCORD_TOPGG_WH_SECRET`: Secret for the webhook. Optional.
+* `PEPPERCORD_TOPGG_WH`: Port to listen for the webhook. Defaults to `5000`.
+* `PEPPERCORD_TOPGG_WH_ROUTE`: Route for the webhook. Defaults to `/topgg`.
+* `PEPPERCORD_TOPGG_WH_SECRET`: Secret for the webhook. Required.
 
-If any of the three `TOPGG_WH` params are missing, the bot will not start the webserver.
+If any of the required `TOPGG_WH` params are missing, the bot will not start the webserver.
 
 ##### Secrets
 

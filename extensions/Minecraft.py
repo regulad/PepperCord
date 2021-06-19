@@ -94,7 +94,9 @@ class Minecraft(commands.Cog):
                 motd: Optional[str] = None
 
             embed: discord.Embed = discord.Embed(colour=discord.Colour.dark_gold(), title=server).add_field(
-                name="MOTD:", value=motd if motd is not None and len(motd) > 0 else "Couldn't read the MOTD."
+                name="MOTD:", 
+                value=motd if motd is not None and len(motd) > 0 else "Couldn't read the MOTD. Likely a server issue.",
+                inline=False,
             ).add_field(
                 name="Ping:", value=f"{round(status.latency, 2)}ms"
             ).add_field(

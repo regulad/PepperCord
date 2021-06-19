@@ -33,7 +33,7 @@ class ReactionRoles(commands.Cog):
                         if int(key_message) == ctx.message.id:
                             for role_emoji, role_id in message_dict.items():
                                 if role_emoji == emoji.name:
-                                    role = guild.get_role(role_id)
+                                    role = guild.get_role(int(role_id))
                                     if payload.event_type == "REACTION_ADD":
                                         await reactor.add_roles(role)
                                     elif payload.event_type == "REACTION_REMOVE":

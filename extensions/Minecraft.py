@@ -139,6 +139,7 @@ class Minecraft(commands.Cog):
             )
 
             await ctx.send(embed=embed)
+
     @commands.command(
         name="player",
         aliases=["mcuser", "mcplayer"],
@@ -175,3 +176,11 @@ class Minecraft(commands.Cog):
 
 def setup(bot: bots.BOT_TYPES):
     bot.add_cog(Minecraft(bot))
+
+
+def teardown(bot: bots.BOT_TYPES):
+    cog: Minecraft = bot.get_cog("Minecraft")
+
+    bot.loop.create_task(cog.aiohttp_cs.close())
+
+    bot.remove_cog("Minecraft")

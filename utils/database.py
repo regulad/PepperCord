@@ -1,3 +1,6 @@
+from typing import Optional
+
+
 class Document(dict):
     """Represents a single MongoDB document.
     .collection: MongoDB collection the document is stored in.
@@ -10,8 +13,17 @@ class Document(dict):
 
     @classmethod
     async def get_document(cls, collection, query: dict, **kwargs):
+        """Gets a document from the database with a query, or returns a new one."""
+
         document: dict = (await collection.find_one(query)) or query
         return cls(document, collection=collection, query=query, **kwargs)
+
+    @classmethod
+    async def find_document(cls, collection, query: dict, **kwargs):
+        """Gets a document from a database, or returns nothing."""
+
+        document: Optional[dict] = await collection.find_one(query)
+        return cls(document, collection=collection, query=query, **kwargs) if document is not None else None
 
     async def update_db(self, query: dict) -> None:
         """Performs an update on the database with the document."""

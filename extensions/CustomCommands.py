@@ -88,11 +88,10 @@ class CustomCommands(commands.Cog):
                     raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
                 else:
                     await ctx.send(command.message)
-            except Exception as exception:
-                ctx.bot.dispatch("command_error", ctx, exception)
-                # This isn't exactly right since a command wasn't really invoked, but oh well.
+            except Exception:  # Oh well. Can't do error handling here.
+                await ctx.message.add_reaction("❌")
             else:
-                ctx.bot.dispatch("command_completion", ctx)
+                await ctx.message.add_reaction("✅")
 
     @commands.group(
         invoke_without_command=True,

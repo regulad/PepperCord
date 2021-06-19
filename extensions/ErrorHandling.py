@@ -1,5 +1,6 @@
 import asyncio
-from typing import Union, Optional
+import datetime
+from typing import Optional
 
 import discord
 from discord.ext import commands, menus
@@ -100,32 +101,72 @@ class ErrorMenu(menus.Menu):
         self.stop()
 
 
+class ErrorLogging(commands.Cog):
+    """Logs errors (and successes) to the database."""
+
+    def __init__(self, bot: bots.BOT_TYPES):
+        self.bot = bot
+
+    @commands.Cog.listener("on_command")
+    async def log_command_uses(self, ctx: bots.CustomContext) -> None:
+        if ctx.command is not None:
+            await ctx.command_document.update_db({"$inc": {"stats.uses": 1}})
+
+    @commands.Cog.listener("on_command_completion")
+    async def log_command_completion(self, ctx: bots.CustomContext) -> None:
+        if ctx.command is not None:
+            await ctx.command_document.update_db({"$inc": {"stats.successes": 1}})
+
+    @commands.Cog.listener("on_command_error")
+    async def log_command_error(self, ctx: bots.CustomContext, error: Exception) -> None:
+        if ctx.command is not None:
+            await ctx.command_document.update_db({"$inc": {"stats.errors": 1}})
+
+
 class ErrorHandling(commands.Cog):
     """Handles raised errors."""
 
     def __init__(self, bot: bots.BOT_TYPES):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_command_completion(self, ctx: bots.CustomContext) -> None:
+    @commands.Cog.listener("on_command_completion")
+    async def affirm_success(self, ctx: bots.CustomContext) -> None:
         await ctx.message.add_reaction("✅")
 
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx: bots.CustomContext, error: Exception) -> None:
+    @commands.Cog.listener("on_command_error")
+    async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
         await ctx.message.add_reaction("‼️")
-
-        if await ctx.bot.is_owner(ctx.author) \
-                and isinstance(error, (commands.CommandOnCooldown, commands.CheckFailure)):
-            await ctx.message.add_reaction("🔁")
-
-            if ctx.command is not None:
-                await ctx.reinvoke()
-            else:
-                await ctx.message.add_reaction("❌")
-
-        else:
+        if ctx.command is not None:
             await ErrorMenu(error).start(ctx)
+
+    @commands.Cog.listener("on_command_error")
+    async def attempt_to_reinvoke(self, ctx: bots.CustomContext, error: Exception) -> None:
+        if ctx.command is not None:
+            if await ctx.bot.is_owner(ctx.author):
+                await ctx.message.add_reaction("🔁")
+
+                if ctx.valid and isinstance(error, (commands.CommandOnCooldown, commands.CheckFailure)):
+                    await ctx.reinvoke()
+                else:
+                    await ctx.message.add_reaction("❌")
+
+    @commands.Cog.listener("on_command_error")
+    async def determine_if_critical(self, ctx: bots.CustomContext, error: Exception) -> None:
+        critical: bool = not isinstance(
+            error,
+            (
+                commands.UserInputError,
+                commands.CommandOnCooldown,
+                commands.CheckFailure,
+                commands.CommandInvokeError,
+                commands.CommandNotFound,
+            )
+        )
+
+        if critical:
+            ctx.bot.dispatch("critical_error", ctx, error)  # I'll do something with this later, maybe a support system?
 
 
 def setup(bot: bots.BOT_TYPES):
     bot.add_cog(ErrorHandling(bot))
+    bot.add_cog(ErrorLogging(bot))

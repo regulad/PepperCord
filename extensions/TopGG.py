@@ -12,7 +12,6 @@ from utils import bots, database
 
 PESTERING_MESSAGES = [
     "Psst... Like the bot? Vote for it!",
-    "Psst... Running a bot ain't easy! Voting eases the pain...
 ]
 
 

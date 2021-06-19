@@ -56,7 +56,7 @@ class VotesMenu(menus.Menu):
 
             return await channel.send(embed=embed)
         else:
-            return await channel.send(f"{title} hasn't voted yet.")
+            return await channel.send(f"{self.user.display_name} hasn't voted yet.")
 
 
 class TopGGWebhook(commands.Cog, name="Voting"):

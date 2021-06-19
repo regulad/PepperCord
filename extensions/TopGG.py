@@ -1,6 +1,6 @@
 from typing import Union, Optional, List
 import datetime
-from random import randint
+from random import choice, randint
 
 from discord.ext import commands, menus
 import discord
@@ -97,10 +97,8 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
             # If a user has not voted in the past 24 hours, there is only a 2% chance we make it here.
 
-            random_index: int = randint(0, len(PESTERING_MESSAGES) - 1)
-
             await ctx.send(
-                f"Psst... {PESTERING_MESSAGES[random_index]} "
+                f"Psst... {choice(PESTERING_MESSAGES)} "
                 f"{get_top_gg_link(ctx.bot.user.id)} "
                 f"{'Tried of these messages? Try nopester.' if ctx.author_document.get('pestered', 0) > 2 else ''}"
             )

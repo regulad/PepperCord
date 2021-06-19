@@ -29,6 +29,7 @@ class CustomBotBase(commands.bot.BotBase):
         # TODO: Having audio players stored here prevents them from being garbage collected, causing a memory leak.
         # Ideally, they should be deleted once the VoiceClient ceases to exist.
         # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
+        # There doesn't seem to be an event dispatched when a VoiceClient is destroyed. Perhaps implement that?
 
         # This block of code is kinda stupid.
         self.service_account: Optional[ServiceAccount] = None
@@ -43,61 +44,40 @@ class CustomBotBase(commands.bot.BotBase):
     def config(self) -> dict:
         return self._config
 
-    @property
-    def music_players(self) -> list:
-        return self._audio_players
-
-    def get_audio_player(self, voice_client: discord.VoiceClient):
+    def get_audio_player(self, voice_client: discord.VoiceClient) -> AudioPlayer:
         """Gets or creates audio player from VoiceClient."""
 
-        for player in self.music_players:
+        for player in self._audio_players:
             if player.voice_client == voice_client:
                 return player
         else:
             music_player = AudioPlayer(voice_client)
-            self.music_players.append(music_player)
+            self._audio_players.append(music_player)
             return music_player
 
+    async def get_command_document(self, command: commands.Command):
+        """Gets a command's document from the database."""
+
+        return await Document.get_document(
+            self._database["commands"],
+            {
+                "name": command.name,
+                "cog": command.cog_name,
+                "parent": command.parent.name if command.parent is not None else None,
+            }
+        )
+
     async def get_guild_document(self, model: discord.Guild) -> Document:
-        """Get's a guild's document from the database."""
+        """Gets a guild's document from the database."""
 
         return await Document.get_document(self._database["guild"], {"_id": model.id})
 
     async def get_user_document(self, model: Union[discord.Member, discord.User]) -> Document:
-        """Get's a user's document from the database."""
+        """Gets a user's document from the database."""
 
         return await Document.get_document(self._database["user"], {"_id": model.id})
 
     async def get_context(self, message, *, cls=CustomContext):
-        r"""|coro|
-
-        Returns the invocation context from the message.
-
-        This is a more low-level counter-part for :meth:`.process_commands`
-        to allow users more fine grained control over the processing.
-
-        The returned context is not guaranteed to be a valid invocation
-        context, :attr:`.Context.valid` must be checked to make sure it is.
-        If the context is not valid then it is not a valid candidate to be
-        invoked under :meth:`~.Bot.invoke`.
-
-        Parameters
-        -----------
-        message: :class:`discord.Message`
-            The message to get the invocation context from.
-        cls
-            The factory class that will be used to create the context.
-            By default, this is :class:`.Context`. Should a custom
-            class be provided, it must be similar enough to :class:`.Context`\'s
-            interface.
-
-        Returns
-        --------
-        :class:`.Context`
-            The invocation context. The type of this can change via the
-            ``cls`` parameter.
-        """
-
         result = await super().get_context(message, cls=cls)
         if isinstance(result, CustomContext):
             await result.get_documents()

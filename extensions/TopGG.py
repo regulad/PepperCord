@@ -12,6 +12,7 @@ from utils import bots, database
 
 PESTERING_MESSAGES = [
     "Psst... Like the bot? Vote for it!",
+    "Psst... Running a bot ain't easy! Voting eases the pain...
 ]
 
 
@@ -43,15 +44,10 @@ class VotesMenu(menus.Menu):
         )
 
     async def send_initial_message(self, ctx, channel):
-        if isinstance(self.document.model, discord.Member):
-            title: str = self.user.name.display_name
-        else:
-            title: str = self.user.name
-
         votes: List[float] = self.document.get("votes", [])
 
         if len(votes) > 0:
-            embed = discord.Embed(title=f"{title}'s Votes").set_thumbnail(url=self.user.avatar_url).add_field(
+            embed = discord.Embed(title=f"{self.user.display_name}'s Votes").set_thumbnail(url=self.user.avatar_url).add_field(
                 name="Times voted:", value=len(votes)
             ).add_field(
                 name="First voted:", value=f"{datetime.datetime.utcfromtimestamp(votes[0])} UTC"

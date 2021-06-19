@@ -36,6 +36,9 @@ class Minecraft(commands.Cog):
         self.bot = bot
         self.aiohttp_cs = ClientSession()
 
+    def cog_unload(self) -> None:
+        self.bot.loop.create_task(self.aiohttp_cs.close())
+
     @commands.command(
         name="javaserver",
         aliases=["mcstatus", "jestatus", "java"],
@@ -178,11 +181,3 @@ class Minecraft(commands.Cog):
 
 def setup(bot: bots.BOT_TYPES):
     bot.add_cog(Minecraft(bot))
-
-
-def teardown(bot: bots.BOT_TYPES):
-    cog: Minecraft = bot.get_cog("Minecraft")
-
-    bot.loop.create_task(cog.aiohttp_cs.close())
-
-    bot.remove_cog("Minecraft")

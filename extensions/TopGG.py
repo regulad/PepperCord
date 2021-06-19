@@ -5,13 +5,13 @@ from random import randint
 from discord.ext import commands, menus
 import discord
 from topgg import DBLClient, WebhookManager
-from topgg.types import BotVoteData
+from topgg.types import BotVoteData, BotData
 
 from utils import bots, database
 
 
 PESTERING_MESSAGES = [
-    "Psst... Like the bot? Vote for it!",
+    "Like the bot? Vote for it!",
 ]
 
 
@@ -65,6 +65,14 @@ class TopGGWebhook(commands.Cog, name="Voting"):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
+        self.topgg_webhook = WebhookManager(bot).dbl_webhook(
+            bot.config.get("PEPPERCORD_TOPGG_WH_ROUTE", "/topgg"), bot.config["PEPPERCORD_TOPGG_WH_SECRET"]
+        )
+        self.topgg_webhook.run(int(bot.config.get("PEPPERCORD_TOPGG_WH", "5000")))
+
+    def cog_unload(self) -> None:
+        self.bot.loop.create_task(self.topgg_webhook.close())
+
     @commands.Cog.listener()
     async def on_dbl_vote(self, data: BotVoteData) -> None:
         if int(data["bot"]) == self.bot.user.id:
@@ -91,16 +99,13 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
             random_index: int = randint(0, len(PESTERING_MESSAGES) - 1)
 
-            await ctx.send(f"{PESTERING_MESSAGES[random_index]} {get_top_gg_link(ctx.bot.user.id)}")
+            await ctx.send(
+                f"Psst... {PESTERING_MESSAGES[random_index]} "
+                f"{get_top_gg_link(ctx.bot.user.id)} "
+                f"{'Tried of these messages? Try nopester.' if ctx.author_document.get('pestered', 0) > 2 else ''}"
+            )
 
-    @commands.command(
-        name="vote",
-        aliases=["bump"],
-        brief="Gets the link to vote.",
-        description="Gets the link to vote for the bot on Top.gg.",
-    )
-    async def vote(self, ctx: bots.CustomContext) -> None:
-        await ctx.send(get_top_gg_link(ctx.bot.user.id))
+            await ctx.author_document.update_db({"$inc": {"pestered": 1}})
 
     @commands.command(
         name="nopester",
@@ -135,35 +140,44 @@ class TopGG(commands.Cog):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
+        if isinstance(bot, bots.CustomAutoShardedBot):
+            self.topggpy = DBLClient(bot, bot.config["PEPPERCORD_TOPGG"], autopost=True, post_shard_count=True)
+        else:
+            self.topggpy = DBLClient(bot, bot.config["PEPPERCORD_TOPGG"], autopost=True)
+
+    def cog_unload(self) -> None:
+        self.bot.loop.create_task(self.topggpy.close())
+
+    @commands.command(
+        name="vote",
+        aliases=["bump"],
+        brief="Gets the link to vote for the bot on Top.gg.",
+        description="Gets the link to vote for the bot on Top.gg.",
+    )
+    async def vote(self, ctx: bots.CustomContext) -> None:
+        await ctx.send(get_top_gg_link(ctx.bot.user.id))
+
+    @commands.command(
+        name="totalvotes",
+        brief="Shows the total amount of votes the bot has obtained.",
+        description="Shows how many votes the bot has received.",
+    )
+    async def totalvotes(self, ctx: bots.CustomContext) -> None:
+        async with ctx.typing():
+            bot_info: BotData = await self.topggpy.get_bot_info()
+            await ctx.send(f"{ctx.bot.name} has received {bot_info['points']}")
+
 
 def setup(bot: bots.BOT_TYPES) -> None:
     if bot.config.get("PEPPERCORD_TOPGG") is not None:
-        if isinstance(bot, bots.CustomAutoShardedBot):
-            bot.topggpy = DBLClient(bot, bot.config["PEPPERCORD_TOPGG"], autopost=True, post_shard_count=True)
-        else:
-            bot.topggpy = DBLClient(bot, bot.config["PEPPERCORD_TOPGG"], autopost=True)
-
         bot.add_cog(TopGG(bot))
-    if bot.config.get("PEPPERCORD_TOPGG_WH") is not None \
-            and bot.config.get("PEPPERCORD_TOPGG_WH_ROUTE") is not None \
-            and bot.config.get("PEPPERCORD_TOPGG_WH_SECRET") is not None:
-        bot.topgg_webhook = WebhookManager(bot).dbl_webhook(
-            bot.config["PEPPERCORD_TOPGG_WH_ROUTE"], bot.config["PEPPERCORD_TOPGG_WH_SECRET"]
-        )
-        bot.topgg_webhook.run(int(bot.config["PEPPERCORD_TOPGG_WH"]))
-
+    if bot.config.get("PEPPERCORD_TOPGG_WH_SECRET") is not None:
         bot.add_cog(TopGGWebhook(bot))
 
 
 def teardown(bot: bots.BOT_TYPES) -> None:
-    if bot.topggpy is not None:
-        bot.remove_cog("TopGG")
+    if bot.config.get("PEPPERCORD_TOPGG") is not None:
+        bot.add_cog("TopGG")
+    if bot.config.get("PEPPERCORD_TOPGG_WH_SECRET") is not None:
+        bot.add_cog("Voting")
 
-        bot.loop.create_task(bot.topggpy.close())
-        # Not perfect, but it shouldn't be that big of an issue.
-        # It isn't normally mission critical to close the connection.
-    if bot.topgg_webhook is not None:
-        bot.remove_cog("Voting")
-
-        bot.loop.create_task(bot.topgg_webhook.close())
-        # Above also applies here, to a greater extent.

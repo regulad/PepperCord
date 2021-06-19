@@ -129,9 +129,10 @@ class TopGGWebhook(commands.Cog, name="Voting"):
         description="Gives you info about when the user first voted and when the most recently voted.",
     )
     async def votes(self, ctx: bots.CustomContext, *, user: Optional[Union[discord.Member, discord.User]]) -> None:
-        user: Union[discord.Member, discord.User] = user or ctx.author
-        document: database.Document = await self.bot.get_user_document(user)
-        await VotesMenu(document, user).start(ctx)
+        async with ctx.typing():
+            user: Union[discord.Member, discord.User] = user or ctx.author
+            document: database.Document = await self.bot.get_user_document(user)
+            await VotesMenu(document, user).start(ctx)
 
 
 class TopGG(commands.Cog):

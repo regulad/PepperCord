@@ -39,7 +39,7 @@ class AudioPlayer:
         self._tts_client_session = None
         # Set to none so they will only be created when required.
 
-        self.task = self.voice_client.loop.create_task(self.play())
+        self.task = self.voice_client.loop.run_until_complete(self.play())
 
     def __del__(self):
         if not self.done:

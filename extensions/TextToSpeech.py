@@ -112,7 +112,4 @@ def teardown(bot: bots.BOT_TYPES):
     if bot.async_gtts_session is not None:
         bot.remove_cog("TextToSpeech")
 
-        bot.loop.create_task(bot.gtts_client_session.close())
-        # Not perfect, but it shouldn't be that big of an issue.
-        # It isn't normally mission critical to close the connection.
-        # I should really consider reworking the way connections are closed for the AsyncGTTSSession.
+        bot.loop.run_until_complete(bot.gtts_client_session.close())

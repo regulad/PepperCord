@@ -1,46 +1,81 @@
-import time
-import typing
+import datetime
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands, tasks
 
-from utils import checks, bots
+from utils import checks, bots, database, converters
+
+
+async def mute(
+        member: discord.Member,
+        *,
+        guild_document: Optional[database.Document] = None,
+        bot: Optional[bots.BOT_TYPES] = None,
+) -> None:
+    """Mutes a user. Requires a bot or a guild document."""
+
+    if guild_document is None and bot is None:
+        raise TypeError("Either a bot or a document is required to call this function.")
+    elif guild_document is None:
+        guild_document: database.Document = await bot.get_guild_document(member.guild)
+
+    if guild_document.get("mute_role") is None:
+        raise bots.NotConfigured("Mute must be configured.")
+    else:
+        mute_role: discord.Role = member.guild.get_role(guild_document["mute_role"])
+        await member.add_roles(mute_role, reason="Mute")
+
+
+async def unmute(
+        member: discord.Member,
+        *,
+        guild_document: Optional[database.Document] = None,
+        bot: Optional[bots.BOT_TYPES] = None,
+) -> None:
+    """Unmutes a user. Requires a bot or a guild document."""
+
+    if guild_document is None and bot is None:
+        raise TypeError("Either a bot or a document is required to call this function.")
+    elif guild_document is None:
+        guild_document: database.Document = await bot.get_guild_document(member.guild)
+
+    if guild_document.get("mute_role") is None:
+        raise bots.NotConfigured("Mute must be configured.")
+    else:
+        mute_role: discord.Role = member.guild.get_role(guild_document["mute_role"])
+        await member.remove_roles(mute_role, reason="Unmute")
 
 
 class Moderation(commands.Cog):
     """Tools for moderation in guilds."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
         self.unpunish.start()
 
-    def cog_unload(self):
+    def cog_unload(self) -> None:
         self.unpunish.stop()
 
     @tasks.loop(seconds=120)
-    async def unpunish(self):
+    async def unpunish(self) -> None:
         for guild in self.bot.guilds:
-            # Get the document for the guild
-            guild_doc = await self.bot.get_guild_document(guild)
-            punishment_dict = guild_doc.get("punishments")
-            # If the punishment dict is present
-            if punishment_dict is not None:
-                for user_id, user_dict in punishment_dict.values():
+            guild_doc: database.Document = await self.bot.get_guild_document(guild)
+            if guild_doc.get("punishments") is not None:
+                for user_id, user_dict in guild_doc["punishments"].values():
                     for punishment, unpunish_time in user_dict.values():
-                        if unpunish_time <= time.time():
-                            try:
+                        if datetime.datetime.utcfromtimestamp(unpunish_time) < datetime.datetime.utcnow():
+                            try:  # Messy.
                                 if punishment == "mute":
-                                    mute_role = guild.get_role(guild_doc["mute_role"])
-                                    member = guild.get_member(user_id)
-                                    await member.remove_roles(mute_role)
+                                    await unmute(await guild.fetch_member(int(user_id)), guild_document=guild_doc)
                                 elif punishment == "ban":
-                                    user = self.bot.get_user(user_id)
+                                    user: discord.User = self.bot.get_user(user_id)
                                     await guild.unban(user=user, reason="Timeban expired.")
                             finally:
                                 await guild_doc.update_db({"$unset": {f"punishments.{user_id}.{punishment}": 1}})
 
-    async def cog_check(self, ctx):
+    async def cog_check(self, ctx: bots.CustomContext) -> bool:
         return await checks.is_mod(ctx)
 
     @commands.command(
@@ -50,23 +85,28 @@ class Moderation(commands.Cog):
         description="Delete a specified amount of messages in the current channel.",
     )
     @commands.bot_has_permissions(manage_messages=True)
-    async def purge(self, ctx, messages: int):
+    async def purge(self, ctx: bots.CustomContext, messages: int) -> None:
         await ctx.channel.purge(limit=messages + 1)
 
     @commands.command(name="kick", brief="Kicks user from the server.", description="Kicks user from the server.")
     @commands.bot_has_permissions(kick_members=True)
-    async def kick(self, ctx, member: discord.Member, *, reason: str = ""):
+    async def kick(self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]) -> None:
         await member.kick(reason=reason)
 
     @commands.command(name="ban", brief="Bans user from the server.", description="Bans user from the server.")
     @commands.bot_has_permissions(ban_members=True)
-    async def ban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
-        await ctx.guild.ban(user=member, reason=reason)
+    async def ban(
+            self,
+            ctx: bots.CustomContext,
+            member: Union[discord.Member, discord.User],
+            *,
+            reason: Optional[str]) -> None:
+        await member.ban(user=member, reason=reason)
 
     @commands.command(name="unban", brief="Unbans user from the server.", description="Unbans user from the server.")
     @commands.bot_has_permissions(ban_members=True)
-    async def unban(self, ctx, member: typing.Union[discord.Member, discord.User], *, reason: str = ""):
-        await ctx.guild.unban(user=member, reason=reason)
+    async def unban(self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]) -> None:
+        await member.unban(reason=reason)
 
     @commands.command(
         name="mute",
@@ -75,12 +115,8 @@ class Moderation(commands.Cog):
         description="Mutes user from typing in text channels. Must be configured first.",
     )
     @commands.bot_has_permissions(manage_roles=True)
-    async def mute(self, ctx, *, member: discord.Member):
-        try:
-            mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
-        except KeyError:
-            raise bots.NotConfigured
-        await member.add_roles(mute_role)
+    async def mute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
+        await mute(member, guild_document=ctx.guild_document)
 
     @commands.command(
         name="unmute",
@@ -89,36 +125,39 @@ class Moderation(commands.Cog):
         description="Unmutes user from typing in text channels. Must be configured first.",
     )
     @commands.bot_has_permissions(manage_roles=True)
-    async def unmute(self, ctx, *, member: discord.Member):
-        try:
-            mute_role = ctx.guild.get_role(ctx.guild_document["mute_role"])
-        except KeyError:
-            raise bots.NotConfigured
-        await member.remove_roles(mute_role)
+    async def unmute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
+        await unmute(member, guild_document=ctx.guild_document)
 
     @commands.command(
         name="timemute",
         aliases=["timegulag"],
         brief="Mutes a user and unmutes them later",
         description="Mutes a user then schedueles their unmuting",
-        usage="<Member> [Time (Minutes)]",
+        usage="<Member> [Time (Seconds)]",
     )
     @commands.bot_has_permissions(manage_roles=True)
-    async def timemute(self, ctx, member: discord.Member, unpunishtime: int = 10):  # Should rewrite to be greedy
+    async def timemute(self, ctx: bots.CustomContext, member: discord.Member, unpunishtime: converters.TimeShorthand) \
+            -> None:
+        print(datetime.datetime.utcnow() + unpunishtime)
         await ctx.invoke(self.mute, member=member)
-        await ctx.guild_document.update_db({"$set": {f"punishments.{member.id}.mute": time.time() + (unpunishtime * 60)}})
+        await ctx.guild_document.update_db(
+            {"$set": {f"punishments.{member.id}.mute": (datetime.datetime.utcnow() + unpunishtime).timestamp()}}
+        )
         await ctx.message.add_reaction(emoji="⏰")
 
     @commands.command(
         name="timeban",
         brief="Mutes a user and unmutes them later",
         description="Mutes a user then schedueles their unmuting",
-        usage="<Member> [Time (Minutes)]",
+        usage="<Member> [Time (Seconds)]",
     )
     @commands.bot_has_permissions(ban_members=True)
-    async def timeban(self, ctx, member: discord.Member, unpunishtime: int = 10):  # Should rewrite to be greedy
+    async def timeban(self, ctx: bots.CustomContext, member: discord.Member, unpunishtime: converters.TimeShorthand) \
+            -> None:
         await ctx.invoke(self.mute, member=member)
-        await ctx.guild_document.update_db({"$set": {f"punishments.{member.id}.ban": time.time() + (unpunishtime * 60)}})
+        await ctx.guild_document.update_db(
+            {"$set": {f"punishments.{member.id}.ban": (datetime.datetime.utcnow() + unpunishtime).timestamp()}}
+        )
         await ctx.message.add_reaction(emoji="⏰")
 
 

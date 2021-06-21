@@ -1,3 +1,11 @@
+import datetime
+from typing import List, Dict, Optional
+
+from discord.ext import commands
+
+from utils import bots
+
+
 def duration_to_str(duration_strings: float) -> str:
     """Takes in a duration in seconds and returns a fancy string."""
 
@@ -30,4 +38,72 @@ def duration_to_str(duration_strings: float) -> str:
     return ", ".join(duration_strings)
 
 
-__all__ = ["duration_to_str"]
+class TimeShorthand(commands.Converter):
+    async def convert(self, ctx: bots.CustomContext, argument: str) -> datetime.timedelta:
+        try:
+            return shorthand_to_timedelta(argument)
+        except TypeError as exception:
+            raise commands.BadArgument(str(exception))
+        except Exception as exception:
+            raise commands.CommandError(str(exception))
+
+
+shorthands: List[str] = [
+    "y",
+    "mo",
+    "w",
+    "d",
+    "h",
+    "m",
+    "s",
+]
+
+
+def shorthand_to_timedelta(shorthand: str) -> datetime.timedelta:
+    """Shorthand:
+    y: Years
+    mo: Months
+    w: Weeks
+    d: Days
+    h: Hours
+    m: Minutes
+    s: Seconds"""
+
+    # Checks if a known unit of time is present in the shorthand.
+    for possible_shorthand in shorthands:
+        if possible_shorthand in shorthand:
+            break
+    else:
+        raise TypeError("No unit of time in shorthand.")
+
+    # Splits the shorthand up into smaller pieces.
+    units: Dict[str, Optional[float]] = {
+        "y": None,
+        "mo": None,
+        "w": None,
+        "d": None,
+        "h": None,
+        "m": None,
+        "s": None,
+    }
+    for possible_shorthand in shorthands:
+        if len(shorthand) == 0:
+            break
+        if shorthand.find(possible_shorthand) != -1:
+            index: int = shorthand.find(possible_shorthand)
+            units[possible_shorthand] = float(shorthand[:index])
+            shorthand = shorthand[index + 1:]
+
+    days: float = (units["y"] * 365 if units["y"] is not None else 0) \
+                  + (units["mo"] * 30 if units["mo"] is not None else 0)
+
+    return datetime.timedelta(
+        weeks=units["w"] or 0,
+        days=days + units["d"] if units["d"] is not None else days,  # Kinda stupid!
+        hours=units["h"] or 0,
+        minutes=units["m"] or 0,
+        seconds=units["s"] or 0,
+    )
+
+
+__all__ = ["duration_to_str", "TimeShorthand", "shorthand_to_timedelta"]

@@ -15,7 +15,7 @@ class APIs(commands.Cog):
         self.aiohttp_cs = ClientSession()
 
     def cog_unload(self) -> None:
-        self.bot.loop.create_task(self.aiohttp_cs.close())
+        self.bot.loop.run_until_complete(self.aiohttp_cs.close())
 
     @commands.command(name="bored", description="Do something, stop being bored!", brief="Anti-boredom.")
     async def bored(self, ctx: bots.CustomContext):

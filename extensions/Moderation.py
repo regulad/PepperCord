@@ -63,8 +63,8 @@ class Moderation(commands.Cog):
         for guild in self.bot.guilds:
             guild_doc: database.Document = await self.bot.get_guild_document(guild)
             if guild_doc.get("punishments") is not None:
-                for user_id, user_dict in guild_doc["punishments"].values():
-                    for punishment, unpunish_time in user_dict.values():
+                for user_id, user_dict in guild_doc["punishments"].items():
+                    for punishment, unpunish_time in user_dict.items():
                         if datetime.datetime.utcfromtimestamp(unpunish_time) < datetime.datetime.utcnow():
                             try:  # Messy.
                                 if punishment == "mute":
@@ -138,7 +138,6 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     async def timemute(self, ctx: bots.CustomContext, member: discord.Member, unpunishtime: converters.TimeShorthand) \
             -> None:
-        print(datetime.datetime.utcnow() + unpunishtime)
         await ctx.invoke(self.mute, member=member)
         await ctx.guild_document.update_db(
             {"$set": {f"punishments.{member.id}.mute": (datetime.datetime.utcnow() + unpunishtime).timestamp()}}

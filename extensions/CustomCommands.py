@@ -1,9 +1,33 @@
-from typing import List
+from typing import Optional, List
 
 import discord
 from discord.ext import commands, menus
 
 from utils import checks, bots
+from utils.attachments import find_url_recurse
+from extensions.Moderation import mute
+
+
+async def process_custom_keywords(ctx: bots.CustomContext, message_string: str) -> bool:
+    output: bool = False
+
+    if "$del" in message_string:
+        await ctx.message.delete()
+        output: bool = True
+
+    if "$mute" in message_string:
+        await mute(ctx.author, guild_document=ctx.guild_document)
+        output: bool = True
+
+    if "$kick" in message_string:
+        await ctx.author.kick()
+        output: bool = True
+
+    if "$ban" in message_string:
+        await ctx.author.ban()
+        output: bool = True
+
+    return output
 
 
 class CustomCommand:
@@ -63,35 +87,33 @@ class CustomCommands(commands.Cog):
         if ctx.author == ctx.bot.user or ctx.author == ctx.guild.me:
             return
 
-        try:
-            await checks.is_blacklisted(ctx)
-        except checks.Blacklisted:
-            return  # raise
-
-        if ctx.guild is not None and ctx.guild_document.get("commands") is not None:
-            custom_commands = CustomCommand.from_dict(ctx.guild_document.get("commands"))
-
-            words: List[str] = ctx.message.content.strip().lower().split()
+        if ctx.guild is not None and ctx.guild_document.get("commands") is not None and not ctx.valid:
+            # If we got here, it means:
+            #   We are in a guild
+            #   The guild has registered custom commands
+            #   The invocation context is not valid
+            
+            custom_commands: List[CustomCommand] = CustomCommand.from_dict(ctx.guild_document.get("commands"))
 
             for custom_command in custom_commands:
-                if custom_command.command.lower() in words:
+                if custom_command.command in ctx.message.clean_content.strip():
                     command: CustomCommand = custom_command
-                    break
+                    break  # We found our command!
             else:
                 return  # No command.
 
-            try:
-                bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
-                retry_after: float = bucket.update_rate_limit()
+            bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
+            retry_after: float = bucket.update_rate_limit()
 
-                if retry_after:
-                    raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
-                else:
-                    await ctx.send(command.message)
-            except Exception:  # Oh well. Can't do error handling here.
-                await ctx.message.add_reaction("❌")
-            else:
-                await ctx.message.add_reaction("✅")
+            try:
+                processed: bool = await process_custom_keywords(ctx, command.message)
+            except discord.DiscordException:
+                return  # Something nasty happened.
+
+            if retry_after:
+                await ctx.message.add_reaction("⏰")
+            elif not processed:
+                await ctx.send(command.message)
 
     @commands.group(
         invoke_without_command=True,
@@ -109,10 +131,26 @@ class CustomCommands(commands.Cog):
         await pages.start(ctx)
 
     @customcommands.command(
-        name="add", aliases=["set"], brief="Adds a custom command.", description="Adds a custom command to the guild."
+        name="add",
+        aliases=["set"],
+        brief="Adds a custom command.",
+        description="Adds a custom command to the guild.\n"
+                    "Custom commands are case sensitive, "
+                    "and both the invocation keyword and the message must be placed in quotes if they are multiple "
+                    "words.\n"
+                    "If a Message is not specified, the most recently sent media will be used.\n\n"
+                    "If a ⏰ is added to the message, it means you are being rate-limited.\n\n"
+                    "Commands can contain special keywords that perform certain actions:\n\n"
+                    "* $del: Deletes the message that invoked the command.\n"
+                    "* $mute: Mutes the sender.\n"
+                    "* $kick: Kicks the sender.\n"
+                    "* $ban: Bans the sender.",
+        usage="<Keyword> [Message]",
     )
-    async def ccadd(self, ctx: bots.CustomContext, command: str, *, message: str) -> None:
-        await ctx.guild_document.update_db({"$set": {f"commands.{command.lower()}": message}})
+    @commands.check(checks.is_admin)
+    async def ccadd(self, ctx: bots.CustomContext, command: str, *, message: Optional[str] = None) -> None:
+        message: str = message if message is not None else (await find_url_recurse(ctx.message))[0]
+        await ctx.guild_document.update_db({"$set": {f"commands.{command}": message}})
 
     @customcommands.command(
         name="delete",
@@ -120,13 +158,13 @@ class CustomCommands(commands.Cog):
         brief="Deletes a custom command.",
         description="Deletes a custom command from the guild.",
     )
+    @commands.check(checks.is_admin)
     async def ccdel(self, ctx: bots.CustomContext, *, command: str) -> None:
-        try:
-            ctx.guild_document.get("commands", {})[command.lower()]
-        except KeyError:
-            raise commands.CommandNotFound(f"""Command "{command}" is not found""")
+        if ctx.guild_document.get("commands") is not None \
+                and ctx.guild_document["commands"].get(command) is not None:
+            await ctx.guild_document.update_db({"$unset": {f"commands.{command}": 1}})
         else:
-            await ctx.guild_document.update_db({"$unset": {f"commands.{command.lower()}": 1}})
+            raise commands.CommandNotFound(f"{command} is not registered.")
 
 
 def setup(bot: bots.BOT_TYPES):

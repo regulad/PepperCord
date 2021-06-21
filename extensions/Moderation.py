@@ -136,7 +136,7 @@ class Moderation(commands.Cog):
         usage="<Member> [Time (Seconds)]",
     )
     @commands.bot_has_permissions(manage_roles=True)
-    async def timemute(self, ctx: bots.CustomContext, member: discord.Member, unpunishtime: converters.TimeShorthand) \
+    async def timemute(self, ctx: bots.CustomContext, member: discord.Member, unpunishtime: converters.TimedeltaShorthand) \
             -> None:
         await ctx.invoke(self.mute, member=member)
         await ctx.guild_document.update_db(
@@ -151,7 +151,7 @@ class Moderation(commands.Cog):
         usage="<Member> [Time (Seconds)]",
     )
     @commands.bot_has_permissions(ban_members=True)
-    async def timeban(self, ctx: bots.CustomContext, member: discord.Member, unpunishtime: converters.TimeShorthand) \
+    async def timeban(self, ctx: bots.CustomContext, member: discord.Member, unpunishtime: converters.TimedeltaShorthand) \
             -> None:
         await ctx.invoke(self.mute, member=member)
         await ctx.guild_document.update_db(

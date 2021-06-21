@@ -38,7 +38,7 @@ def duration_to_str(duration_strings: float) -> str:
     return ", ".join(duration_strings)
 
 
-class TimeShorthand(commands.Converter):
+class TimedeltaShorthand(commands.Converter):
     async def convert(self, ctx: bots.CustomContext, argument: str) -> datetime.timedelta:
         try:
             return shorthand_to_timedelta(argument)
@@ -106,4 +106,4 @@ def shorthand_to_timedelta(shorthand: str) -> datetime.timedelta:
     )
 
 
-__all__ = ["duration_to_str", "TimeShorthand", "shorthand_to_timedelta"]
+__all__ = ["duration_to_str", "TimedeltaShorthand", "shorthand_to_timedelta"]

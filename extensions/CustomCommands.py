@@ -84,7 +84,7 @@ class CustomCommands(commands.Cog):
     async def on_message(self, message: discord.Message) -> None:
         ctx: bots.CustomContext = await self.bot.get_context(message)
 
-        if len(ctx.message.clean_content) > 0 \
+        if len(ctx.message.clean_content.strip()) > 0 \
                 and not ctx.author.bot \
                 and ctx.guild is not None \
                 and ctx.guild_document.get("commands") is not None \
@@ -97,7 +97,7 @@ class CustomCommands(commands.Cog):
             for custom_command in custom_commands:
                 if custom_command.command in ctx.message.clean_content.strip() \
                         if ctx.guild_document.get("ccmatch", False) \
-                        else ctx.message.clean_content.split()[0].startswith(custom_command.command):
+                        else ctx.message.clean_content.split()[0].lower() == custom_command.command.lower():
                     command: CustomCommand = custom_command
                     break  # We found our command!
             else:
@@ -142,9 +142,11 @@ class CustomCommands(commands.Cog):
         aliases=["m"],
         brief="Sets options for matching invocation keywords in messages.",
         description="Sets options for matching invocation keywords in messages.\n\n"
-                    "* True: A command will be invoked if the command is found anywhere in the message.\n"
+                    "* True: A command will be invoked if the command is found anywhere in the message."
+                    "Commands are case-sensitive.\n"
                     "* False: "
-                    "A command will only be invoked if the command is found in the first word of a message.\n\n"
+                    "A command will only be invoked if the command is found in the first word of a message. "
+                    "Commands are not case-sensitive.\n\n"
                     "The default is False."
     )
     @commands.check(checks.is_admin)
@@ -156,7 +158,7 @@ class CustomCommands(commands.Cog):
         aliases=["set"],
         brief="Adds a custom command.",
         description="Adds a custom command to the guild.\n"
-                    "Custom commands are case sensitive, "
+                    "Custom commands are case-sensitive (by default), "
                     "and both the invocation keyword and the message must be placed in quotes if they are multiple "
                     "words.\n"
                     "If a Message is not specified, the most recently sent media will be used.\n\n"

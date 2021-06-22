@@ -84,19 +84,20 @@ class CustomCommands(commands.Cog):
     async def on_message(self, message: discord.Message) -> None:
         ctx: bots.CustomContext = await self.bot.get_context(message)
 
-        if ctx.author == ctx.bot.user or ctx.author == ctx.guild.me:
-            return
+        if len(ctx.message.clean_content) > 0 \
+                and not ctx.author.bot \
+                and ctx.guild is not None \
+                and ctx.guild_document.get("commands") is not None \
+                and not ctx.valid:
+            # Lots of conditions to get here.
+            # Oh well, that will happen if you have to make your own command invocation system.
 
-        if ctx.guild is not None and ctx.guild_document.get("commands") is not None and not ctx.valid:
-            # If we got here, it means:
-            #   We are in a guild
-            #   The guild has registered custom commands
-            #   The invocation context is not valid
-            
-            custom_commands: List[CustomCommand] = CustomCommand.from_dict(ctx.guild_document.get("commands"))
+            custom_commands: List[CustomCommand] = CustomCommand.from_dict(ctx.guild_document["commands"])
 
             for custom_command in custom_commands:
-                if custom_command.command in ctx.message.clean_content.strip():
+                if custom_command.command in ctx.message.clean_content.strip() \
+                        if ctx.guild_document.get("ccmatch", False) \
+                        else ctx.message.clean_content.split()[0].startswith(custom_command.command):
                     command: CustomCommand = custom_command
                     break  # We found our command!
             else:
@@ -108,12 +109,18 @@ class CustomCommands(commands.Cog):
             try:
                 processed: bool = await process_custom_keywords(ctx, command.message)
             except discord.DiscordException:
+                await ctx.message.add_reaction("❌")
                 return  # Something nasty happened.
 
             if retry_after:
-                await ctx.message.add_reaction("⏰")
+                await ctx.message.add_reaction("⏰")  # User is being rate-limited!
             elif not processed:
                 await ctx.send(command.message)
+            else:
+                try:
+                    await ctx.message.add_reaction("✅")
+                except discord.NotFound:
+                    return  # Message likely got deleted during keyword processing.
 
     @commands.group(
         invoke_without_command=True,
@@ -129,6 +136,20 @@ class CustomCommands(commands.Cog):
         source = CustomCommandSource(custom_commands, ctx.guild)
         pages = menus.MenuPages(source=source)
         await pages.start(ctx)
+
+    @customcommands.command(
+        name="match",
+        aliases=["m"],
+        brief="Sets options for matching invocation keywords in messages.",
+        description="Sets options for matching invocation keywords in messages.\n\n"
+                    "* True: A command will be invoked if the command is found anywhere in the message.\n"
+                    "* False: "
+                    "A command will only be invoked if the command is found in the first word of a message.\n\n"
+                    "The default is False."
+    )
+    @commands.check(checks.is_admin)
+    async def match(self, ctx: bots.CustomContext, match: bool) -> None:
+        await ctx.guild_document.update_db({"$set": {"ccmatch": match}})
 
     @customcommands.command(
         name="add",

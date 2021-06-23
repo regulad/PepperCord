@@ -42,6 +42,8 @@ bot = bot_class(
 )
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+    
     for file in os.listdir("extensions/"):
         if file.endswith(".py"):
             full_path = "extensions/" + file

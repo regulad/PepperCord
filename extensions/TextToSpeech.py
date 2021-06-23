@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Optional
 import os
 from json import load
 
@@ -7,10 +7,9 @@ import discord
 from asyncgTTS import ServiceAccount, AsyncGTTSSession
 from aiohttp import ClientSession
 
-from utils import checks
+from utils import checks, bots
 from utils.embed_menus import AudioSourceMenu
 from utils.sources import TTSSource
-from utils import bots
 
 
 class VoiceDoesNotExist(Exception):
@@ -38,7 +37,7 @@ class TextToSpeech(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx: bots.CustomContext):
-        return await checks.is_in_voice(ctx) and await checks.is_a_voter(ctx)
+        return await checks.is_in_voice(ctx)
 
     async def cog_before_invoke(self, ctx: bots.CustomContext):
         if ctx.voice_client is None:

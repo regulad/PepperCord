@@ -71,7 +71,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
         self.topgg_webhook.run(int(bot.config.get("PEPPERCORD_TOPGG_WH", "5000")))
 
     def cog_unload(self) -> None:
-        self.bot.loop.run_until_complete(self.topgg_webhook.close())
+        self.bot.loop.create_task(self.topgg_webhook.close())
 
     @commands.Cog.listener()
     async def on_dbl_vote(self, data: BotVoteData) -> None:
@@ -145,7 +145,7 @@ class TopGG(commands.Cog):
             self.topggpy = DBLClient(bot, bot.config["PEPPERCORD_TOPGG"], autopost=True)
 
     def cog_unload(self) -> None:
-        self.bot.loop.run_until_complete(self.topggpy.close())
+        self.bot.loop.create_task(self.topggpy.close())
 
     @commands.command(
         name="vote",

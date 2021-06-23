@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 from typing import Optional
 
 import discord
@@ -28,8 +27,6 @@ known_errors = {
     commands.CommandOnCooldown: "You'll need to wait before you can execute this command again.",
 
     commands.NotOwner: "Only the bot's owner may execute this command.",
-
-    checks.NotVoted: "You have to vote for the bot to use this command. See the vote command.",
 
     checks.LowPrivilege: "You are not authorized to run this command. Ask a server administrator if you believe "
                          "this is an error.",

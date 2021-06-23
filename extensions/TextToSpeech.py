@@ -111,4 +111,4 @@ def teardown(bot: bots.BOT_TYPES):
     if bot.async_gtts_session is not None:
         bot.remove_cog("TextToSpeech")
 
-        bot.loop.run_until_complete(bot.gtts_client_session.close())
+        bot.loop.create_task(bot.gtts_client_session.close())

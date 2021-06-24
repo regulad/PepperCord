@@ -4,6 +4,7 @@ https://github.com/regulad/PepperCord
 """
 
 import os
+import logging
 
 import discord
 import motor.motor_asyncio

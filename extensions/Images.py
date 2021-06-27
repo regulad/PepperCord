@@ -13,7 +13,7 @@ def pins_left_executor(pins_left: int) -> BytesIO:
     image_draw = ImageDraw.Draw(save_image)
     image_draw.text(
         xy=(650, 490),
-        text=f"-{pins_left} Pins Remain-",
+        text=f"-{pins_left} {'Pins' if pins_left > 1 else 'Pin'} {'Remain' if pins_left > 1 else 'Remains'}-",
         stroke_fill="#FFFFFF",
         font=arial_narrow_bold_font,
         anchor="ms",

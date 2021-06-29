@@ -46,7 +46,7 @@ class VotesMenu(menus.Menu):
         votes: List[float] = self.document.get("votes", [])
 
         if len(votes) > 0:
-            embed = discord.Embed(title=f"{self.user.display_name}'s Votes").set_thumbnail(url=self.user.avatar_url).add_field(
+            embed = discord.Embed(title=f"{self.user.display_name}'s Votes").set_thumbnail(url=self.user.avatar.url).add_field(
                 name="Times voted:", value=len(votes)
             ).add_field(
                 name="First voted:", value=f"{datetime.datetime.utcfromtimestamp(votes[0])} UTC"

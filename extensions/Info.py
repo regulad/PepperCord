@@ -64,7 +64,7 @@ class DiscordInfo(commands.Cog):
                     colour=user.colour,
                     title=f"All about {user.name}#{user.discriminator}\n({user.id})",
                 )
-                    .set_thumbnail(url=user.avatar_url)
+                    .set_thumbnail(url=user.avatar.url)
                     .add_field(name="Account creation date:", value=f"{user.created_at} UTC")
             )
             if isinstance(user, discord.Member):
@@ -132,7 +132,7 @@ class DiscordInfo(commands.Cog):
                                 f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
                                 f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}"
                 ).set_thumbnail(
-                    url=ctx.bot.user.avatar_url
+                    url=ctx.bot.user.avatar.url
                 ).add_field(
                     name="Invite:",
                     value=discord.utils.oauth_url(

@@ -28,7 +28,7 @@ async def send_star(document: database.Document, message: discord.Message) -> di
     embed = discord.Embed(colour=message.author.colour, description=message.content).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
         url=message.jump_url,
-        icon_url=message.author.avatar_url,
+        icon_url=message.author.avatar.url,
     )
 
     try:

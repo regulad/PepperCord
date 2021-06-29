@@ -107,7 +107,7 @@ class UserLevelMenu(menus.Menu):
             .add_field(name="XP:", value=f"```{self.source.xp}```")
             .add_field(name="Level:", value=f"```{self.source.level}```")
             .add_field(name="To next:", value=f"```{round(self.source.next - self.source.xp)}```")
-            .set_thumbnail(url=self.source.user.avatar_url)
+            .set_thumbnail(url=self.source.user.avatar.url)
         )
         if self.level_up:
             return await channel.send(f"Level up! {self.source.user.mention}", embed=embed)

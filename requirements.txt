@@ -1,4 +1,5 @@
-discord.py[voice] < 2
+git+https://github.com/Rapptz/discord.py
+PyNaCl # For voice. Would be installed from the extras, but doesn't seem to work with the git url
 git+https://github.com/Rapptz/discord-ext-menus # Experimental Menu features, very cool
 discord-pretty-help # Makes the help command look nice. Bad.
 jishaku  # Useful development tools.

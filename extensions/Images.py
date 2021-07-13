@@ -7,13 +7,13 @@ from discord.ext import commands
 
 
 def pins_left_executor(pins_left: int) -> BytesIO:
-    buffer = BytesIO()
+    buffer: BytesIO = BytesIO()
     save_image = Image.open("resources/blank.png")
     arial_narrow_bold_font = ImageFont.truetype("resources/arial-narrow-bold.ttf", 72)
     image_draw = ImageDraw.Draw(save_image)
     image_draw.text(
         xy=(650, 490),
-        text=f"-{pins_left} {'Pins' if pins_left == 1 else 'Pin'} {'Remain' if pins_left == 1 else 'Remains'}-",
+        text=f"-{pins_left} {'Pins' if pins_left != 1 else 'Pin'} {'Remain' if pins_left != 1 else 'Remains'}-",
         stroke_fill="#FFFFFF",
         font=arial_narrow_bold_font,
         anchor="ms",
@@ -40,6 +40,7 @@ class Images(commands.Cog):
         async with ctx.typing():
             channel = channel or ctx.channel
             pins_left = 50 - len(await channel.pins())
+            # It's possible that discord could change the max pins for boosted servers, breaking this.
             buffer = await ctx.bot.loop.run_in_executor(None, lambda: pins_left_executor(pins_left))
             file = discord.File(buffer, "majora.png")
             await ctx.send(file=file)

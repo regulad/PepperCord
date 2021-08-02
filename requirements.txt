@@ -1,7 +1,8 @@
 git+https://github.com/Rapptz/discord.py
 PyNaCl # For voice. Would be installed from the extras, but doesn't seem to work with the git url
 git+https://github.com/Rapptz/discord-ext-menus # Experimental Menu features, very cool
-discord-pretty-help # Makes the help command look nice. Bad.
+git+https://github.com/oliver-ni/discord-ext-menus-views # View support for said menus
+git+https://github.com/regulad/discord-pretty-help.git@fix/support_d.py_v2.0 # Makes the help command look nice. Bad.
 jishaku  # Useful development tools.
 aiohttp # For asynchronous HTTP requests
 motor # For asynchronous MongoDB

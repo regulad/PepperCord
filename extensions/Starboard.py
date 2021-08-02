@@ -79,7 +79,7 @@ class Starboard(commands.Cog):
             react_count = None
 
         try:
-            await checks.is_man(ctx)
+            await checks.check_is_man(ctx)
         except checks.LowPrivilege:
             manager: bool = False
         else:
@@ -114,7 +114,7 @@ class Starboard(commands.Cog):
         brief="Starboard setup.",
         description="Configures Starboard",
     )
-    @commands.check(checks.is_admin)
+    @commands.check(checks.check_is_admin)
     async def sconfig(self, ctx: bots.CustomContext) -> None:
         if ctx.guild_document.get("starboard", {}).get("channel") is None:
             raise bots.NotConfigured

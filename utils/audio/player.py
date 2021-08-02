@@ -14,16 +14,16 @@ class AudioQueue(asyncio.Queue):
         return self._queue
 
 
-def play_callback(error: Optional[Exception], *, future: asyncio.Future):
+def _play_callback(error: Optional[Exception], *, future: asyncio.Future):
     if error is not None:
         future.set_exception(error)
     else:
         future.set_result(True)
 
 
-def voice_client_play(voice_client: discord.VoiceClient, source) -> asyncio.Future:
+def _voice_client_play(voice_client: discord.VoiceClient, source) -> asyncio.Future:
     future = voice_client.loop.create_future()
-    voice_client.play(source, after=lambda exception: play_callback(exception, future=future))
+    voice_client.play(source, after=lambda exception: _play_callback(exception, future=future))
     return future
 
 
@@ -75,4 +75,7 @@ class AudioPlayer:
 
             track = await self.queue.get()
 
-            await voice_client_play(self.voice_client, track)
+            await _voice_client_play(self.voice_client, track)
+
+
+__all__ = ["AudioPlayer", "AudioQueue"]

@@ -14,7 +14,10 @@ class Blacklist(commands.Cog):
         self.bot = bot
 
     async def bot_check(self, ctx):
-        return await checks.is_blacklisted(ctx)
+        if await checks.is_blacklisted(ctx):
+            raise checks.Blacklisted()
+        else:
+            return True
 
     async def cog_check(self, ctx):
         return await ctx.bot.is_owner(ctx.author)

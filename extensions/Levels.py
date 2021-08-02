@@ -127,10 +127,8 @@ class Levels(commands.Cog):
         """on_message grants xp to the user and sends level-up alerts to the guild if the guild privileged so desire."""
         ctx = await self.bot.get_context(message)
 
-        try:
-            await checks.is_blacklisted(ctx)
-        except checks.Blacklisted:
-            return  # raise
+        if await checks.is_blacklisted(ctx):
+            return
 
         bucket: commands.Cooldown = self.cooldown.get_bucket(message)
         retry_after: float = bucket.update_rate_limit()
@@ -188,7 +186,7 @@ class Levels(commands.Cog):
         description="Sets channel to redirect level-up alerts to. Defaults to sending in the same channel.",
         usage="[Channel]",
     )
-    @commands.check(checks.is_admin)
+    @commands.check(checks.check_is_admin)
     async def redirect(self, ctx, *, channel: Optional[discord.TextChannel]):
         channel = channel or ctx.channel
         await ctx.guild_document.update_db({"$set": {"levels.redirect": channel.id}})
@@ -199,7 +197,7 @@ class Levels(commands.Cog):
         brief="Disables level-up alerts.",
         description="Disables level-up alerts. You will still earn XP to use in other servers.",
     )
-    @commands.check(checks.is_admin)
+    @commands.check(checks.check_is_admin)
     async def disablexp(self, ctx):
         await ctx.guild_document.update_db({"$set": {"levels.disabled": True}})
 
@@ -209,7 +207,7 @@ class Levels(commands.Cog):
         brief="Enables level-up alerts.",
         description="Enables level-up alerts. You will still earn XP to use in other servers.",
     )
-    @commands.check(checks.is_admin)
+    @commands.check(checks.check_is_admin)
     async def enablexp(self, ctx):
         await ctx.guild_document.update_db({"$set": {"levels.disabled": False}})
 

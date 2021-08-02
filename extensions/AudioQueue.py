@@ -2,19 +2,20 @@ import random
 
 from discord.ext import commands, menus
 
+from utils.bots import CustomContext, BOT_TYPES
 from utils import checks, embed_menus
 
 
 class AudioQueue(commands.Cog):
     """Commands that manage the Audio Player's queue."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: BOT_TYPES) -> None:
         self.bot = bot
 
-    async def cog_check(self, ctx):
+    async def cog_check(self, ctx: CustomContext) -> bool:
         return await checks.is_in_voice(ctx)
 
-    async def cog_before_invoke(self, ctx):
+    async def cog_before_invoke(self, ctx: CustomContext) -> None:
         if ctx.voice_client is None:
             await ctx.author.voice.channel.connect()
 
@@ -26,7 +27,7 @@ class AudioQueue(commands.Cog):
         brief="Commands for the audio player.",
         description="Commands for controlling the audio player.",
     )
-    async def player(self, ctx):
+    async def player(self, ctx: CustomContext) -> None:
         pass
 
     @player.command(
@@ -35,8 +36,8 @@ class AudioQueue(commands.Cog):
         brief="Stops playing.",
         description="Stops playing audio.",
     )
-    @commands.check_any(commands.check(checks.is_man), commands.check(checks.is_alone))
-    async def pstop(self, ctx):
+    @commands.check_any(commands.check(checks.check_is_man), commands.check(checks.is_alone))
+    async def pstop(self, ctx: CustomContext) -> None:
         await ctx.audio_player.voice_client.disconnect()
 
     @player.command(
@@ -45,7 +46,7 @@ class AudioQueue(commands.Cog):
         brief="Toggles the audio player on and off.",
         description="Toggles the audio player between playing and paused.",
     )
-    async def ppause(self, ctx):
+    async def ppause(self, ctx: CustomContext) -> None:
         if ctx.audio_player.paused:
             ctx.audio_player.voice_client.resume()
         else:
@@ -57,8 +58,8 @@ class AudioQueue(commands.Cog):
         brief="Skips to the next song on the queue.",
         description="Skips the audio player to the next song on the queue.",
     )
-    @commands.check_any(commands.check(checks.is_man), commands.check(checks.is_alone))
-    async def pskip(self, ctx):
+    @commands.check_any(commands.check(checks.check_is_man), commands.check(checks.is_alone))
+    async def pskip(self, ctx: CustomContext) -> None:
         ctx.audio_player.voice_client.stop()
 
     @commands.group(
@@ -69,17 +70,16 @@ class AudioQueue(commands.Cog):
         brief="Commands for the queue.",
         description="Commands for the active queue currently being played.",
     )
-    async def queuecommand(self, ctx):
+    async def queuecommand(self, ctx: CustomContext) -> None:
         source = embed_menus.QueueMenuSource(list(ctx.audio_player.queue.deque), "Current tracks on queue:")
-        pages = menus.MenuPages(source=source)
-        await pages.start(ctx)
+        await menus.MenuPages(source=source).start(ctx)
 
     @queuecommand.command(
         name="shuffle",
         brief="Shuffles the current queue.",
         description="Shuffles the current queue. Note that this changes the queue.",
     )
-    @commands.check_any(commands.check(checks.is_man), commands.check(checks.is_alone))
+    @commands.check_any(commands.check(checks.check_is_man), commands.check(checks.is_alone))
     async def qshuffle(self, ctx):
         if len(list(ctx.audio_player.queue.deque)) > 0:
             random.shuffle(ctx.audio_player.queue.deque)
@@ -90,7 +90,7 @@ class AudioQueue(commands.Cog):
         brief="Deletes all items on the queue.",
         description="Deletes all items on the queue, leaving behind a blank slate.",
     )
-    @commands.check_any(commands.check(checks.is_man), commands.check(checks.is_alone))
+    @commands.check_any(commands.check(checks.check_is_man), commands.check(checks.is_alone))
     async def qclear(self, ctx):
         ctx.audio_player.queue.clear()
         ctx.voice_client.stop()
@@ -101,7 +101,7 @@ class AudioQueue(commands.Cog):
         brief="Pops a track off of the queue.",
         description="Pops a track of the queue. Index starts at 1.",
     )
-    @commands.check_any(commands.check(checks.is_man), commands.check(checks.is_alone))
+    @commands.check_any(commands.check(checks.check_is_man), commands.check(checks.is_alone))
     async def qpop(self, ctx, *, index: int):
         del ctx.audio_player.queue.deque[index - 1]
 

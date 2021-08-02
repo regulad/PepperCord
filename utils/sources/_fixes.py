@@ -46,3 +46,6 @@ class FFmpegPCMAudio(discord.AudioSource):
             proc.communicate()
 
         self._process = None
+
+
+__all__ = ["FFmpegPCMAudio"]

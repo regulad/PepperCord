@@ -3,6 +3,8 @@ import typing
 import discord
 from discord.ext import commands
 
+from utils.checks import LowPrivilege, has_permission_level
+from utils.permissions import Permission, get_permission
 from utils import bots, checks
 
 
@@ -13,7 +15,10 @@ class ReactionRoles(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx: bots.CustomContext):
-        return await checks.is_admin(ctx)
+        if not await has_permission_level(ctx, Permission.ADMINISTRATOR):
+            raise LowPrivilege(Permission.ADMINISTRATOR, get_permission(ctx))
+        else:
+            return True
 
     async def _reaction_processor(self, payload: discord.RawReactionActionEvent) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:

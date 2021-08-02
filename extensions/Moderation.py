@@ -4,7 +4,9 @@ from typing import Optional, Union
 import discord
 from discord.ext import commands, tasks
 
-from utils import checks, bots, database, converters
+from utils.checks import LowPrivilege, has_permission_level
+from utils.permissions import Permission, get_permission
+from utils import bots, database, converters
 
 
 async def mute(
@@ -76,7 +78,10 @@ class Moderation(commands.Cog):
                                 await guild_doc.update_db({"$unset": {f"punishments.{user_id}.{punishment}": 1}})
 
     async def cog_check(self, ctx: bots.CustomContext) -> bool:
-        return await checks.is_mod(ctx)
+        if not await has_permission_level(ctx, Permission.MODERATOR):
+            raise LowPrivilege(Permission.MODERATOR, get_permission(ctx))
+        else:
+            return True
 
     @commands.command(
         name="purge",

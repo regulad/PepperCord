@@ -3,17 +3,23 @@ from typing import Optional, Union
 from discord.ext import commands
 import discord
 
-from utils import checks, permissions, bots
+
+from utils.checks import LowPrivilege, has_permission_level
+from utils.permissions import Permission, get_permission
+from utils import checks, bots
 
 
 class Privileges(commands.Cog):
     """System for controlling privileges for executing commands in a guild."""
 
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: bots.BOT_TYPES):
+        self.bot: bots.BOT_TYPES = bot
 
-    async def cog_check(self, ctx):
-        return await checks.is_admin(ctx)
+    async def cog_check(self, ctx: bots.CustomContext) -> bool:
+        if not await has_permission_level(ctx, Permission.ADMINISTRATOR):
+            raise LowPrivilege(Permission.ADMINISTRATOR, get_permission(ctx))
+        else:
+            return True
 
     @commands.group(
         invoke_without_command=True,
@@ -27,7 +33,7 @@ class Privileges(commands.Cog):
                     "level 2 means that they have moderator privileges, "
                     "and level 3 means that they have administrator privileges.",
     )
-    async def permissions(self, ctx):
+    async def permissions(self, ctx: bots.CustomContext) -> None:
         pass
 
     @permissions.command(
@@ -36,7 +42,7 @@ class Privileges(commands.Cog):
         brief="Deletes permission data.",
         description="Deletes all permission data. This reverts permissions to their initial state.",
     )
-    async def sdisable(self, ctx):
+    async def sdisable(self, ctx: bots.CustomContext) -> None:
         if ctx.guild_document is None:
             raise bots.NotConfigured
         else:
@@ -63,11 +69,11 @@ class Privileges(commands.Cog):
     async def write(self, ctx, value: Optional[str], *, entity: discord.Role):
         value = value or "Admin"
         if value == "Admin" or value == "Administrator" or value == "admin" or value == "administrator":
-            attribute = permissions.Permissions.ADMINISTRATOR
+            attribute = permissions.Permission.ADMINISTRATOR
         elif value == "Mod" or value == "Moderator" or value == "mod" or value == "moderator":
-            attribute = permissions.Permissions.MODERATOR
+            attribute = permissions.Permission.MODERATOR
         elif value == "Man" or value == "Manager" or value == "man" or value == "manager":
-            attribute = permissions.Permissions.MANAGER
+            attribute = permissions.Permission.MANAGER
         else:
             raise commands.BadArgument
         perms = permissions.GuildPermissionManager(ctx)

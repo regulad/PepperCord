@@ -3,11 +3,15 @@ from typing import Optional, Tuple, Union
 import discord
 
 
-class BadMedia(Exception):
+class NoMedia(Exception):
+    """Raised when no media is found."""
+
     pass
 
 
-class NoMedia(BadMedia):
+class BadMedia(Exception):
+    """Raised when """
+
     pass
 
 
@@ -24,10 +28,20 @@ class MediaTooLong(BadMedia):
 
 
 async def find_url(message: discord.Message) -> Tuple[str, Union[discord.Attachment, discord.Embed]]:
+    """
+    Finds the URL of media attached to a message.
+
+    If a message is replying to another message, recurse on that message.
+
+    Else, if a message has attachments, return the first attachment's URL and it's object instance.
+
+    Else, if a message has embeds from an extraneous source, return the first embed's URL and it's object instance.
+    """
+
     if message.reference:
         referenced_message: Optional[discord.Message] = message.reference.cached_message
         if referenced_message is None:
-            referenced_message: discord.Message = await message.channel.fetch_message(message.reference.message_id)
+            referenced_message = await message.channel.fetch_message(message.reference.message_id)
 
         return await find_url(referenced_message)
     elif message.attachments:
@@ -47,6 +61,9 @@ async def find_url(message: discord.Message) -> Tuple[str, Union[discord.Attachm
 
 
 async def find_url_recurse(message: discord.Message) -> Tuple[str, Union[discord.Attachment, discord.Embed]]:
+    """Attempts to find the media URL of a message,
+    and if no message is found, iterate over messages in the channel history."""
+
     try:
         return await find_url(message)
     except NoMedia:

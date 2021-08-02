@@ -4,6 +4,8 @@ import discord
 from discord.ext import commands, menus
 from youtube_dl import YoutubeDL
 
+from utils.checks import LowPrivilege, has_permission_level
+from utils.permissions import Permission, get_permission
 from utils import checks, embed_menus, audio, validators, sources
 
 
@@ -40,7 +42,10 @@ class Music(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await checks.is_man(ctx)
+        if not await has_permission_level(ctx, Permission.MANAGER):
+            raise LowPrivilege(Permission.MANAGER, get_permission(ctx))
+        else:
+            return True
 
     async def cog_before_invoke(self, ctx):
         if ctx.voice_client is None:
@@ -116,7 +121,7 @@ class Music(commands.Cog):
         brief="Adds a song to the top of the queue.",
         description="Adds a supported song to the top of the current queue.",
     )
-    @commands.check_any(commands.check(checks.is_man), commands.check(checks.is_alone))
+    @commands.check_any(commands.check(checks.check_is_man), commands.check(checks.is_alone))
     async def pt(self, ctx, *, query):
         if not len(list(ctx.audio_player.queue.deque)) > 0:
             await ctx.invoke(self.play, query=query)

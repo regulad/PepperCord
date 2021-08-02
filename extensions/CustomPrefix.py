@@ -1,5 +1,7 @@
 from discord.ext import commands
 
+from utils.checks import LowPrivilege, has_permission_level
+from utils.permissions import Permission, get_permission
 from utils import checks
 
 
@@ -20,7 +22,10 @@ class CustomPrefix(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await checks.is_admin(ctx)
+        if not await has_permission_level(ctx, Permission.ADMINISTRATOR):
+            raise LowPrivilege(Permission.ADMINISTRATOR, get_permission(ctx))
+        else:
+            return True
 
     @commands.command(
         name="prefix",

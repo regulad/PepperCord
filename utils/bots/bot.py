@@ -2,7 +2,6 @@ from typing import Union, Optional, List
 
 import discord
 from discord.ext import commands
-from topgg import DBLClient, WebhookManager
 from aiohttp import ClientSession
 from asyncgTTS import ServiceAccount, AsyncGTTSSession
 

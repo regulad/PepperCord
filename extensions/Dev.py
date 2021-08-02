@@ -132,7 +132,7 @@ class Dev(commands.Cog):
         brief="Gets info on a shard.",
         description="Gets info on a shard and presents a menu which can be used to manage the shard.",
     )
-    @commands.check(checks.bot_is_sharded)
+    @commands.check(checks.check_bot_is_sharded)
     async def shard_info(self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]) -> None:
         shard_id = shard_id or ctx.guild
 

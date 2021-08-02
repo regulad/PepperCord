@@ -3,6 +3,8 @@ from typing import Optional, List
 import discord
 from discord.ext import commands, menus
 
+from utils.checks import LowPrivilege, has_permission_level
+from utils.permissions import Permission, get_permission
 from utils import checks, bots
 from utils.attachments import find_url_recurse
 from extensions.Moderation import mute
@@ -77,8 +79,11 @@ class CustomCommands(commands.Cog):
 
         self.cooldown = commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.channel)
 
-    async def cog_check(self, ctx: bots.CustomContext) -> None:
-        return await checks.is_admin(ctx)
+    async def cog_check(self, ctx: bots.CustomContext) -> bool:
+        if not await has_permission_level(ctx, Permission.MANAGER):
+            raise LowPrivilege(Permission.MANAGER, get_permission(ctx))
+        else:
+            return True
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -149,7 +154,7 @@ class CustomCommands(commands.Cog):
                     "Commands are not case-sensitive.\n\n"
                     "The default is False."
     )
-    @commands.check(checks.is_admin)
+    @commands.check(checks.check_is_admin)
     async def match(self, ctx: bots.CustomContext, match: bool) -> None:
         await ctx.guild_document.update_db({"$set": {"ccmatch": match}})
 
@@ -170,7 +175,7 @@ class CustomCommands(commands.Cog):
                     "* $ban: Bans the sender.",
         usage="<Keyword> [Message]",
     )
-    @commands.check(checks.is_admin)
+    @commands.check(checks.check_is_admin)
     async def ccadd(self, ctx: bots.CustomContext, command: str, *, message: Optional[str] = None) -> None:
         message: str = message if message is not None else (await find_url_recurse(ctx.message))[0]
         await ctx.guild_document.update_db({"$set": {f"commands.{command}": message}})
@@ -181,7 +186,7 @@ class CustomCommands(commands.Cog):
         brief="Deletes a custom command.",
         description="Deletes a custom command from the guild.",
     )
-    @commands.check(checks.is_admin)
+    @commands.check(checks.check_is_admin)
     async def ccdel(self, ctx: bots.CustomContext, *, command: str) -> None:
         if ctx.guild_document.get("commands") is not None \
                 and ctx.guild_document["commands"].get(command) is not None:

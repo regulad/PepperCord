@@ -3,10 +3,11 @@ from typing import List, Dict, Optional
 
 from discord.ext import commands
 
+from utils.localization import Locale
 from utils import bots
 
 
-def duration_to_str(duration_strings: float) -> str:
+def duration_to_str(duration_strings: int) -> str:  # TODO: Make this take a timedelta.
     """Takes in a duration in seconds and returns a fancy string."""
 
     minutes, seconds = divmod(duration_strings, 60)
@@ -36,6 +37,14 @@ def duration_to_str(duration_strings: float) -> str:
         duration_strings.append(f"{int(round(seconds))} seconds")
 
     return ", ".join(duration_strings)
+
+
+class LocaleConverter(commands.Converter):
+    async def convert(self, ctx: bots.CustomContext, argument: str) -> Locale:
+        try:
+            return Locale[argument]
+        except KeyError:
+            raise commands.BadArgument("Invalid locale.")
 
 
 class TimedeltaShorthand(commands.Converter):
@@ -106,4 +115,4 @@ def shorthand_to_timedelta(shorthand: str) -> datetime.timedelta:
     )
 
 
-__all__ = ["duration_to_str", "TimedeltaShorthand", "shorthand_to_timedelta"]
+__all__ = ["duration_to_str", "TimedeltaShorthand", "shorthand_to_timedelta", "LocaleConverter"]

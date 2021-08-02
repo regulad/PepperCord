@@ -1,44 +1,41 @@
-import enum
-import typing
+from enum import Enum
+from typing import Union, Optional, List
+from utils.bots import CustomContext
 
 import discord
 
 
-class Permissions(enum.Enum):
+class Permission(Enum):
+    """A class enumerating different permission levels in the scope of a guild."""
+
     MANAGER = 1
     MODERATOR = 2
     ADMINISTRATOR = 3
 
 
-class GuildPermissionManager:
-    def __init__(self, ctx):
-        self.ctx = ctx
+def get_permission(ctx: CustomContext, scope: Optional[Union[discord.Member, discord.Role]] = None) \
+        -> Optional[Permission]:
+    """Read the top permission level of an entity."""
 
-    async def read(self, entity: typing.Union[discord.Member, discord.Role]):
-        """Gets the max permission level of a member or role"""
-        # Configures guild document
-        # Gets role from member
-        if isinstance(entity, discord.Member):
-            entity = entity.top_role
-        # Create a list of all roles below the current role
-        below_roles = []
-        for role in self.ctx.guild.roles:
-            if role <= entity:
-                below_roles.append(role)
-        # Gets permission level for each role
-        permission_levels = []
-        for role in below_roles:
-            active_item = self.ctx.guild_document.get("permissions", {}).get(str(role.id))
-            if not active_item:
-                active_item = 0
-            permission_levels.append(active_item)
-        # Returns the highest permission level
-        return max(permission_levels)
+    scope = scope or ctx.author
 
-    async def write(self, role: discord.Role, level: Permissions):
-        """Writes a permission level into a role in a guild document"""
-        value = level.value
-        await self.ctx.guild_document.update_db({"$set": {f"permissions.{role.id}": value}})
+    if isinstance(scope, discord.Member):
+        scope = scope.top_role
+
+    # Create a list of all roles below the current role
+    below_roles: List[discord.Role] = []
+    for role in scope.guild.roles:
+        if scope >= role:
+            below_roles.append(role)
+
+    # Gets permission level for each role
+    permission_levels: List[int] = []
+    for role in below_roles:
+        active_item: Optional[int] = ctx.guild_document.get("permissions", {}).get(str(role.id))
+        permission_levels.append(active_item if active_item is not None else 0)
+
+    max_permission_level: int = max(permission_levels)
+    return Permission(max_permission_level) if max_permission_level > 0 else None
 
 
-__all__ = ["Permissions", "GuildPermissionManager"]
+__all__ = ["Permission", "get_permission"]

@@ -92,10 +92,10 @@ class TopGGWebhook(commands.Cog, name="Voting"):
                         + datetime.timedelta(days=1) > datetime.datetime.utcnow():
                     return  # We don't want to pester a user who just voted.
 
-            if randint(0, 100) > 2:
+            if randint(0, 20) > 1:
                 return  # We don't want to bother the user all the time asking to vote.
 
-            # If a user has not voted in the past 24 hours, there is only a 2% chance we make it here.
+            # If a user has not voted in the past 24 hours, there is only a 5% chance we make it here.
 
             await ctx.send(
                 f"Psst... {choice(PESTERING_MESSAGES)} "
@@ -176,7 +176,7 @@ def setup(bot: bots.BOT_TYPES) -> None:
 
 def teardown(bot: bots.BOT_TYPES) -> None:
     if bot.config.get("PEPPERCORD_TOPGG") is not None:
-        bot.add_cog("TopGG")
+        bot.remove_cog("TopGG")
     if bot.config.get("PEPPERCORD_TOPGG_WH_SECRET") is not None:
-        bot.add_cog("Voting")
+        bot.remove_cog("Voting")
 

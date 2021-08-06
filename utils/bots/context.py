@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from discord.ext import commands
 
@@ -12,7 +12,17 @@ class CustomContext(commands.Context):
         self._guild_document: Optional[Document] = None
         self._author_document: Optional[Document] = None
         self._command_document: Optional[Document] = None
+        self._custom_state: Dict[Any, Any] = {}
         super().__init__(**attrs)
+
+    def __getitem__(self, item: Any) -> Any:
+        return self._custom_state[item]
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        self._custom_state[key] = value
+
+    def __delitem__(self, key: Any) -> None:
+        del self._custom_state[key]
 
     @property
     def guild_document(self) -> Optional[Document]:

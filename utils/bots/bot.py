@@ -12,14 +12,14 @@ from .context import CustomContext
 
 class CustomBotBase(commands.bot.BotBase):
     def __init__(
-            self,
-            command_prefix,
-            help_command=commands.HelpCommand(),
-            description=None,
-            *,
-            database,
-            config,
-            **options,
+        self,
+        command_prefix,
+        help_command=commands.HelpCommand(),
+        description=None,
+        *,
+        database,
+        config,
+        **options,
     ):
         self._database = database
         self._config = config
@@ -30,12 +30,12 @@ class CustomBotBase(commands.bot.BotBase):
         # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
         # There doesn't seem to be an event dispatched when a VoiceClient is destroyed. Perhaps implement that?
 
-        # This block of code is kinda stupid.
-        self.service_account: Optional[ServiceAccount] = None
-        self.gtts_client_session: Optional[ClientSession] = None
-        self.async_gtts_session: Optional[AsyncGTTSSession] = None
-
-        super().__init__(command_prefix, help_command=help_command, description=description, **options)
+        super().__init__(
+            command_prefix,
+            help_command=help_command,
+            description=description,
+            **options,
+        )
 
     @property
     def config(self) -> dict:
@@ -61,7 +61,7 @@ class CustomBotBase(commands.bot.BotBase):
                 "name": command.name,
                 "cog": command.cog_name,
                 "parent": command.parent.name if command.parent is not None else None,
-            }
+            },
         )
 
     async def get_guild_document(self, model: discord.Guild) -> Document:
@@ -69,7 +69,9 @@ class CustomBotBase(commands.bot.BotBase):
 
         return await Document.get_document(self._database["guild"], {"_id": model.id})
 
-    async def get_user_document(self, model: Union[discord.Member, discord.User]) -> Document:
+    async def get_user_document(
+        self, model: Union[discord.Member, discord.User]
+    ) -> Document:
         """Gets a user's document from the database."""
 
         return await Document.get_document(self._database["user"], {"_id": model.id})

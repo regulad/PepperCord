@@ -51,4 +51,11 @@ async def check_is_alone(ctx: CustomContext) -> bool:
         return True
 
 
-__all__ = ["NotInVoiceChannel", "NotAlone", "is_alone", "is_in_voice", "check_is_alone", "check_is_in_voice"]
+__all__ = [
+    "NotInVoiceChannel",
+    "NotAlone",
+    "is_alone",
+    "is_in_voice",
+    "check_is_alone",
+    "check_is_in_voice",
+]

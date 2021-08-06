@@ -26,8 +26,9 @@ class LowPrivilege(commands.CheckFailure):
 async def is_blacklisted(ctx: CustomContext) -> bool:
     """Checks if a context is blacklisted from executing commands."""
 
-    return (ctx.guild is not None and ctx.guild_document.get("blacklisted", False)) \
-        or ctx.author_document.get("blacklisted", False)
+    return (
+        ctx.guild is not None and ctx.guild_document.get("blacklisted", False)
+    ) or ctx.author_document.get("blacklisted", False)
 
 
 @commands.check
@@ -71,5 +72,12 @@ async def check_is_man(ctx: CustomContext) -> bool:
         return True
 
 
-__all__ = ["Blacklisted", "LowPrivilege", "is_blacklisted", "has_permission_level", "check_is_admin", "check_is_mod",
-           "check_is_man"]
+__all__ = [
+    "Blacklisted",
+    "LowPrivilege",
+    "is_blacklisted",
+    "has_permission_level",
+    "check_is_admin",
+    "check_is_mod",
+    "check_is_man",
+]

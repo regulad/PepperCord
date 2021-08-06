@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from utils.checks import LowPrivilege, has_permission_level
 from utils.permissions import Permission, get_permission
-from utils import bots, checks
+from utils import bots
 
 
 class ReactionRoles(commands.Cog):
@@ -20,13 +20,17 @@ class ReactionRoles(commands.Cog):
         else:
             return True
 
-    async def _reaction_processor(self, payload: discord.RawReactionActionEvent) -> None:
+    async def _reaction_processor(
+        self, payload: discord.RawReactionActionEvent
+    ) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
 
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
         channel: discord.TextChannel = guild.get_channel(payload.channel_id)
-        ctx: bots.CustomContext = await self.bot.get_context(await channel.fetch_message(payload.message_id))
+        ctx: bots.CustomContext = await self.bot.get_context(
+            await channel.fetch_message(payload.message_id)
+        )
         reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
 
@@ -45,11 +49,15 @@ class ReactionRoles(commands.Cog):
                                         await reactor.remove_roles(role)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
+    async def on_raw_reaction_add(
+        self, payload: discord.RawReactionActionEvent
+    ) -> None:
         await self._reaction_processor(payload)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
+    async def on_raw_reaction_remove(
+        self, payload: discord.RawReactionActionEvent
+    ) -> None:
         await self._reaction_processor(payload)
 
     @commands.group(
@@ -57,19 +65,17 @@ class ReactionRoles(commands.Cog):
         case_insensitive=True,
         name="reactionrole",
         aliases=["reaction", "rr"],
-        brief="Configures reaction roles.",
         description="Configures reaction roles.",
     )
-    async def reactionrole(self, ctx):
+    async def reactionrole(self, ctx: bots.CustomContext) -> None:
         pass
 
     @reactionrole.command(
         name="disable",
         aliases=["off", "delete"],
-        brief="Deletes reaction roles.",
         description="Deletes all reaction roles.",
     )
-    async def sdisable(self, ctx):
+    async def sdisable(self, ctx: bots.CustomContext) -> None:
         if ctx.guild_document.get("reactions") is None:
             raise bots.NotConfigured
         else:
@@ -77,18 +83,18 @@ class ReactionRoles(commands.Cog):
 
     @reactionrole.command(
         name="add",
-        brief="Adds reaction roles.",
-        description="Adds reaction roles. The bots must have permissions to add rections in the desired channel.",
+        description="Adds reaction roles.\n"
+        "The bot must have permissions to add rections in the desired channel.",
         usage="<Channel> <Message> <Emoji> <Role>",
     )
     async def add(
         self,
-        ctx,
+        ctx: bots.CustomContext,
         channel: discord.TextChannel,
         message: typing.Union[discord.Message, discord.PartialMessage],
         emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
         role: discord.Role,
-    ):
+    ) -> None:
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji_name = emoji.name
         elif isinstance(emoji, str):
@@ -96,7 +102,9 @@ class ReactionRoles(commands.Cog):
         else:
             emoji_name = None
         await message.add_reaction(emoji)
-        await ctx.guild_document.update_db({"$set": {f"reactions.{channel.id}.{message.id}.{emoji_name}": role.id}})
+        await ctx.guild_document.update_db(
+            {"$set": {f"reactions.{channel.id}.{message.id}.{emoji_name}": role.id}}
+        )
 
 
 def setup(bot: bots.BOT_TYPES) -> None:

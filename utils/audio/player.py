@@ -10,7 +10,9 @@ from .config import ytdl_format_options
 
 class AudioQueue(asyncio.Queue):
     @property
-    def deque(self) -> collections.deque:  # Nasty, but its a weird property of how the Queue works. This may break!
+    def deque(
+        self,
+    ) -> collections.deque:  # Nasty, but its a weird property of how the Queue works. This may break!
         return self._queue
 
 
@@ -23,7 +25,9 @@ def _play_callback(error: Optional[Exception], *, future: asyncio.Future):
 
 def _voice_client_play(voice_client: discord.VoiceClient, source) -> asyncio.Future:
     future = voice_client.loop.create_future()
-    voice_client.play(source, after=lambda exception: _play_callback(exception, future=future))
+    voice_client.play(
+        source, after=lambda exception: _play_callback(exception, future=future)
+    )
     return future
 
 

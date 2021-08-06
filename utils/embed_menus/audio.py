@@ -11,7 +11,9 @@ class QueueMenuSource(menus.ListPageSource):
 
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
-        base_embed = discord.Embed(title=self.msg, description=f"{len(self.entries)} total tracks")
+        base_embed = discord.Embed(
+            title=self.msg, description=f"{len(self.entries)} total tracks"
+        )
 
         time_until = 0
         for track in self.entries[:offset]:
@@ -29,13 +31,13 @@ class QueueMenuSource(menus.ListPageSource):
                 base_embed.add_field(
                     name=f"{iteration + 1}: {converters.duration_to_str(time_until)} left",
                     value=f"[{title}]({url})\n{converters.duration_to_str(duration)} long"
-                          f"\nAdded by: {invoker.display_name}",
+                    f"\nAdded by: {invoker.display_name}",
                     inline=False,
                 )
             elif isinstance(value, sources.TTSSource):
                 base_embed.add_field(
                     name=f"{iteration + 1}: {converters.duration_to_str(time_until)} left",
-                    value=f"\"{value.text}\"\nAdded by: {value.invoker.display_name}"
+                    value=f'"{value.text}"\nAdded by: {value.invoker.display_name}',
                 )
             else:
                 base_embed.add_field(
@@ -62,7 +64,10 @@ class AudioSourceMenu(menus.Menu):
                 info = self.source.info
                 embed = (
                     discord.Embed(title=info["title"], description=info["webpage_url"])
-                    .add_field(name="Duration:", value=converters.duration_to_str(info["duration"]))
+                    .add_field(
+                        name="Duration:",
+                        value=converters.duration_to_str(info["duration"]),
+                    )
                     .add_field(name="Added by:", value=self.source.invoker.display_name)
                 )
 
@@ -77,11 +82,12 @@ class AudioSourceMenu(menus.Menu):
 
                 return await ctx.send(embed=embed)
             elif isinstance(self.source, sources.TTSSource):
-                embed = (
-                    discord.Embed(title="Text-To-Speech", description=f"\"{self.source.text}\"")
-                    .add_field(name="Added by:", value=self.source.invoker.display_name)
-                )
+                embed = discord.Embed(
+                    title="Text-To-Speech", description=f'"{self.source.text}"'
+                ).add_field(name="Added by:", value=self.source.invoker.display_name)
 
                 return await ctx.send(embed=embed)
             else:
-                return await ctx.send("Information cannot be displayed for what is currently playing.")
+                return await ctx.send(
+                    "Information cannot be displayed for what is currently playing."
+                )

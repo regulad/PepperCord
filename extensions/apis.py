@@ -17,11 +17,15 @@ class APIs(commands.Cog):
     def cog_unload(self) -> None:
         self.bot.loop.create_task(self.aiohttp_cs.close())
 
-    @commands.command(name="bored", description="Do something, stop being bored!", brief="Anti-boredom.")
+    @commands.command(name="bored", description="Do something, stop being bored!")
     async def bored(self, ctx: bots.CustomContext) -> None:
-        async with self.aiohttp_cs.get("https://www.boredapi.com/api/activity/") as request:
+        async with self.aiohttp_cs.get(
+            "https://www.boredapi.com/api/activity/"
+        ) as request:
             result = await request.json()
-        embed = discord.Embed(title=f"Category: {result['type'].title()}", description=result["activity"])
+        embed = discord.Embed(
+            title=f"Category: {result['type'].title()}", description=result["activity"]
+        )
         await ctx.send(embed=embed)
 
     """

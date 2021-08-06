@@ -32,7 +32,9 @@ class CurrencyMenuSource(menus.ListPageSource):
 
         description: str = "\n".join(lines)
 
-        embed: discord.Embed = discord.Embed(title="Currencies", description=description)
+        embed: discord.Embed = discord.Embed(
+            title="Currencies", description=description
+        )
 
         return embed
 
@@ -44,9 +46,16 @@ class CoinGecko(commands.Cog):
         self.bot = bot
 
         self.client_session = ClientSession()
-        self.coin_gecko_session = AsyncCoinGeckoAPISession(client_session=self.client_session)
+        self.coin_gecko_session = AsyncCoinGeckoAPISession(
+            client_session=self.client_session
+        )
 
-        self.cooldown = commands.CooldownMapping.from_cooldown(100, 60, commands.BucketType.default)
+        self.cooldown = commands.CooldownMapping.from_cooldown(
+            100, 60, commands.BucketType.default
+        )
+
+    def cog_unload(self):
+        self.bot.loop.create_task(self.client_session.close())
 
     async def cog_check(self, ctx):
         cooldown: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
@@ -89,7 +98,9 @@ class CoinGecko(commands.Cog):
     async def currencies(self, ctx) -> None:
         get: list = await self.coin_gecko_session.get_supported_vs_currencies()
 
-        menu: menus.MenuPages = menus.MenuPages(source=CurrencyMenuSource(get, per_page=20))
+        menu: menus.MenuPages = menus.MenuPages(
+            source=CurrencyMenuSource(get, per_page=20)
+        )
 
         await menu.start(ctx)
 

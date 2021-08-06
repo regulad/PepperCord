@@ -4,6 +4,7 @@ https://github.com/regulad/PepperCord
 """
 
 from typing import Optional
+import logging
 import os
 
 import discord
@@ -17,7 +18,9 @@ if not os.path.exists("config/"):
     os.mkdir("config/")
 
 # Configure the database
-db_client: AsyncIOMotorClient = AsyncIOMotorClient(os.environ.get("PEPPERCORD_URI", "mongodb://mongo"))
+db_client: AsyncIOMotorClient = AsyncIOMotorClient(
+    os.environ.get("PEPPERCORD_URI", "mongodb://mongo")
+)
 db: AsyncIOMotorDatabase = db_client[os.environ.get("PEPPERCORD_DB_NAME", "peppercord")]
 
 # Configure Sharding
@@ -35,7 +38,11 @@ else:
 bot: bots.BOT_TYPES = bot_class(
     command_prefix=os.environ.get("PEPPERCORD_PREFIX", "?"),
     case_insensitive=True,
-    help_command=PrettyHelp(color=discord.Colour.orange(), menu=help.BetterMenu()),
+    help_command=PrettyHelp(
+        color=discord.Colour.orange(),
+        menu=help.BetterMenu(),
+        paginator=help.BetterPaginator(True, field_limit=6),
+    ),
     intents=discord.Intents.all(),
     database=db,
     config=os.environ,
@@ -43,6 +50,10 @@ bot: bots.BOT_TYPES = bot_class(
 )
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s"
+    )
+
     for file in os.listdir("extensions/"):
         if file.endswith(".py"):
             full_path: str = "extensions/" + file

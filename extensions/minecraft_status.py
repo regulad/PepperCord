@@ -8,7 +8,7 @@ import discord
 import mcstatus
 from discord.ext import commands
 
-from utils import bots
+from utils.bots import BOT_TYPES, CustomContext
 
 
 class MinecraftError(Exception):
@@ -32,9 +32,9 @@ class MinecraftPlayerError(MinecraftError):
 class Minecraft(commands.Cog):
     """Commands to do with minecraft."""
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.aiohttp_cs = ClientSession()
+    def __init__(self, bot: BOT_TYPES) -> None:
+        self.bot: BOT_TYPES = bot
+        self.aiohttp_cs: ClientSession = ClientSession()
 
     def cog_unload(self) -> None:
         self.bot.loop.create_task(self.aiohttp_cs.close())
@@ -43,24 +43,32 @@ class Minecraft(commands.Cog):
         name="javaserver",
         aliases=["mcstatus", "jestatus", "java"],
         description="Gets Minecraft: Java Edition server status.",
-        brief="Gets Minecraft: JE server.",
         usage="[Server:Port]",
     )
-    async def java(self, ctx: bots.CustomContext, *, server: Optional[str] = "play.regulad.xyz") -> None:
+    async def java(
+        self, ctx: CustomContext, *, server: Optional[str] = "play.regulad.xyz"
+    ) -> None:
         async with ctx.typing():
             try:
-                server_lookup = await ctx.bot.loop.run_in_executor(None, mcstatus.MinecraftServer.lookup, server)
+                server_lookup = await ctx.bot.loop.run_in_executor(
+                    None, mcstatus.MinecraftServer.lookup, server
+                )
                 status = await server_lookup.async_status()
             except OSError as e:
                 raise MinecraftServerError(f"{server}: {e}")
             except Exception:
                 raise
 
-            decoded = BytesIO(b64decode(status.favicon.replace("data:image/png;base64,", "")))
+            decoded = BytesIO(
+                b64decode(status.favicon.replace("data:image/png;base64,", ""))
+            )
 
             file = discord.File(decoded, filename="favicon.png")
 
-            if isinstance(status.description, dict) and status.description.get("extra") is not None:
+            if (
+                isinstance(status.description, dict)
+                and status.description.get("extra") is not None
+            ):
                 strings: List[str] = []
 
                 for string in status.description["extra"]:
@@ -89,25 +97,36 @@ class Minecraft(commands.Cog):
                     strings.append(text)
 
                 motd: Optional[str] = "".join(strings)
-            elif isinstance(status.description, dict) and status.description.get("text") is not None:
+            elif (
+                isinstance(status.description, dict)
+                and status.description.get("text") is not None
+            ):
                 motd: Optional[str] = status.description["text"]
             elif isinstance(status.description, str):
                 motd: Optional[str] = status.description
             else:
                 motd: Optional[str] = None
 
-            embed: discord.Embed = discord.Embed(colour=discord.Colour.dark_gold(), title=server).add_field(
-                name="MOTD:", 
-                value=motd if motd is not None and len(motd) > 0 else "Couldn't read the MOTD. Likely a server issue.",
-                inline=False,
-            ).add_field(
-                name="Ping:", value=f"{round(status.latency, 2)}ms"
-            ).add_field(
-                name="Players:", value=f"{status.players.online}/{status.players.max}"
-            ).add_field(
-                name="Version:", value=f"{status.version.name}, (ver. {status.version.protocol})", inline=False
-            ).set_thumbnail(
-                url="attachment://favicon.png"
+            embed: discord.Embed = (
+                discord.Embed(colour=discord.Colour.dark_gold(), title=server)
+                .add_field(
+                    name="MOTD:",
+                    value=motd
+                    if motd is not None and len(motd) > 0
+                    else "Couldn't read the MOTD. Likely a server issue.",
+                    inline=False,
+                )
+                .add_field(name="Ping:", value=f"{round(status.latency, 2)}ms")
+                .add_field(
+                    name="Players:",
+                    value=f"{status.players.online}/{status.players.max}",
+                )
+                .add_field(
+                    name="Version:",
+                    value=f"{status.version.name}, (ver. {status.version.protocol})",
+                    inline=False,
+                )
+                .set_thumbnail(url="attachment://favicon.png")
             )
 
             await ctx.send(embed=embed, file=file)
@@ -116,31 +135,33 @@ class Minecraft(commands.Cog):
         name="bedrockserver",
         aliases=["bestatus", "bedrock"],
         description="Gets Minecraft: Bedrock Edition server status.",
-        brief="Gets Minecraft: BE server.",
         usage="[Server:Port]",
     )
-    async def bedrock(self, ctx: bots.CustomContext, *, server: Optional[str] = "play.regulad.xyz") -> None:
+    async def bedrock(
+        self, ctx: CustomContext, *, server: Optional[str] = "play.regulad.xyz"
+    ) -> None:
         async with ctx.typing():
             try:
-                server_lookup = await ctx.bot.loop.run_in_executor(None, mcstatus.MinecraftBedrockServer.lookup, server)
+                server_lookup = await ctx.bot.loop.run_in_executor(
+                    None, mcstatus.MinecraftBedrockServer.lookup, server
+                )
                 status = await server_lookup.async_status()
             except OSError as e:
                 raise MinecraftServerError(f"{server}: {e}")
             except Exception:
                 raise
 
-            embed: discord.Embed = discord.Embed(colour=discord.Colour.dark_gold(), title=server).add_field(
-                name="MOTD:", value=f"```{status.motd}```", inline=False
-            ).add_field(
-                name="Ping:", value=f"{round(status.latency, 2)}ms"
-            ).add_field(
-                name="Players:", value=f"{status.players_online}/{status.players_max}"
-            ).add_field(
-                name="Map:", value=f'"{status.map}"'
-            ).add_field(
-                name="Brand:", value=status.version.brand
-            ).add_field(
-                name="Protocol:", value=status.version.protocol
+            embed: discord.Embed = (
+                discord.Embed(colour=discord.Colour.dark_gold(), title=server)
+                .add_field(name="MOTD:", value=f"```{status.motd}```", inline=False)
+                .add_field(name="Ping:", value=f"{round(status.latency, 2)}ms")
+                .add_field(
+                    name="Players:",
+                    value=f"{status.players_online}/{status.players_max}",
+                )
+                .add_field(name="Map:", value=f'"{status.map}"')
+                .add_field(name="Brand:", value=status.version.brand)
+                .add_field(name="Protocol:", value=status.version.protocol)
             )
 
             await ctx.send(embed=embed)
@@ -149,13 +170,16 @@ class Minecraft(commands.Cog):
         name="player",
         aliases=["mcuser", "mcplayer"],
         description="Get data on a Minecraft: Java Edition user.",
-        brief="Gets Minecraft: JE player.",
         usage="[Player]",
     )
     async def player(
-            self, ctx: bots.CustomContext, *, player: Optional[Union[discord.Member, discord.User, str]]
+        self,
+        ctx: CustomContext,
+        *,
+        player: Optional[Union[discord.Member, discord.User, str]],
     ) -> None:
-        player = player or ctx.author  # Maybe add ability to link Minecraft account?
+        player = player or ctx.author
+        # Maybe add ability to link Minecraft account? Nah... not until Microsoft finishes migrating accounts.
 
         if isinstance(player, discord.Member):
             player = player.display_name
@@ -163,21 +187,23 @@ class Minecraft(commands.Cog):
             player = player.name
 
         try:
-            async with self.aiohttp_cs.get(f"https://api.mojang.com/users/profiles/minecraft/{player}") as request:
+            async with self.aiohttp_cs.get(
+                f"https://api.mojang.com/users/profiles/minecraft/{player}"
+            ) as request:
                 result = await request.json()
                 uuid: str = result["id"]
                 name: str = result["name"]
         except KeyError or json.JSONDecodeError:
             raise MinecraftPlayerError(player)
 
-        embed: discord.Embed = discord.Embed(title=name).set_image(
-            url=f"https://crafatar.com/renders/body/{uuid}?overlay"
-        ).add_field(
-            name="UUID:", value=f"```{uuid}```"
+        embed: discord.Embed = (
+            discord.Embed(title=name)
+            .set_image(url=f"https://crafatar.com/renders/body/{uuid}?overlay")
+            .add_field(name="UUID:", value=f"```{uuid}```")
         )
 
         await ctx.send(embed=embed)
 
 
-def setup(bot: bots.BOT_TYPES):
+def setup(bot: BOT_TYPES):
     bot.add_cog(Minecraft(bot))

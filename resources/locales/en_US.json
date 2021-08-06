@@ -1,4 +1,6 @@
 {
   "bot_name": "PepperCord",
-  "select_lang": "You have selected English (United States). Hello!"
+  "select_lang": "You have selected English (United States). Hello!",
+  "cc_get": "The custom command \"{cmd.command}\" has the message \"{cmd.message}\".",
+  "prefix_get": "This server's prefix(es) is/are \\{prefix}"
 }

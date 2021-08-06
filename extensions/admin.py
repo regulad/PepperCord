@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, menus
-from discord.ext.menus import views
 
 from utils.checks import has_permission_level, LowPrivilege
 from utils.permissions import Permission, get_permission
@@ -9,24 +8,25 @@ from utils.converters import LocaleConverter
 from utils.localization import Message
 
 
-class DeleteMenu(views.ViewMenu):
+class DeleteMenu(menus.Menu):
     """Confirmation menu for deleting server information."""
 
-    async def send_initial_message(self, ctx, channel) -> discord.Message:
-        return await self.send_with_view(
-            channel,
+    async def send_initial_message(
+        self, ctx, channel: discord.TextChannel
+    ) -> discord.Message:
+        return await channel.send(
             "**Warning:** This action is destructive. *Please* only continue if you know what you are doing."
         )
 
     @menus.button("✅")
-    async def confirm(self, interaction: discord.Interaction) -> None:
+    async def confirm(self, payload) -> None:
         await self.message.edit(content="Deleting guild information...")
         await self.ctx.guild_document.delete_db()
         await self.ctx.guild.leave()
         self.stop()
 
     @menus.button("❌")
-    async def reject(self, interaction: discord.Interaction) -> None:
+    async def reject(self, payload) -> None:
         await self.message.edit(content="Operation cancelled.")
         self.stop()
 
@@ -48,11 +48,12 @@ class Administration(commands.Cog):
 
     @commands.command(
         name="message",
-        brief="Send a message as the bot.",
         description="Send a message as the bots in any channel that you want.",
         usage="<Channel> <Message>",
     )
-    async def do_message(self, ctx: CustomContext, channel: discord.TextChannel, *, text: str) -> None:
+    async def do_message(
+        self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
+    ) -> None:
         channel = ctx.bot.get_channel(channel.id)
         await channel.send(text)
 
@@ -61,36 +62,34 @@ class Administration(commands.Cog):
         case_insensitive=True,
         name="configuration",
         aliases=["config"],
-        brief="Configures bots.",
-        description="Configures bots in the scope of this server.",
+        description="Configures the bot in the scope of this server.",
     )
     async def config(self, ctx: CustomContext) -> None:
         pass
 
     @config.command(
         name="mute",
-        brief="Sets role used to mute people.",
-        description="Sets the role that is given to people who are muted. It must already be configured.",
+        description="Sets the role that is given to people who are muted.\n"
+        "The role must already be configured.",
     )
     async def mute(self, ctx: CustomContext, *, role: discord.Role) -> None:
         await ctx.guild_document.update_db({"$set": {"mute_role": role.id}})
 
     @config.command(
         name="locale",
-        brief="Sets the server's locale.",
-        description="Sets the server's locale. Supported locales:\n\n"
-                    "* en_US\n"
-                    "* catspeak",
+        description="Sets the server's locale.\n"
+        "Supported locales:\n\n"
+        "* en_US\n"
+        "* catspeak",
     )
     async def locale(self, ctx: CustomContext, *, locale: LocaleConverter) -> None:
         await ctx.guild_document.update_db({"$set": {"locale": locale.name}})
-        await ctx.send(ctx.locale.get_message(Message.SELECT_LANG))
+        await ctx.send(ctx.locale.get_message(Message.SELECT_LANGUAGE))
         # TODO: Implement localization system wherever possible.
 
     @commands.command(
         name="delete",
         aliases=["leave"],
-        brief="Deletes all data on the server, then leaves.",
         description="Deletes all the data the bots has collected and stored on this server, then leaves. Be careful!",
     )
     async def delete(self, ctx: CustomContext) -> None:

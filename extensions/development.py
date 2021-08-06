@@ -54,7 +54,9 @@ class ShardMenu(menus.Menu):
                 title=f"Info for shard {self.shard_info.id + 1}/{self.shard_info.shard_count}",
             )
             .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
-            .add_field(name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms")
+            .add_field(
+                name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms"
+            )
         )
         return await ctx.send(embed=embed)
 
@@ -71,13 +73,12 @@ class Dev(commands.Cog):
 
     async def cog_check(self, ctx: bots.CustomContext) -> bool:
         if not await ctx.bot.is_owner(ctx.author):
-            raise commands.NotOwner('You do not own this bot.')
+            raise commands.NotOwner("You do not own this bot.")
         return True
 
     @commands.command(
         name="nick",
         aliases=["nickname"],
-        brief="Change nickname.",
         description="Change the bots's nickname, for situations where you do not have privileges to.",
     )
     @commands.guild_only()
@@ -87,13 +88,12 @@ class Dev(commands.Cog):
     @commands.command(
         name="guildraw",
         aliases=["document", "raw", "guilddocument"],
-        brief="Get raw document for a guild.",
         description="Prints an guild's raw document. Be careful! It can contain sensitive information.",
     )
     async def guildraw(
-            self,
-            ctx:
-            bots.CustomContext, entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
+        self,
+        ctx: bots.CustomContext,
+        entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
     ) -> None:
         entity = entity or ctx.guild
         document = await ctx.bot.get_guild_document(entity)
@@ -112,9 +112,9 @@ class Dev(commands.Cog):
         description="Prints an user's raw document. Be careful! It can contain sensitive information.",
     )
     async def userraw(
-            self,
-            ctx: bots.CustomContext,
-            entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
+        self,
+        ctx: bots.CustomContext,
+        entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
     ) -> None:
         entity = entity or ctx.author
         document = await ctx.bot.get_user_document(entity)
@@ -132,12 +132,16 @@ class Dev(commands.Cog):
         brief="Gets info on a shard.",
         description="Gets info on a shard and presents a menu which can be used to manage the shard.",
     )
-    @commands.check(checks.check_bot_is_sharded)
-    async def shard_info(self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]) -> None:
+    @checks.check_bot_is_sharded
+    async def shard_info(
+        self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]
+    ) -> None:
         shard_id = shard_id or ctx.guild
 
         if isinstance(shard_id, discord.Guild):
-            shard_id = shard_id.shard_id  # If the argument is a guild, replace shard_id with the shard_id of the guild
+            shard_id = (
+                shard_id.shard_id
+            )  # If the argument is a guild, replace shard_id with the shard_id of the guild
 
         shard_info = ctx.bot.get_shard(shard_id)
 
@@ -149,7 +153,7 @@ class Dev(commands.Cog):
     @commands.command(
         name="guilds",
         brief="Lists all guilds the bot is in.",
-        description="Lists all guilds that the bot is in. May contain sensitive information!"
+        description="Lists all guilds that the bot is in. May contain sensitive information!",
     )
     async def guilds(self, ctx: bots.CustomContext) -> None:
         await menus.MenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(ctx)

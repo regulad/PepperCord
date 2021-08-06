@@ -4,7 +4,7 @@ from typing import List, Dict, Optional
 from discord.ext import commands
 
 from utils.localization import Locale
-from utils import bots
+from utils.permissions import Permission
 
 
 def duration_to_str(duration_strings: int) -> str:  # TODO: Make this take a timedelta.
@@ -40,15 +40,25 @@ def duration_to_str(duration_strings: int) -> str:  # TODO: Make this take a tim
 
 
 class LocaleConverter(commands.Converter):
-    async def convert(self, ctx: bots.CustomContext, argument: str) -> Locale:
+    async def convert(self, ctx: commands.Context, argument: str) -> Locale:
         try:
             return Locale[argument]
         except KeyError:
             raise commands.BadArgument("Invalid locale.")
 
 
+class PermissionConverter(commands.Converter):
+    async def convert(self, ctx: commands.Context, argument: str) -> Permission:
+        if argument.lower().startswith("man") or argument == "1":
+            return Permission.MANAGER
+        elif argument.lower().startswith("mod") or argument == "2":
+            return Permission.MODERATOR
+        else:
+            return Permission.ADMINISTRATOR
+
+
 class TimedeltaShorthand(commands.Converter):
-    async def convert(self, ctx: bots.CustomContext, argument: str) -> datetime.timedelta:
+    async def convert(self, ctx: commands.Context, argument: str) -> datetime.timedelta:
         try:
             return shorthand_to_timedelta(argument)
         except TypeError as exception:
@@ -101,10 +111,11 @@ def shorthand_to_timedelta(shorthand: str) -> datetime.timedelta:
         if shorthand.find(possible_shorthand) != -1:
             index: int = shorthand.find(possible_shorthand)
             units[possible_shorthand] = float(shorthand[:index])
-            shorthand = shorthand[index + 1:]
+            shorthand = shorthand[index + 1 :]
 
-    days: float = (units["y"] * 365 if units["y"] is not None else 0) \
-                  + (units["mo"] * 30 if units["mo"] is not None else 0)
+    days: float = (units["y"] * 365 if units["y"] is not None else 0) + (
+        units["mo"] * 30 if units["mo"] is not None else 0
+    )
 
     return datetime.timedelta(
         weeks=units["w"] or 0,
@@ -115,4 +126,10 @@ def shorthand_to_timedelta(shorthand: str) -> datetime.timedelta:
     )
 
 
-__all__ = ["duration_to_str", "TimedeltaShorthand", "shorthand_to_timedelta", "LocaleConverter"]
+__all__ = [
+    "duration_to_str",
+    "TimedeltaShorthand",
+    "shorthand_to_timedelta",
+    "LocaleConverter",
+    "PermissionConverter",
+]

@@ -47,9 +47,7 @@ class TextToSpeech(commands.Cog):
             await ctx.author.voice.channel.connect()
 
     def cog_unload(self) -> None:
-        self.bot.loop.create_task(
-            self._async_gtts_session.client_session.close()
-        )
+        self.bot.loop.create_task(self._async_gtts_session.client_session.close())
 
     @commands.command(
         name="tts",

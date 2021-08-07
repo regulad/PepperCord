@@ -103,7 +103,7 @@ def match_commands(
     case_insensitive: bool = True,
     first_word_only: bool = True,
     starts_with: bool = True,
-    exact: bool = True
+    exact: bool = True,
 ) -> Optional[CustomCommand]:
     """Attempts to find a CustomCommand from a list of CustomCommands."""
 
@@ -150,7 +150,7 @@ def get_custom_command_from_guild(
         ctx.guild_document.get("cc_is_case_insensitive", True),
         ctx.guild_document.get("cc_first_word_only", True),
         ctx.guild_document.get("cc_starts_with", True),
-        ctx.guild_document.get("cc_exact", True)
+        ctx.guild_document.get("cc_exact", True),
     )
 
 
@@ -305,7 +305,9 @@ class CustomCommands(commands.Cog):
         aliases=["start"],
         description="Sets if the message must start with the custom command for it to register.",
     )
-    async def startswith(self, ctx: bots.CustomContext, *, must_start_with: bool = True):
+    async def startswith(
+        self, ctx: bots.CustomContext, *, must_start_with: bool = True
+    ):
         await ctx.guild_document.update_db(
             {"$set": {"cc_starts_with": must_start_with}}
         )
@@ -315,9 +317,7 @@ class CustomCommands(commands.Cog):
         description="Sets if the message must be exactly the custom command.",
     )
     async def exact(self, ctx: bots.CustomContext, *, must_be_exact: bool = True):
-        await ctx.guild_document.update_db(
-            {"$set": {"cc_exact": must_be_exact}}
-        )
+        await ctx.guild_document.update_db({"$set": {"cc_exact": must_be_exact}})
 
     @customcommands.command(
         name="add",

@@ -103,6 +103,7 @@ def match_commands(
     case_insensitive: bool = True,
     first_word_only: bool = True,
     starts_with: bool = True,
+    exact: bool = True
 ) -> Optional[CustomCommand]:
     """Attempts to find a CustomCommand from a list of CustomCommands."""
 
@@ -111,13 +112,16 @@ def match_commands(
 
     for possible_command in possible_commands:
         if case_insensitive and (
-            (starts_with and query.lower().startswith(possible_command.command.lower()))
-            or possible_command.command.lower() in query.lower()
+            (exact and query.lower() == possible_command.command.lower())
+            or (starts_with and query.lower().startswith(possible_command.command.lower()))
+            or (not starts_with and possible_command.command.lower() in query.lower())
         ):
             return possible_command
         elif (
-            starts_with and query.startswith(possible_command.command)
-        ) or possible_command.command in query:
+            (exact and query == possible_command.command)
+            or (starts_with and query.startswith(possible_command.command))
+            or (not starts_with and possible_command.command in query)
+        ):
             return possible_command
 
 
@@ -132,6 +136,7 @@ def get_custom_command_from_guild(
         ctx.guild_document.get("cc_is_case_insensitive", True),
         ctx.guild_document.get("cc_first_word_only", True),
         ctx.guild_document.get("cc_starts_with", True),
+        ctx.guild_document.get("cc_exact", True)
     )
 
 
@@ -289,6 +294,15 @@ class CustomCommands(commands.Cog):
     async def startswith(self, ctx: bots.CustomContext, *, must_start_with: bool = True):
         await ctx.guild_document.update_db(
             {"$set": {"cc_starts_with": must_start_with}}
+        )
+
+    @match.command(
+        name="exact",
+        description="Sets if the message must be exactly the custom command.",
+    )
+    async def exact(self, ctx: bots.CustomContext, *, must_be_exact: bool = True):
+        await ctx.guild_document.update_db(
+            {"$set": {"cc_exact": must_be_exact}}
         )
 
     @customcommands.command(

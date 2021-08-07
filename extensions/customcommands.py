@@ -113,16 +113,30 @@ def match_commands(
     for possible_command in possible_commands:
         if case_insensitive and (
             (exact and query.lower() == possible_command.command.lower())
-            or (starts_with and query.lower().startswith(possible_command.command.lower()))
-            or (not starts_with and possible_command.command.lower() in query.lower())
+            or (
+                not exact
+                and (
+                    (starts_with and query.lower().startswith(possible_command.command.lower()))
+                    or (not starts_with and possible_command.command.lower() in query.lower())
+                )
+            )
         ):
             return possible_command
-        elif (
+        elif not case_insensitive and (
             (exact and query == possible_command.command)
-            or (starts_with and query.startswith(possible_command.command))
-            or (not starts_with and possible_command.command in query)
+            or (
+                not exact
+                and (
+                    (starts_with and query.startswith(possible_command.command))
+                    or (not starts_with and possible_command.command in query)
+                )
+            )
         ):
             return possible_command
+        else:
+            continue
+    else:
+        return None  # No CC found
 
 
 def get_custom_command_from_guild(

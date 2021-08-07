@@ -67,14 +67,17 @@ class TopGGWebhook(commands.Cog, name="Voting"):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
-        self.topgg_webhook = WebhookManager(bot).dbl_webhook(
+        self.webhook_manager = WebhookManager(bot)
+
+        self.webhook_manager.dbl_webhook(
             bot.config.get("PEPPERCORD_TOPGG_WH_ROUTE", "/topgg"),
             bot.config["PEPPERCORD_TOPGG_WH_SECRET"],
         )
-        self.topgg_webhook.run(int(bot.config.get("PEPPERCORD_TOPGG_WH", "5000")))
+
+        self.webhook_manager.run(int(bot.config.get("PEPPERCORD_TOPGG_WH", "5000")))
 
     def cog_unload(self) -> None:
-        self.bot.loop.create_task(self.topgg_webhook.close())
+        self.bot.loop.create_task(self.webhook_manager.close())
 
     @commands.Cog.listener()
     async def on_dbl_vote(self, data: BotVoteData) -> None:
@@ -113,8 +116,8 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
             await ctx.send(
                 f"Psst... {choice(PESTERING_MESSAGES)} "
-                f"{get_top_gg_link(ctx.bot.user.id)} "
-                f"{'Tried of these messages? Try nopester.' if ctx.author_document.get('pestered', 0) > 2 else ''}"
+                f"{get_top_gg_link(ctx.bot.user.id)}"
+                f' Tried of these messages? Try nopester.' if ctx.author_document.get('pestered', 0) > 2 else ''
             )
 
             await ctx.author_document.update_db({"$inc": {"pestered": 1}})
@@ -199,10 +202,3 @@ def setup(bot: bots.BOT_TYPES) -> None:
         bot.add_cog(TopGG(bot))
     if bot.config.get("PEPPERCORD_TOPGG_WH_SECRET") is not None:
         bot.add_cog(TopGGWebhook(bot))
-
-
-def teardown(bot: bots.BOT_TYPES) -> None:
-    if bot.config.get("PEPPERCORD_TOPGG") is not None:
-        bot.remove_cog("TopGG")
-    if bot.config.get("PEPPERCORD_TOPGG_WH_SECRET") is not None:
-        bot.remove_cog("Voting")

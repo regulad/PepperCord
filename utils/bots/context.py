@@ -24,6 +24,9 @@ class CustomContext(commands.Context):
     def __delitem__(self, key: Any) -> None:
         del self._custom_state[key]
 
+    def send(self, *args, **kwargs):
+        return self.reply(*args, mention_author=False, **kwargs)
+
     @property
     def guild_document(self) -> Optional[Document]:
         return self._guild_document

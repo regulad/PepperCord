@@ -166,43 +166,43 @@ class Minecraft(commands.Cog):
 
             await ctx.send(embed=embed)
 
-    @commands.command(
-        name="player",
-        aliases=["mcuser", "mcplayer"],
-        description="Get data on a Minecraft: Java Edition user.",
-        usage="[Player]",
-    )
-    async def player(
-        self,
-        ctx: CustomContext,
-        *,
-        player: Optional[Union[discord.Member, discord.User, str]],
-    ) -> None:
-        player = player or ctx.author
-        # Maybe add ability to link Minecraft account? Nah... not until Microsoft finishes migrating accounts.
-
-        if isinstance(player, discord.Member):
-            player = player.display_name
-        elif isinstance(player, discord.User):
-            player = player.name
-
-        try:
-            async with self.aiohttp_cs.get(
-                f"https://api.mojang.com/users/profiles/minecraft/{player}"
-            ) as request:
-                result = await request.json()
-                uuid: str = result["id"]
-                name: str = result["name"]
-        except KeyError or json.JSONDecodeError:
-            raise MinecraftPlayerError(player)
-
-        embed: discord.Embed = (
-            discord.Embed(title=name)
-            .set_image(url=f"https://crafatar.com/renders/body/{uuid}?overlay")
-            .add_field(name="UUID:", value=f"```{uuid}```")
-        )
-
-        await ctx.send(embed=embed)
+    # @commands.command(
+    #     name="player",
+    #     aliases=["mcuser", "mcplayer"],
+    #     description="Get data on a Minecraft: Java Edition user.",
+    #     usage="[Player]",
+    # )
+    # async def player(
+    #     self,
+    #     ctx: CustomContext,
+    #     *,
+    #     player: Optional[Union[discord.Member, discord.User, str]],
+    # ) -> None:
+    #     player = player or ctx.author
+    #     # Maybe add ability to link Minecraft account? Nah... not until Microsoft finishes migrating accounts.
+    #
+    #     if isinstance(player, discord.Member):
+    #         player = player.display_name
+    #     elif isinstance(player, discord.User):
+    #         player = player.name
+    #
+    #     try:
+    #         async with self.aiohttp_cs.get(
+    #             f"https://api.mojang.com/users/profiles/minecraft/{player}"
+    #         ) as request:
+    #             result = await request.json()
+    #             uuid: str = result["id"]
+    #             name: str = result["name"]
+    #     except KeyError or json.JSONDecodeError:
+    #         raise MinecraftPlayerError(player)
+    #
+    #     embed: discord.Embed = (
+    #         discord.Embed(title=name)
+    #         .set_image(url=f"https://crafatar.com/renders/body/{uuid}?overlay")
+    #         .add_field(name="UUID:", value=f"```{uuid}```")
+    #     )
+    #
+    #     await ctx.send(embed=embed)
 
 
 def setup(bot: BOT_TYPES):

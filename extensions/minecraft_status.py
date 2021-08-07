@@ -46,7 +46,7 @@ class Minecraft(commands.Cog):
         usage="[Server:Port]",
     )
     async def java(
-        self, ctx: CustomContext, *, server: Optional[str] = "play.regulad.xyz"
+        self, ctx: CustomContext, *, server: Optional[str] = "smp.play.regulad.xyz"
     ) -> None:
         async with ctx.typing():
             try:

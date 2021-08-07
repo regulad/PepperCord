@@ -102,6 +102,7 @@ def match_commands(
     query: str,
     case_insensitive: bool = True,
     first_word_only: bool = True,
+    starts_with: bool = True,
 ) -> Optional[CustomCommand]:
     """Attempts to find a CustomCommand from a list of CustomCommands."""
 
@@ -109,9 +110,14 @@ def match_commands(
         query = query.strip().split()[0] if len(query.strip().split()) > 0 else ""
 
     for possible_command in possible_commands:
-        if case_insensitive and (possible_command.command.lower() in query.lower()):
+        if case_insensitive and (
+            (starts_with and query.lower().startswith(possible_command.command.lower()))
+            or possible_command.command.lower() in query.lower()
+        ):
             return possible_command
-        elif not case_insensitive and (possible_command.command in query):
+        elif (
+            starts_with and query.startswith(possible_command.command)
+        ) or possible_command.command in query:
             return possible_command
 
 
@@ -125,6 +131,7 @@ def get_custom_command_from_guild(
         query,
         ctx.guild_document.get("cc_is_case_insensitive", True),
         ctx.guild_document.get("cc_first_word_only", True),
+        ctx.guild_document.get("cc_starts_with", True),
     )
 
 
@@ -159,12 +166,30 @@ class CustomCommands(commands.Cog):
         )
 
     @commands.Cog.listener()
+    async def on_custom_command_success(
+        self, custom_command: CustomCommand, ctx: bots.CustomContext
+    ) -> None:
+        if custom_command.keyword is None:
+            await ctx.message.add_reaction("✅")
+
+    @commands.Cog.listener()
+    async def on_custom_command_error(
+        self,
+        custom_command: CustomCommand,
+        ctx: bots.CustomContext,
+        reason: BaseException,
+    ):
+        if isinstance(reason, commands.CommandOnCooldown):
+            await ctx.message.add_reaction("⏰")
+        else:
+            await ctx.message.add_reaction("❌")
+
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
         ctx: bots.CustomContext = await self.bot.get_context(message)
 
         if (
-            len(ctx.message.clean_content.strip()) > 0
-            and not ctx.author.bot
+            not ctx.author.bot
             and ctx.guild is not None
             and ctx.guild_document.get("commands") is not None
             and not ctx.valid
@@ -172,24 +197,26 @@ class CustomCommands(commands.Cog):
             # Lots of conditions to get here.
             # Oh well, that will happen if you have to make your own command invocation system.
 
-            bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
-            retry_after: float = bucket.update_rate_limit()
+            custom_command: Optional[CustomCommand] = get_custom_command_from_guild(ctx)
 
-            if retry_after:
-                await ctx.message.add_reaction("⏰")  # User is being rate-limited!
-            else:
-                custom_command: Optional[CustomCommand] = get_custom_command_from_guild(
-                    ctx
-                )
-                if custom_command is not None:
-                    try:
-                        await custom_command.execute(ctx)
-                    except discord.DiscordException:
-                        await ctx.message.add_reaction("❌")
-                        return  # Something nasty happened.
-                    else:
-                        if custom_command.keyword is None:
-                            await ctx.message.add_reaction("✅")
+            if custom_command is not None:
+                ctx.bot.dispatch("custom_command", custom_command, ctx)
+
+                try:
+                    bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
+                    retry_after: Optional[float] = bucket.update_rate_limit()
+                    if retry_after is not None:
+                        raise commands.CommandOnCooldown(
+                            bucket, retry_after, self.cooldown.type
+                        )
+
+                    await custom_command.execute(ctx)
+                except Exception as exception:
+                    ctx.bot.dispatch(
+                        "custom_command_error", custom_command, ctx, exception
+                    )
+                else:
+                    ctx.bot.dispatch("custom_command_success", custom_command, ctx)
 
     @commands.group(
         invoke_without_command=True,
@@ -252,6 +279,16 @@ class CustomCommands(commands.Cog):
     async def word(self, ctx: bots.CustomContext, *, first_word_only: bool = True):
         await ctx.guild_document.update_db(
             {"$set": {"cc_first_word_only": first_word_only}}
+        )
+
+    @match.command(
+        name="startswith",
+        aliases=["start"],
+        description="Sets if the message must start with the custom command for it to register.",
+    )
+    async def word(self, ctx: bots.CustomContext, *, must_start_with: bool = True):
+        await ctx.guild_document.update_db(
+            {"$set": {"cc_starts_with": must_start_with}}
         )
 
     @customcommands.command(

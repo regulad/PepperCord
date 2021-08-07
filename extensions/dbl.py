@@ -117,7 +117,9 @@ class TopGGWebhook(commands.Cog, name="Voting"):
             await ctx.send(
                 f"Psst... {choice(PESTERING_MESSAGES)} "
                 f"{get_top_gg_link(ctx.bot.user.id)}"
-                f' Tried of these messages? Try nopester.' if ctx.author_document.get('pestered', 0) > 2 else ''
+                f" Tried of these messages? Try nopester."
+                if ctx.author_document.get("pestered", 0) > 2
+                else ""
             )
 
             await ctx.author_document.update_db({"$inc": {"pestered": 1}})

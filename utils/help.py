@@ -92,9 +92,9 @@ def short_desc(command: commands.Command) -> str:
     if command.brief is not None:
         return command.brief
     elif command.description is not None:
-        return command.description.split('\n', 1)[0]
+        return command.description.split("\n", 1)[0]
     else:
-        return ''
+        return ""
 
 
 __all__ = ["BetterMenu", "BetterPaginator"]

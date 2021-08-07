@@ -286,7 +286,7 @@ class CustomCommands(commands.Cog):
         aliases=["start"],
         description="Sets if the message must start with the custom command for it to register.",
     )
-    async def word(self, ctx: bots.CustomContext, *, must_start_with: bool = True):
+    async def startswith(self, ctx: bots.CustomContext, *, must_start_with: bool = True):
         await ctx.guild_document.update_db(
             {"$set": {"cc_starts_with": must_start_with}}
         )

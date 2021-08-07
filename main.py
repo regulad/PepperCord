@@ -41,7 +41,7 @@ bot: bots.BOT_TYPES = bot_class(
     help_command=PrettyHelp(
         color=discord.Colour.orange(),
         menu=help.BetterMenu(),
-        paginator=help.BetterPaginator(True, field_limit=6),
+        paginator=help.BetterPaginator(True, color=discord.Colour.orange()),
     ),
     intents=discord.Intents.all(),
     database=db,

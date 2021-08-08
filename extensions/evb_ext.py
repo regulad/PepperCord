@@ -63,7 +63,7 @@ class EditVideoBot(commands.Cog):
             file = discord.File(
                 BytesIO(output_bytes), f"output{splitext(response.media_url)[1]}"
             )
-            await ctx.send(ctx.author.mention, files=[file])
+            await ctx.reply(files=[file])
 
     @commands.command(
         name="editsleft",

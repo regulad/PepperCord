@@ -9,6 +9,7 @@ class Message(Enum):
     SELECT_LANGUAGE = "select_lang"
     CUSTOM_COMMAND_GET = "cc_get"
     PREFIX_GET = "prefix_get"
+    THREAD_UNARCHIVED = "thread_unarchive"
 
 
 class Locale(Enum):

@@ -111,24 +111,37 @@ def match_commands(
         query = query.strip().split()[0] if len(query.strip().split()) > 0 else ""
 
     for possible_command in possible_commands:
-        if case_insensitive and (
-            (exact and query.lower() == possible_command.command.lower())
-            or (
-                not exact
-                and (
-                    (starts_with and query.lower().startswith(possible_command.command.lower()))
-                    or (not starts_with and possible_command.command.lower() in query.lower())
+        if (
+            case_insensitive
+            and (
+                (exact and query.lower() == possible_command.command.lower())
+                or (
+                    not exact
+                    and (
+                        (
+                            starts_with
+                            and query.lower().startswith(
+                                possible_command.command.lower()
+                            )
+                        )
+                        or (
+                            not starts_with
+                            and possible_command.command.lower() in query.lower()
+                        )
+                    )
                 )
             )
-        ):
-            return possible_command
-        elif not case_insensitive and (
-            (exact and query == possible_command.command)
             or (
-                not exact
+                not case_insensitive
                 and (
-                    (starts_with and query.startswith(possible_command.command))
-                    or (not starts_with and possible_command.command in query)
+                    (exact and query == possible_command.command)
+                    or (
+                        not exact
+                        and (
+                            (starts_with and query.startswith(possible_command.command))
+                            or (not starts_with and possible_command.command in query)
+                        )
+                    )
                 )
             )
         ):

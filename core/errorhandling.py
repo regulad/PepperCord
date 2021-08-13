@@ -2,12 +2,10 @@ import asyncio
 from typing import Optional
 
 import discord
+from asyncgTTS import LibraryException as TtsException
 from discord.ext import commands, menus
 from evb import LibraryException as EvbException
-from asyncgTTS import LibraryException as TtsException
 
-from extensions.starboard import AlreadyPinned
-from extensions.text_to_speech import VoiceDoesNotExist
 from utils import checks, bots, attachments
 
 known_errors = {
@@ -15,17 +13,15 @@ known_errors = {
     asyncio.QueueFull: "The queue is full. Please wait for this track to finish before you play the next song.",
     checks.NotInVoiceChannel: "You must be in a voice channel to execute this command.",
     commands.UserInputError: "You entered a bad argument.",
-    AlreadyPinned: "This message is already pinned to the starboard.",
     commands.NSFWChannelRequired: "This command displays explicit content. "
-    "You can only use it in channels marked as NSFW.",
+                                  "You can only use it in channels marked as NSFW.",
     commands.CommandOnCooldown: "You'll need to wait before you can execute this command again.",
     commands.NotOwner: "Only the bot's owner may execute this command.",
     checks.LowPrivilege: "You are not authorized to run this command. Ask a server administrator if you believe "
-    "this is an error.",
+                         "this is an error.",
     bots.NotConfigured: "This feature must be configured before use. Ask a server administrator.",
-    VoiceDoesNotExist: "This voice doesn't exist. Check voices.",
     commands.BotMissingPermissions: "The bot was unable to perform the action requested, "
-    "since it is missing permissions required to do so. Try re-inviting the bot.",
+                                    "since it is missing permissions required to do so. Try re-inviting the bot.",
     commands.CheckFailure: "A check failed.",
     attachments.WrongMedia: "The media that was found could not be used for the desired action.",
     attachments.NoMedia: "Could not find media to use.",
@@ -35,6 +31,20 @@ known_errors = {
     attachments.MediaTooLong: "You can't download media this long.",
     attachments.MediaTooLarge: "This media is too large to be uploaded to discord.",
 }
+
+try:
+    from extensions.starboard import AlreadyPinned
+except ImportError:
+    AlreadyPinned = object
+else:
+    known_errors[AlreadyPinned] = "This message is already pinned to the starboard."
+
+try:
+    from extensions.text_to_speech import VoiceDoesNotExist
+except ImportError:
+    VoiceDoesNotExist = object
+else:
+    known_errors[VoiceDoesNotExist] = "This voice doesn't exist. Check voices."
 
 
 def find_error(error) -> Optional[str]:
@@ -98,7 +108,7 @@ class ErrorLogging(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def log_command_error(
-        self, ctx: bots.CustomContext, error: Exception
+            self, ctx: bots.CustomContext, error: Exception
     ) -> None:
         if ctx.command is not None:
             await ctx.command_document.update_db({"$inc": {"stats.errors": 1}})
@@ -122,14 +132,14 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def attempt_to_reinvoke(
-        self, ctx: bots.CustomContext, error: Exception
+            self, ctx: bots.CustomContext, error: Exception
     ) -> None:
         if ctx.command is not None:
             if await ctx.bot.is_owner(ctx.author):
                 await ctx.message.add_reaction("🔁")
 
                 if ctx.valid and isinstance(
-                    error, (commands.CommandOnCooldown, commands.CheckFailure)
+                        error, (commands.CommandOnCooldown, commands.CheckFailure)
                 ):
                     await ctx.reinvoke()
                 else:
@@ -137,7 +147,7 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def determine_if_critical(
-        self, ctx: bots.CustomContext, error: Exception
+            self, ctx: bots.CustomContext, error: Exception
     ) -> None:
         critical: bool = not isinstance(
             error,

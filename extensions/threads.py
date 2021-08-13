@@ -1,12 +1,12 @@
 from typing import Optional
 
-from discord.ext import commands
 import discord
+from discord.ext import commands
 
-from utils.checks import has_permission_level, LowPrivilege
-from utils.permissions import Permission, get_permission
 from utils.bots import CustomContext, BOT_TYPES
+from utils.checks import has_permission_level, LowPrivilege
 from utils.localization import Message
+from utils.permissions import Permission, get_permission
 
 
 class Threads(commands.Cog):
@@ -23,7 +23,8 @@ class Threads(commands.Cog):
 
     @commands.Cog.listener("on_thread_update")
     async def thread_unarchiver(self, before: discord.Thread, after: discord.Thread) -> None:
-        ctx: CustomContext = await self.bot.get_context(after.last_message if after.last_message is not None else await after.fetch_message(after.last_message_id))
+        ctx: CustomContext = await self.bot.get_context(
+            after.last_message if after.last_message is not None else await after.fetch_message(after.last_message_id))
         if ((not before.archived) and after.archived) and after.id in ctx.guild_document.get("unarchived_threads", []):
             await after.edit(archived=False)
             await after.send(ctx.locale.get_message(Message.THREAD_UNARCHIVED).format(thread=after))

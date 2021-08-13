@@ -1,28 +1,28 @@
-from typing import Union, Optional, List
+from typing import Union, List, Any
 
 import discord
 from discord.ext import commands
-from aiohttp import ClientSession
-from asyncgTTS import ServiceAccount, AsyncGTTSSession
 
-from utils.database import Document
 from utils.audio import AudioPlayer
+from utils.database import Document
 from .context import CustomContext
+
+CONFIGURATION_PROVIDERS = Union[dict, Any]  # Added the any type for now. I hate this mess.
 
 
 class CustomBotBase(commands.bot.BotBase):
     def __init__(
-        self,
-        command_prefix,
-        help_command=commands.HelpCommand(),
-        description=None,
-        *,
-        database,
-        config,
-        **options,
+            self,
+            command_prefix,
+            help_command=commands.HelpCommand(),
+            description=None,
+            *,
+            database,
+            config: CONFIGURATION_PROVIDERS,
+            **options,
     ):
         self._database = database
-        self._config = config
+        self._config: CONFIGURATION_PROVIDERS = config
 
         self._audio_players: List[AudioPlayer] = []
         # TODO: Having audio players stored here prevents them from being garbage collected, causing a memory leak.
@@ -70,7 +70,7 @@ class CustomBotBase(commands.bot.BotBase):
         return await Document.get_document(self._database["guild"], {"_id": model.id})
 
     async def get_user_document(
-        self, model: Union[discord.Member, discord.User]
+            self, model: Union[discord.Member, discord.User]
     ) -> Document:
         """Gets a user's document from the database."""
 
@@ -93,5 +93,4 @@ class CustomBot(CustomBotBase, discord.Client):
 
 BOT_TYPES = Union[CustomBot, CustomAutoShardedBot]
 
-
-__all__ = ["CustomBot", "CustomAutoShardedBot", "BOT_TYPES"]
+__all__ = ["CustomBot", "CustomAutoShardedBot", "BOT_TYPES", "CONFIGURATION_PROVIDERS"]

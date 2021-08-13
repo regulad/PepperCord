@@ -1,18 +1,18 @@
 import discord
 from discord.ext import commands, menus
 
-from utils.checks import has_permission_level, LowPrivilege
-from utils.permissions import Permission, get_permission
 from utils.bots import CustomContext, BOT_TYPES
+from utils.checks import has_permission_level, LowPrivilege
 from utils.converters import LocaleConverter
 from utils.localization import Message
+from utils.permissions import Permission, get_permission
 
 
 class DeleteMenu(menus.Menu):
     """Confirmation menu for deleting server information."""
 
     async def send_initial_message(
-        self, ctx, channel: discord.TextChannel
+            self, ctx, channel: discord.TextChannel
     ) -> discord.Message:
         return await channel.send(
             "**Warning:** This action is destructive. *Please* only continue if you know what you are doing."
@@ -52,7 +52,7 @@ class Administration(commands.Cog):
         usage="<Channel> <Message>",
     )
     async def do_message(
-        self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
+            self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
     ) -> None:
         channel = ctx.bot.get_channel(channel.id)
         await channel.send(text)
@@ -70,7 +70,7 @@ class Administration(commands.Cog):
     @config.command(
         name="mute",
         description="Sets the role that is given to people who are muted.\n"
-        "The role must already be configured.",
+                    "The role must already be configured.",
     )
     async def mute(self, ctx: CustomContext, *, role: discord.Role) -> None:
         await ctx.guild_document.update_db({"$set": {"mute_role": role.id}})
@@ -78,9 +78,9 @@ class Administration(commands.Cog):
     @config.command(
         name="locale",
         description="Sets the server's locale.\n"
-        "Supported locales:\n\n"
-        "* en_US\n"
-        "* catspeak",
+                    "Supported locales:\n\n"
+                    "* en_US\n"
+                    "* catspeak",
     )
     async def locale(self, ctx: CustomContext, *, locale: LocaleConverter) -> None:
         await ctx.guild_document.update_db({"$set": {"locale": locale.name}})

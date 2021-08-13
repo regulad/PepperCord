@@ -7,16 +7,16 @@ class Cooldown(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        self.cooldown = commands.CooldownMapping.from_cooldown(
+        self.cooldown: commands.CooldownMapping = commands.CooldownMapping.from_cooldown(
             10, 6, commands.BucketType.user
         )
 
     async def bot_check_once(self, ctx):
         # Cooldown
-        bucket = self.cooldown.get_bucket(ctx.message)
-        retry_after = bucket.update_rate_limit()
+        bucket: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
+        retry_after: float = bucket.update_rate_limit()
         if retry_after:
-            raise commands.CommandOnCooldown(bucket, retry_after)
+            raise commands.CommandOnCooldown(bucket, retry_after, self.cooldown.type)
         else:
             return True
 

@@ -10,14 +10,14 @@ from discord.opus import Encoder
 
 class FFmpegPCMAudio(discord.AudioSource):
     def __init__(
-        self,
-        source,
-        *,
-        executable="ffmpeg",
-        pipe=False,
-        stderr=None,
-        before_options=None,
-        options=None
+            self,
+            source,
+            *,
+            executable="ffmpeg",
+            pipe=False,
+            stderr=None,
+            before_options=None,
+            options=None
     ):
         stdin = None if not pipe else source
         args = [executable]

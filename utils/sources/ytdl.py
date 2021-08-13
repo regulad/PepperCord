@@ -12,13 +12,13 @@ class YTDLSource(QueueSource):
     """Represents a source from YoutubeDL that has the ability to have it's volume changed."""
 
     def __init__(
-        self,
-        source: discord.FFmpegPCMAudio,
-        volume=0.5,
-        *,
-        info,
-        file_downloader,
-        invoker
+            self,
+            source: discord.FFmpegPCMAudio,
+            volume=0.5,
+            *,
+            info,
+            file_downloader,
+            invoker
     ):
         self.file_downloader = file_downloader
         self.info = info
@@ -31,10 +31,10 @@ class YTDLSource(QueueSource):
 
     @classmethod
     async def from_url(
-        cls,
-        file_downloader: YoutubeDL,
-        url: str,
-        invoker: Union[discord.Member, discord.User],
+            cls,
+            file_downloader: YoutubeDL,
+            url: str,
+            invoker: Union[discord.Member, discord.User],
     ):
         """Returns a list of YTDLSources from a playlist or song."""
 

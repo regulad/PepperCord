@@ -1,14 +1,13 @@
-from os.path import splitext
 from io import BytesIO
+from os.path import splitext
 
 import discord
-from discord.ext import commands
 from aiohttp import ClientSession
+from discord.ext import commands
 from evb import AsyncEditVideoBotSession
 
-from utils.bots import CustomContext, BOT_TYPES
-from utils.localization import Message
 from utils.attachments import find_url_recurse
+from utils.bots import CustomContext, BOT_TYPES
 
 
 class EditVideoBot(commands.Cog):
@@ -50,7 +49,7 @@ class EditVideoBot(commands.Cog):
                 attachment_bytes = await resp.read()
 
             if (
-                isinstance(source, discord.Embed) and source.type == "gifv"
+                    isinstance(source, discord.Embed) and source.type == "gifv"
             ):  # deprecated!... kinda
                 extension: str = "mp4"
             else:
@@ -69,7 +68,7 @@ class EditVideoBot(commands.Cog):
         name="editsleft",
         aliases=["evbleft"],
         description="Gets the amount of edits that can still be made today.\n"
-        "This number is global.",
+                    "This number is global.",
     )
     async def left(self, ctx: CustomContext) -> None:
         async with ctx.typing():

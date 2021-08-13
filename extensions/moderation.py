@@ -4,16 +4,16 @@ from typing import Optional, Union, cast
 import discord
 from discord.ext import commands, tasks
 
+from utils import bots, database, converters
 from utils.checks import LowPrivilege, has_permission_level
 from utils.permissions import Permission, get_permission
-from utils import bots, database, converters
 
 
 async def mute(
-    member: discord.Member,
-    *,
-    guild_document: Optional[database.Document] = None,
-    bot: Optional[bots.BOT_TYPES] = None,
+        member: discord.Member,
+        *,
+        guild_document: Optional[database.Document] = None,
+        bot: Optional[bots.BOT_TYPES] = None,
 ) -> None:
     """Mutes a user. Requires a bot or a guild document."""
 
@@ -30,10 +30,10 @@ async def mute(
 
 
 async def unmute(
-    member: discord.Member,
-    *,
-    guild_document: Optional[database.Document] = None,
-    bot: Optional[bots.BOT_TYPES] = None,
+        member: discord.Member,
+        *,
+        guild_document: Optional[database.Document] = None,
+        bot: Optional[bots.BOT_TYPES] = None,
 ) -> None:
     """Unmutes a user. Requires a bot or a guild document."""
 
@@ -111,7 +111,7 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(kick_members=True)
     async def kick(
-        self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
+            self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
     ) -> None:
         await member.kick(reason=reason)
 
@@ -122,11 +122,11 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def ban(
-        self,
-        ctx: bots.CustomContext,
-        member: Union[discord.Member, discord.User],
-        *,
-        reason: Optional[str],
+            self,
+            ctx: bots.CustomContext,
+            member: Union[discord.Member, discord.User],
+            *,
+            reason: Optional[str],
     ) -> None:
         await member.ban(reason=reason)
 
@@ -137,7 +137,7 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def unban(
-        self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
+            self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
     ) -> None:
         await member.unban(reason=reason)
 
@@ -170,10 +170,10 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(manage_roles=True)
     async def timemute(
-        self,
-        ctx: bots.CustomContext,
-        member: discord.Member,
-        unpunishtime: converters.TimedeltaShorthand,
+            self,
+            ctx: bots.CustomContext,
+            member: discord.Member,
+            unpunishtime: converters.TimedeltaShorthand,
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         await ctx.invoke(self.mute, member=member)
@@ -181,7 +181,7 @@ class Moderation(commands.Cog):
             {
                 "$set": {
                     f"punishments.{member.id}.mute": (
-                        datetime.datetime.utcnow() + unpunishtime
+                            datetime.datetime.utcnow() + unpunishtime
                     )
                 }
             }
@@ -196,10 +196,10 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
-        self,
-        ctx: bots.CustomContext,
-        member: discord.Member,
-        unpunishtime: converters.TimedeltaShorthand,
+            self,
+            ctx: bots.CustomContext,
+            member: discord.Member,
+            unpunishtime: converters.TimedeltaShorthand,
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         await ctx.invoke(self.mute, member=member)
@@ -207,7 +207,7 @@ class Moderation(commands.Cog):
             {
                 "$set": {
                     f"punishments.{member.id}.ban": (
-                        datetime.datetime.utcnow() + unpunishtime
+                            datetime.datetime.utcnow() + unpunishtime
                     )
                 }
             }

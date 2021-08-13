@@ -2,8 +2,8 @@ import random
 
 from discord.ext import commands, menus
 
-from utils.bots import CustomContext, BOT_TYPES
 from utils import checks, embed_menus
+from utils.bots import CustomContext, BOT_TYPES
 from utils.checks import NotInVoiceChannel, is_in_voice
 
 
@@ -78,7 +78,7 @@ class AudioQueue(commands.Cog):
     @queuecommand.command(
         name="shuffle",
         description="Shuffles the current queue.\n"
-        "Note that this changes the queue, and cannot be undone.",
+                    "Note that this changes the queue, and cannot be undone.",
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def qshuffle(self, ctx: CustomContext) -> None:

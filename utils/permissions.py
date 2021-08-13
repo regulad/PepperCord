@@ -1,8 +1,9 @@
 from enum import Enum
 from typing import Union, Optional, List
-from utils.bots import CustomContext
 
 import discord
+
+from utils.bots import CustomContext
 
 
 class Permission(Enum):
@@ -26,7 +27,7 @@ class Permission(Enum):
 
 
 async def write_permission(
-    ctx: CustomContext, role: discord.Role, permission: Permission
+        ctx: CustomContext, role: discord.Role, permission: Permission
 ) -> None:
     await ctx.guild_document.update_db(
         {"$set": {f"permissions.{role.id}": permission.value}}
@@ -34,7 +35,7 @@ async def write_permission(
 
 
 def get_permission(
-    ctx: CustomContext, scope: Optional[Union[discord.Member, discord.Role]] = None
+        ctx: CustomContext, scope: Optional[Union[discord.Member, discord.Role]] = None
 ) -> Optional[Permission]:
     """Read the top permission level of an entity."""
 

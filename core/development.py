@@ -1,6 +1,6 @@
-from typing import Optional, Union
-from json import dump
 from io import StringIO
+from json import dump
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands, menus
@@ -29,14 +29,14 @@ class GuildsMenuList(menus.ListPageSource):
 
 class ShardMenu(menus.Menu):
     def __init__(
-        self,
-        shard_info,
-        *,
-        timeout=180.0,
-        delete_message_after=False,
-        clear_reactions_after=False,
-        check_embeds=False,
-        message=None,
+            self,
+            shard_info,
+            *,
+            timeout=180.0,
+            delete_message_after=False,
+            clear_reactions_after=False,
+            check_embeds=False,
+            message=None,
     ):
         self.shard_info = shard_info
 
@@ -53,8 +53,8 @@ class ShardMenu(menus.Menu):
             discord.Embed(
                 title=f"Info for shard {self.shard_info.id + 1}/{self.shard_info.shard_count}",
             )
-            .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
-            .add_field(
+                .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
+                .add_field(
                 name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms"
             )
         )
@@ -91,9 +91,9 @@ class Dev(commands.Cog):
         description="Prints an guild's raw document. Be careful! It can contain sensitive information.",
     )
     async def guildraw(
-        self,
-        ctx: bots.CustomContext,
-        entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
+            self,
+            ctx: bots.CustomContext,
+            entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
     ) -> None:
         entity = entity or ctx.guild
         document = await ctx.bot.get_guild_document(entity)
@@ -112,9 +112,9 @@ class Dev(commands.Cog):
         description="Prints an user's raw document. Be careful! It can contain sensitive information.",
     )
     async def userraw(
-        self,
-        ctx: bots.CustomContext,
-        entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
+            self,
+            ctx: bots.CustomContext,
+            entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
     ) -> None:
         entity = entity or ctx.author
         document = await ctx.bot.get_user_document(entity)
@@ -134,7 +134,7 @@ class Dev(commands.Cog):
     )
     @checks.check_bot_is_sharded
     async def shard_info(
-        self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]
+            self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]
     ) -> None:
         shard_id = shard_id or ctx.guild
 

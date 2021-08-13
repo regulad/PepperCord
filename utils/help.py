@@ -14,10 +14,10 @@ class PlainListPageSource(menus.ListPageSource):
 
 class BetterMenu(PrettyMenu):
     async def send_pages(
-        self,
-        ctx: CustomContext,
-        destination: discord.abc.Messageable,
-        pages: List[discord.Embed],
+            self,
+            ctx: CustomContext,
+            destination: discord.abc.Messageable,
+            pages: List[discord.Embed],
     ) -> None:
         (
             await menus.MenuPages(
@@ -28,15 +28,15 @@ class BetterMenu(PrettyMenu):
 
 class BetterPaginator(Paginator):
     def __init__(
-        self,
-        show_index: bool = True,
-        color: Union[int, discord.Colour] = 0,
-        *,
-        ending_note: Optional[str] = None,
-        char_limit: int = 6000,
-        field_limit: int = 25,
-        prefix: str = "```",
-        suffix: str = "```",
+            self,
+            show_index: bool = True,
+            color: Union[int, discord.Colour] = 0,
+            *,
+            ending_note: Optional[str] = None,
+            char_limit: int = 6000,
+            field_limit: int = 25,
+            prefix: str = "```",
+            suffix: str = "```",
     ) -> None:  # To be honest, I'm not sure why I did this. This library sucks big time.
         super().__init__(show_index, color)
         if ending_note is not None:
@@ -51,7 +51,7 @@ class BetterPaginator(Paginator):
             self.suffix = suffix
 
     def _add_command_fields(
-        self, embed: discord.Embed, page_title: str, commands: List[commands.Command]
+            self, embed: discord.Embed, page_title: str, commands: List[commands.Command]
     ):
         """
         Adds command fields to Category/Cog and Command Group pages
@@ -63,12 +63,12 @@ class BetterPaginator(Paginator):
         """
         for command in commands:
             if not self._check_embed(
-                embed,
-                self.ending_note,
-                command.name,
-                command.short_doc,
-                self.prefix,
-                self.suffix,
+                    embed,
+                    self.ending_note,
+                    command.name,
+                    command.short_doc,
+                    self.prefix,
+                    self.suffix,
             ):
                 self._add_page(embed)
                 embed = self._new_page(page_title, embed.description)

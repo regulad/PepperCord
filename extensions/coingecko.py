@@ -1,9 +1,9 @@
 from typing import Optional
 
+import discord
 from aiocoingecko import AsyncCoinGeckoAPISession
 from aiohttp import ClientSession
 from discord.ext import commands, menus
-import discord
 
 
 class CoinMenuSource(menus.ListPageSource):

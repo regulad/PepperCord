@@ -28,7 +28,7 @@ class MediaTooLong(BadMedia):
 
 
 async def find_url(
-    message: discord.Message,
+        message: discord.Message,
 ) -> Tuple[str, Union[discord.Attachment, discord.Embed]]:
     """
     Finds the URL of media attached to a message.
@@ -65,7 +65,7 @@ async def find_url(
 
 
 async def find_url_recurse(
-    message: discord.Message,
+        message: discord.Message,
 ) -> Tuple[str, Union[discord.Attachment, discord.Embed]]:
     """Attempts to find the media URL of a message,
     and if no message is found, iterate over messages in the channel history."""
@@ -74,7 +74,7 @@ async def find_url_recurse(
         return await find_url(message)
     except NoMedia:
         async for message in message.channel.history(
-            before=message.created_at, limit=50
+                before=message.created_at, limit=50
         ):
             try:
                 return await find_url(message)

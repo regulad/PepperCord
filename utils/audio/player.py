@@ -11,7 +11,7 @@ from .config import ytdl_format_options
 class AudioQueue(asyncio.Queue):
     @property
     def deque(
-        self,
+            self,
     ) -> collections.deque:  # Nasty, but its a weird property of how the Queue works. This may break!
         return self._queue
 

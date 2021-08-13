@@ -1,10 +1,10 @@
 import discord
 from discord.ext import commands
 
+from utils import bots
+from utils.bots import CustomContext, BOT_TYPES
 from utils.checks import LowPrivilege, has_permission_level
 from utils.permissions import Permission, get_permission
-from utils.bots import CustomContext, BOT_TYPES
-from utils import bots
 
 
 async def member_message_processor(bot: BOT_TYPES, member: discord.Member, event: str):
@@ -65,12 +65,12 @@ class Alerts(commands.Cog):
         description="Sets message displayed when an action occursm. Message types include on_member_join and on_member_remove.",
     )
     async def setmessage(
-        self,
-        ctx: CustomContext,
-        message_type: str,
-        channel: discord.TextChannel,
-        *,
-        message: str,
+            self,
+            ctx: CustomContext,
+            message_type: str,
+            channel: discord.TextChannel,
+            *,
+            message: str,
     ) -> None:
         await ctx.guild_document.update_db(
             {"$set": {f"messages.{message_type}.{channel.id}": message}}

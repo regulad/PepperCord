@@ -20,7 +20,7 @@ async def bot_is_sharded(ctx: CustomContext) -> bool:
 async def check_bot_is_sharded(ctx: CustomContext) -> bool:
     """Checks if the bot is sharded, and raises NotSharded if it isn't."""
 
-    if not bot_is_sharded(ctx):
+    if not await bot_is_sharded(ctx):
         raise NotSharded
     return True
 

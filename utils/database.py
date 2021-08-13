@@ -1,4 +1,5 @@
 from typing import Optional
+
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 
@@ -6,7 +7,7 @@ class Document(dict):
     """Represents a single MongoDB document."""
 
     def __init__(
-        self, *args, collection: AsyncIOMotorCollection, query: dict, **kwargs
+            self, *args, collection: AsyncIOMotorCollection, query: dict, **kwargs
     ):
         self._collection = collection
         self._query = query
@@ -14,7 +15,7 @@ class Document(dict):
 
     @classmethod
     async def get_document(
-        cls, collection: AsyncIOMotorCollection, query: dict, **kwargs
+            cls, collection: AsyncIOMotorCollection, query: dict, **kwargs
     ):
         """Gets a document from the database with a query, or returns a new one with the content of the query."""
 
@@ -27,7 +28,7 @@ class Document(dict):
 
     @classmethod
     async def find_document(
-        cls, collection: AsyncIOMotorCollection, query: dict, **kwargs
+            cls, collection: AsyncIOMotorCollection, query: dict, **kwargs
     ) -> Optional:
         """Gets a document from a database if it exists, else None."""
 

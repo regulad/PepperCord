@@ -1,10 +1,10 @@
-from discord.ext import commands
 import discord
+from discord.ext import commands
 
-from utils.database import Document
-from utils.bots import BOT_TYPES, CustomContext
-from utils.localization import Message
 from utils import checks
+from utils.bots import BOT_TYPES, CustomContext
+from utils.database import Document
+from utils.localization import Message
 
 
 async def get_prefix(bot: BOT_TYPES, message: discord.Message) -> str:
@@ -28,7 +28,7 @@ class CustomPrefix(commands.Cog):
     @commands.command(
         name="prefix",
         description="Sets the bot's prefix.\n"
-        "It can be any string, and will only apply to this server.",
+                    "It can be any string, and will only apply to this server.",
     )
     @checks.check_is_admin
     async def prefix(self, ctx: CustomContext, *, prefix: str) -> None:

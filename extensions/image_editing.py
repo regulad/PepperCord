@@ -40,7 +40,7 @@ class Images(commands.Cog):
     )
     @commands.cooldown(1, 40, commands.BucketType.channel)
     async def pins_left(
-        self, ctx: CustomContext, *, channel: typing.Optional[discord.TextChannel]
+            self, ctx: CustomContext, *, channel: typing.Optional[discord.TextChannel]
     ) -> None:
         async with ctx.typing():
             channel = channel or ctx.channel

@@ -3,9 +3,9 @@ import typing
 import discord
 from discord.ext import commands
 
+from utils import bots
 from utils.checks import LowPrivilege, has_permission_level
 from utils.permissions import Permission, get_permission
-from utils import bots
 
 
 class ReactionRoles(commands.Cog):
@@ -21,7 +21,7 @@ class ReactionRoles(commands.Cog):
             return True
 
     async def _reaction_processor(
-        self, payload: discord.RawReactionActionEvent
+            self, payload: discord.RawReactionActionEvent
     ) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
@@ -50,13 +50,13 @@ class ReactionRoles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(
-        self, payload: discord.RawReactionActionEvent
+            self, payload: discord.RawReactionActionEvent
     ) -> None:
         await self._reaction_processor(payload)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(
-        self, payload: discord.RawReactionActionEvent
+            self, payload: discord.RawReactionActionEvent
     ) -> None:
         await self._reaction_processor(payload)
 
@@ -84,16 +84,16 @@ class ReactionRoles(commands.Cog):
     @reactionrole.command(
         name="add",
         description="Adds reaction roles.\n"
-        "The bot must have permissions to add rections in the desired channel.",
+                    "The bot must have permissions to add rections in the desired channel.",
         usage="<Channel> <Message> <Emoji> <Role>",
     )
     async def add(
-        self,
-        ctx: bots.CustomContext,
-        channel: discord.TextChannel,
-        message: typing.Union[discord.Message, discord.PartialMessage],
-        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
-        role: discord.Role,
+            self,
+            ctx: bots.CustomContext,
+            channel: discord.TextChannel,
+            message: typing.Union[discord.Message, discord.PartialMessage],
+            emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
+            role: discord.Role,
     ) -> None:
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji_name = emoji.name

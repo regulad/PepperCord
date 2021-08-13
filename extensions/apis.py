@@ -1,7 +1,5 @@
-from json import JSONDecodeError
-
-from aiohttp import ClientSession, ContentTypeError
 import discord
+from aiohttp import ClientSession
 from discord.ext import commands
 
 from utils import bots
@@ -20,7 +18,7 @@ class APIs(commands.Cog):
     @commands.command(name="bored", description="Do something, stop being bored!")
     async def bored(self, ctx: bots.CustomContext) -> None:
         async with self.aiohttp_cs.get(
-            "https://www.boredapi.com/api/activity/"
+                "https://www.boredapi.com/api/activity/"
         ) as request:
             result = await request.json()
         embed = discord.Embed(

@@ -1,14 +1,13 @@
-from typing import Optional, List, cast
 from enum import Enum
+from typing import Optional, List, cast
 
 import discord
 from discord.ext import commands, menus
 
-from utils.localization import Message
+from extensions.moderation import mute
 from utils import checks, bots
 from utils.attachments import find_url_recurse
-from extensions.moderation import mute
-
+from utils.localization import Message
 
 KEYWORD_PREFIX: str = "$"
 
@@ -98,12 +97,12 @@ class CustomCommandSource(menus.ListPageSource):
 
 
 def match_commands(
-    possible_commands: List[CustomCommand],
-    query: str,
-    case_insensitive: bool = True,
-    first_word_only: bool = True,
-    starts_with: bool = True,
-    exact: bool = True,
+        possible_commands: List[CustomCommand],
+        query: str,
+        case_insensitive: bool = True,
+        first_word_only: bool = True,
+        starts_with: bool = True,
+        exact: bool = True,
 ) -> Optional[CustomCommand]:
     """Attempts to find a CustomCommand from a list of CustomCommands."""
 
@@ -112,38 +111,38 @@ def match_commands(
 
     for possible_command in possible_commands:
         if (
-            case_insensitive
-            and (
+                case_insensitive
+                and (
                 (exact and query.lower() == possible_command.command.lower())
                 or (
-                    not exact
-                    and (
-                        (
-                            starts_with
-                            and query.lower().startswith(
-                                possible_command.command.lower()
-                            )
-                        )
-                        or (
-                            not starts_with
-                            and possible_command.command.lower() in query.lower()
-                        )
-                    )
-                )
-            )
-            or (
-                not case_insensitive
-                and (
-                    (exact and query == possible_command.command)
-                    or (
                         not exact
                         and (
-                            (starts_with and query.startswith(possible_command.command))
-                            or (not starts_with and possible_command.command in query)
+                                (
+                                        starts_with
+                                        and query.lower().startswith(
+                                    possible_command.command.lower()
+                                )
+                                )
+                                or (
+                                        not starts_with
+                                        and possible_command.command.lower() in query.lower()
+                                )
                         )
-                    )
                 )
-            )
+        )
+                or (
+                not case_insensitive
+                and (
+                        (exact and query == possible_command.command)
+                        or (
+                                not exact
+                                and (
+                                        (starts_with and query.startswith(possible_command.command))
+                                        or (not starts_with and possible_command.command in query)
+                                )
+                        )
+                )
+        )
         ):
             return possible_command
         else:
@@ -153,7 +152,7 @@ def match_commands(
 
 
 def get_custom_command_from_guild(
-    ctx: bots.CustomContext, query: Optional[str] = None
+        ctx: bots.CustomContext, query: Optional[str] = None
 ) -> Optional[CustomCommand]:
     query = query or ctx.message.clean_content
 
@@ -199,17 +198,17 @@ class CustomCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_custom_command_success(
-        self, custom_command: CustomCommand, ctx: bots.CustomContext
+            self, custom_command: CustomCommand, ctx: bots.CustomContext
     ) -> None:
         if custom_command.keyword is None:
             await ctx.message.add_reaction("✅")
 
     @commands.Cog.listener()
     async def on_custom_command_error(
-        self,
-        custom_command: CustomCommand,
-        ctx: bots.CustomContext,
-        reason: BaseException,
+            self,
+            custom_command: CustomCommand,
+            ctx: bots.CustomContext,
+            reason: BaseException,
     ):
         if isinstance(reason, commands.CommandOnCooldown):
             await ctx.message.add_reaction("⏰")
@@ -221,10 +220,10 @@ class CustomCommands(commands.Cog):
         ctx: bots.CustomContext = await self.bot.get_context(message)
 
         if (
-            not ctx.author.bot
-            and ctx.guild is not None
-            and ctx.guild_document.get("commands") is not None
-            and not ctx.valid
+                not ctx.author.bot
+                and ctx.guild is not None
+                and ctx.guild_document.get("commands") is not None
+                and not ctx.valid
         ):
             # Lots of conditions to get here.
             # Oh well, that will happen if you have to make your own command invocation system.
@@ -272,7 +271,7 @@ class CustomCommands(commands.Cog):
     )
     @checks.check_is_admin
     async def invoke(
-        self, ctx: bots.CustomContext, *, query: CustomCommandConverter
+            self, ctx: bots.CustomContext, *, query: CustomCommandConverter
     ) -> None:
         custom_command: CustomCommand = cast(CustomCommand, query)
         await ctx.send(
@@ -297,7 +296,7 @@ class CustomCommands(commands.Cog):
         description="Sets case sensitivity.",
     )
     async def case(
-        self, ctx: bots.CustomContext, *, is_case_sensitive: bool = False
+            self, ctx: bots.CustomContext, *, is_case_sensitive: bool = False
     ) -> None:
         await ctx.guild_document.update_db(
             {"$set": {"cc_is_case_insensitive": not is_case_sensitive}}
@@ -319,7 +318,7 @@ class CustomCommands(commands.Cog):
         description="Sets if the message must start with the custom command for it to register.",
     )
     async def startswith(
-        self, ctx: bots.CustomContext, *, must_start_with: bool = True
+            self, ctx: bots.CustomContext, *, must_start_with: bool = True
     ):
         await ctx.guild_document.update_db(
             {"$set": {"cc_starts_with": must_start_with}}
@@ -336,21 +335,21 @@ class CustomCommands(commands.Cog):
         name="add",
         aliases=["set"],
         description="Adds a custom command to the guild.\n"
-        "Custom commands are case-sensitive (by default), "
-        "and both the invocation keyword and the message must be placed in quotes if they are multiple "
-        "words.\n"
-        "If a Message is not specified, the most recently sent media will be used.\n\n"
-        "If a ⏰ is added to the message, it means you are being rate-limited.\n\n"
-        "Commands can contain special keywords that perform certain actions:\n\n"
-        "* $del: Deletes the message that invoked the command.\n"
-        "* $mute: Mutes the sender.\n"
-        "* $kick: Kicks the sender.\n"
-        "* $ban: Bans the sender.",
+                    "Custom commands are case-sensitive (by default), "
+                    "and both the invocation keyword and the message must be placed in quotes if they are multiple "
+                    "words.\n"
+                    "If a Message is not specified, the most recently sent media will be used.\n\n"
+                    "If a ⏰ is added to the message, it means you are being rate-limited.\n\n"
+                    "Commands can contain special keywords that perform certain actions:\n\n"
+                    "* $del: Deletes the message that invoked the command.\n"
+                    "* $mute: Mutes the sender.\n"
+                    "* $kick: Kicks the sender.\n"
+                    "* $ban: Bans the sender.",
         usage="<Keyword> [Message]",
     )
     @checks.check_is_admin
     async def ccadd(
-        self, ctx: bots.CustomContext, command: str, *, message: Optional[str] = None
+            self, ctx: bots.CustomContext, command: str, *, message: Optional[str] = None
     ) -> None:
         message: str = (
             message if message is not None else (await find_url_recurse(ctx.message))[0]
@@ -365,8 +364,8 @@ class CustomCommands(commands.Cog):
     @checks.check_is_admin
     async def ccdel(self, ctx: bots.CustomContext, *, command: str) -> None:
         if (
-            ctx.guild_document.get("commands") is not None
-            and ctx.guild_document["commands"].get(command) is not None
+                ctx.guild_document.get("commands") is not None
+                and ctx.guild_document["commands"].get(command) is not None
         ):
             await ctx.guild_document.update_db({"$unset": {f"commands.{command}": 1}})
         else:

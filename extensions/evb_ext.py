@@ -1,7 +1,9 @@
+import asyncio
 from io import BytesIO
 from os.path import splitext
 
 import discord
+import evb
 from aiohttp import ClientSession
 from discord.ext import commands
 from evb import AsyncEditVideoBotSession
@@ -17,14 +19,15 @@ class EditVideoBot(commands.Cog):
         self.bot = bot
 
         self.client_session = ClientSession()
-        self.evb_session = AsyncEditVideoBotSession.from_api_key(
-            self.bot.config.get("PEPPERCORD_EVB"),
-            client_session=self.client_session,
-        )
+        self.evb_session = AsyncEditVideoBotSession.from_api_key(self.bot.config.get("PEPPERCORD_EVB"))
+        self._evb_session_open_task = asyncio.create_task(self.evb_session.open())
 
         self.cooldown = commands.CooldownMapping.from_cooldown(
             30, 86400, commands.BucketType.default
         )
+
+    def cog_unload(self) -> None:
+        asyncio.create_task(self.evb_session.close())
 
     async def cog_check(self, ctx: CustomContext) -> bool:
         cooldown: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
@@ -55,13 +58,11 @@ class EditVideoBot(commands.Cog):
             else:
                 extension: str = splitext(url)[1].strip(".")
 
-            output_bytes, response = await self.evb_session.edit(
+            response: evb.EditResponse = await self.evb_session.edit(
                 attachment_bytes, evb_commands, extension
             )
 
-            file = discord.File(
-                BytesIO(output_bytes), f"output{splitext(response.media_url)[1]}"
-            )
+            file = discord.File(BytesIO(await response.download()), f"output{splitext(response.media_url)[1]}")
             await ctx.reply(files=[file])
 
     @commands.command(

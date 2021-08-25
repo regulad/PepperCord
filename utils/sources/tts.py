@@ -9,13 +9,11 @@ from asyncgTTS import (
     VoiceSelectionParams,
 )
 
-from ._fixes import FFmpegPCMAudio
-
 
 class TTSSource(discord.PCMVolumeTransformer):
     def __init__(
             self,
-            source: FFmpegPCMAudio,
+            source: discord.FFmpegPCMAudio,
             volume=0.7,
             *,
             text: str,
@@ -46,7 +44,7 @@ class TTSSource(discord.PCMVolumeTransformer):
         audio_bytes = await tts_session.synthesize(text_synthesize_request_body)
         with BytesIO(audio_bytes) as buffer:
             buffer.seek(0)
-            source = FFmpegPCMAudio(buffer.read(), pipe=True)
+            source = discord.FFmpegPCMAudio(buffer, pipe=True)
             return cls(source, text=text, invoker=invoker)
 
 

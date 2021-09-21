@@ -11,6 +11,5 @@ asyncio-dgram # mcstatus fsr
 Pillow # Image editing
 youtube_dl
 async-gTTS
-evb.py >= 1.0.1
 aiocoingecko >= 1.0.0
 topggpy

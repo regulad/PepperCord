@@ -156,7 +156,7 @@ class Levels(commands.Cog):
             return  # raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after), Not the same as of v2
 
         gen_xp = random.randrange(xp_start, xp_end)
-        user_level = UserLevel(ctx.author, ctx.author_document)
+        user_level = UserLevel(ctx.author, ctx["author_document"])
         user_level_up = await user_level.increment(gen_xp)
 
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (

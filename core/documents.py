@@ -6,7 +6,7 @@ from utils.bots import BOT_TYPES, CustomContext
 from utils.localization import Locale
 
 
-class DocumentCog(commands.Cog):  # Could use the custom state logic, but this is just easier. Sorry! Rework?
+class DocumentCog(commands.Cog):
     """Adds document keys to each document."""
 
     def __init__(self, bot: BOT_TYPES):
@@ -15,14 +15,14 @@ class DocumentCog(commands.Cog):  # Could use the custom state logic, but this i
     @commands.Cog.listener("on_context_creation")
     async def append_guild_document(self, ctx: commands.Context):
         ctx: CustomContext = cast(CustomContext, ctx)
-        ctx.guild_document = await ctx.bot.get_guild_document(ctx.guild)
+        ctx["guild_document"] = await ctx.bot.get_guild_document(ctx.guild)
         # May be split off into localization cog.
-        ctx.locale = Locale[ctx.guild_document.get("locale", "en_US")]
+        ctx["locale"] = Locale[ctx["guild_document"].get("locale", "en_US")]
 
     @commands.Cog.listener("on_context_creation")
     async def append_user_document(self, ctx: commands.Context):
         ctx: CustomContext = cast(CustomContext, ctx)
-        ctx.user_document = await ctx.bot.get_user_document(ctx.author)
+        ctx["user_document"] = await ctx.bot.get_user_document(ctx.author)
 
 
 def setup(bot: BOT_TYPES) -> None:

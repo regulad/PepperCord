@@ -29,9 +29,10 @@ class Threads(commands.Cog):
     async def thread_unarchiver(self, before: discord.Thread, after: discord.Thread) -> None:
         ctx: CustomContext = await self.bot.get_context(
             after.last_message if after.last_message is not None else await after.fetch_message(after.last_message_id))
-        if ((not before.archived) and after.archived) and after.id in ctx.guild_document.get("unarchived_threads", []):
+        if ((not before.archived) and after.archived) and after.id in ctx["guild_document"].get("unarchived_threads",
+                                                                                                []):
             await after.edit(archived=False)
-            await after.send(ctx.locale.get_message(Message.THREAD_UNARCHIVED).format(thread=after))
+            await after.send(ctx["locale"].get_message(Message.THREAD_UNARCHIVED).format(thread=after))
 
     @commands.group(
         invoke_without_command=True,
@@ -63,7 +64,7 @@ class Threads(commands.Cog):
         if thread is None:
             raise commands.BadArgument("thread is required when not in a thread")
 
-        await ctx.guild_document.update_db({"$push": {"unarchived_threads": thread.id}})
+        await ctx["guild_document"].update_db({"$push": {"unarchived_threads": thread.id}})
 
     @archive.command(
         name="unshield",
@@ -75,7 +76,7 @@ class Threads(commands.Cog):
         if thread is None:
             raise commands.BadArgument("thread is required when not in a thread")
 
-        await ctx.guild_document.update_db({"$pull": {"unarchived_threads": thread.id}})
+        await ctx["guild_document"].update_db({"$pull": {"unarchived_threads": thread.id}})
 
 
 def setup(bot: BOT_TYPES) -> None:

@@ -29,7 +29,7 @@ class Permission(Enum):
 async def write_permission(
         ctx: CustomContext, role: discord.Role, permission: Permission
 ) -> None:
-    await ctx.guild_document.update_db(
+    await ctx["guild_document"].update_db(
         {"$set": {f"permissions.{role.id}": permission.value}}
     )
 
@@ -53,7 +53,7 @@ def get_permission(
     # Gets permission level for each role
     permission_levels: List[int] = []
     for role in below_roles:
-        active_item: Optional[int] = ctx.guild_document.get("permissions", {}).get(
+        active_item: Optional[int] = ctx["guild_document"].get("permissions", {}).get(
             str(role.id)
         )
         permission_levels.append(active_item if active_item is not None else 0)

@@ -33,9 +33,9 @@ class CustomPrefix(commands.Cog):
     @checks.check_is_admin
     async def prefix(self, ctx: CustomContext, *, prefix: str) -> None:
         if prefix == ctx.bot.config.get("PEPPERCORD_PREFIX", "?"):
-            await ctx.guild_document.update_db({"$unset": {"prefix": 1}})
+            await ctx["guild_document"].update_db({"$unset": {"prefix": 1}})
         else:
-            await ctx.guild_document.update_db({"$set": {"prefix": prefix}})
+            await ctx["guild_document"].update_db({"$set": {"prefix": prefix}})
 
     @commands.command(
         name="getprefix",
@@ -43,7 +43,7 @@ class CustomPrefix(commands.Cog):
     )
     async def prefix(self, ctx: CustomContext) -> None:
         await ctx.send(
-            ctx.locale.get_message(Message.PREFIX_GET).format(
+            ctx["locale"].get_message(Message.PREFIX_GET).format(
                 prefix=str(await get_prefix(ctx.bot, ctx.message))
             )
         )

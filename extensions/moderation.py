@@ -67,7 +67,7 @@ class Moderation(commands.Cog):
             if guild_doc.get("punishments") is not None:
                 for user_id, user_dict in guild_doc["punishments"].items():
                     for punishment, unpunish_time in user_dict.items():
-                        if unpunish_time < datetime.datetime.utcnow():
+                        if (unpunish_time if isinstance(unpunish_time, datetime.datetime) else datetime.datetime(second=unpunish_time, tzinfo=datetime.timezone.utc)) < datetime.datetime.utcnow():
                             try:  # Messy.
                                 if punishment == "mute":
                                     await unmute(

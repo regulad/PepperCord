@@ -21,7 +21,7 @@ class DeleteMenu(menus.Menu):
     @menus.button("✅")
     async def confirm(self, payload) -> None:
         await self.message.edit(content="Deleting guild information...")
-        await self.ctx.guild_document.delete_db()
+        await self.ctx["guild_document"].delete_db()
         await self.ctx.guild.leave()
         self.stop()
 
@@ -73,7 +73,7 @@ class Administration(commands.Cog):
                     "The role must already be configured.",
     )
     async def mute(self, ctx: CustomContext, *, role: discord.Role) -> None:
-        await ctx.guild_document.update_db({"$set": {"mute_role": role.id}})
+        await ctx["guild_document"].update_db({"$set": {"mute_role": role.id}})
 
     @config.command(
         name="locale",
@@ -83,8 +83,8 @@ class Administration(commands.Cog):
                     "* catspeak",
     )
     async def locale(self, ctx: CustomContext, *, locale: LocaleConverter) -> None:
-        await ctx.guild_document.update_db({"$set": {"locale": locale.name}})
-        await ctx.send(ctx.locale.get_message(Message.SELECT_LANGUAGE))
+        await ctx["guild_document"].update_db({"$set": {"locale": locale.name}})
+        await ctx.send(ctx["locale"].get_message(Message.SELECT_LANGUAGE))
         # TODO: Implement localization system wherever possible.
 
     @commands.command(

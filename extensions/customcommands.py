@@ -30,7 +30,7 @@ class Keyword(Enum):
         if self is self.__class__.DELETE_MESSAGE:
             await ctx.message.delete()
         elif self is self.__class__.MUTE_MEMBER:
-            await mute(ctx.author, guild_document=ctx.guild_document)
+            await mute(ctx.author, guild_document=ctx["guild_document"])
         elif self is self.__class__.KICK_MEMBER:
             await ctx.author.kick()
         elif self is self.__class__.BAN_MEMBER:
@@ -157,12 +157,12 @@ def get_custom_command_from_guild(
     query = query or ctx.message.clean_content
 
     return match_commands(
-        CustomCommand.from_dict(ctx.guild_document.get("commands", [])),
+        CustomCommand.from_dict(ctx["guild_document"].get("commands", [])),
         query,
-        ctx.guild_document.get("cc_is_case_insensitive", True),
-        ctx.guild_document.get("cc_first_word_only", True),
-        ctx.guild_document.get("cc_starts_with", True),
-        ctx.guild_document.get("cc_exact", True),
+        ctx["guild_document"].get("cc_is_case_insensitive", True),
+        ctx["guild_document"].get("cc_first_word_only", True),
+        ctx["guild_document"].get("cc_starts_with", True),
+        ctx["guild_document"].get("cc_exact", True),
     )
 
 
@@ -222,7 +222,7 @@ class CustomCommands(commands.Cog):
         if (
                 not ctx.author.bot
                 and ctx.guild is not None
-                and ctx.guild_document.get("commands") is not None
+                and ctx["guild_document"].get("commands") is not None
                 and not ctx.valid
         ):
             # Lots of conditions to get here.
@@ -257,7 +257,7 @@ class CustomCommands(commands.Cog):
         description="Tools for configuration of custom commands.",
     )
     async def customcommands(self, ctx: bots.CustomContext) -> None:
-        commands_dict = ctx.guild_document.get("commands", {})
+        commands_dict = ctx["guild_document"].get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
         pages = menus.MenuPages(source=source)
@@ -275,7 +275,7 @@ class CustomCommands(commands.Cog):
     ) -> None:
         custom_command: CustomCommand = cast(CustomCommand, query)
         await ctx.send(
-            ctx.locale.get_message(Message.CUSTOM_COMMAND_GET).format(
+            ctx["locale"].get_message(Message.CUSTOM_COMMAND_GET).format(
                 cmd=custom_command
             )
         )
@@ -298,7 +298,7 @@ class CustomCommands(commands.Cog):
     async def case(
             self, ctx: bots.CustomContext, *, is_case_sensitive: bool = False
     ) -> None:
-        await ctx.guild_document.update_db(
+        await ctx["guild_document"].update_db(
             {"$set": {"cc_is_case_insensitive": not is_case_sensitive}}
         )
 
@@ -308,7 +308,7 @@ class CustomCommands(commands.Cog):
         description="Sets if only the first word will be scanned for custom commands.",
     )
     async def word(self, ctx: bots.CustomContext, *, first_word_only: bool = True):
-        await ctx.guild_document.update_db(
+        await ctx["guild_document"].update_db(
             {"$set": {"cc_first_word_only": first_word_only}}
         )
 
@@ -320,7 +320,7 @@ class CustomCommands(commands.Cog):
     async def startswith(
             self, ctx: bots.CustomContext, *, must_start_with: bool = True
     ):
-        await ctx.guild_document.update_db(
+        await ctx["guild_document"].update_db(
             {"$set": {"cc_starts_with": must_start_with}}
         )
 
@@ -329,7 +329,7 @@ class CustomCommands(commands.Cog):
         description="Sets if the message must be exactly the custom command.",
     )
     async def exact(self, ctx: bots.CustomContext, *, must_be_exact: bool = True):
-        await ctx.guild_document.update_db({"$set": {"cc_exact": must_be_exact}})
+        await ctx["guild_document"].update_db({"$set": {"cc_exact": must_be_exact}})
 
     @customcommands.command(
         name="add",
@@ -354,7 +354,7 @@ class CustomCommands(commands.Cog):
         message: str = (
             message if message is not None else (await find_url_recurse(ctx.message))[0]
         )
-        await ctx.guild_document.update_db({"$set": {f"commands.{command}": message}})
+        await ctx["guild_document"].update_db({"$set": {f"commands.{command}": message}})
 
     @customcommands.command(
         name="delete",
@@ -364,10 +364,10 @@ class CustomCommands(commands.Cog):
     @checks.check_is_admin
     async def ccdel(self, ctx: bots.CustomContext, *, command: str) -> None:
         if (
-                ctx.guild_document.get("commands") is not None
-                and ctx.guild_document["commands"].get(command) is not None
+                ctx["guild_document"].get("commands") is not None
+                and ctx["guild_document"]["commands"].get(command) is not None
         ):
-            await ctx.guild_document.update_db({"$unset": {f"commands.{command}": 1}})
+            await ctx["guild_document"].update_db({"$unset": {f"commands.{command}": 1}})
         else:
             raise commands.CommandNotFound(f"{command} is not registered.")
 

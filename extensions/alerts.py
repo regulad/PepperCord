@@ -54,9 +54,9 @@ class Alerts(commands.Cog):
         description="Deletes all messages.",
     )
     async def sdisable(self, ctx: CustomContext) -> None:
-        if ctx.guild_document.get("reactions") is None:
+        if ctx["guild_document"].get("reactions") is None:
             raise bots.NotConfigured
-        await ctx.guild_document.update_db({"$unset": {"reactions": 1}})
+        await ctx["guild_document"].update_db({"$unset": {"reactions": 1}})
 
     @events.command(
         name="add",
@@ -72,7 +72,7 @@ class Alerts(commands.Cog):
             *,
             message: str,
     ) -> None:
-        await ctx.guild_document.update_db(
+        await ctx["guild_document"].update_db(
             {"$set": {f"messages.{message_type}.{channel.id}": message}}
         )
 

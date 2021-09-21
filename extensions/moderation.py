@@ -150,7 +150,7 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(manage_roles=True)
     async def mute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
-        await mute(member, guild_document=ctx.guild_document)
+        await mute(member, guild_document=ctx["guild_document"])
 
     @commands.command(
         name="unmute",
@@ -160,7 +160,7 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(manage_roles=True)
     async def unmute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
-        await unmute(member, guild_document=ctx.guild_document)
+        await unmute(member, guild_document=ctx["guild_document"])
 
     @commands.command(
         name="timemute",
@@ -178,7 +178,7 @@ class Moderation(commands.Cog):
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         await ctx.invoke(self.mute, member=member)
-        await ctx.guild_document.update_db(
+        await ctx["guild_document"].update_db(
             {
                 "$set": {
                     f"punishments.{member.id}.mute": (
@@ -204,7 +204,7 @@ class Moderation(commands.Cog):
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         await ctx.invoke(self.mute, member=member)
-        await ctx.guild_document.update_db(
+        await ctx["guild_document"].update_db(
             {
                 "$set": {
                     f"punishments.{member.id}.ban": (

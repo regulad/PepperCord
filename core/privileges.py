@@ -46,10 +46,10 @@ class Privileges(commands.Cog):
         description="Deletes all permission data. This reverts permissions to their initial state.",
     )
     async def sdisable(self, ctx: bots.CustomContext) -> None:
-        if ctx.guild_document is None:
+        if ctx["guild_document"] is None:
             raise bots.NotConfigured
         else:
-            await ctx.guild_document.update_db({"$unset": {"permissions": 1}})
+            await ctx["guild_document"].update_db({"$unset": {"permissions": 1}})
 
     @permissions.command(
         name="read",

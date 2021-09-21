@@ -160,9 +160,9 @@ class Levels(commands.Cog):
         user_level_up = await user_level.increment(gen_xp)
 
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
-                not ctx.guild_document.get("levels", {}).get("disabled", True)
+                not ctx["guild_document"].get("levels", {}).get("disabled", True)
         ):
-            redirect_channel_id: int = ctx.guild_document.get("levels", {}).get(
+            redirect_channel_id: int = ctx["guild_document"].get("levels", {}).get(
                 "redirect"
             )
 
@@ -218,7 +218,7 @@ class Levels(commands.Cog):
             self, ctx: CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
         channel = channel or ctx.channel
-        await ctx.guild_document.update_db({"$set": {"levels.redirect": channel.id}})
+        await ctx["guild_document"].update_db({"$set": {"levels.redirect": channel.id}})
 
     @commands.command(
         name="disablexp",
@@ -227,7 +227,7 @@ class Levels(commands.Cog):
     )
     @checks.check_is_admin
     async def disablexp(self, ctx: CustomContext) -> None:
-        await ctx.guild_document.update_db({"$set": {"levels.disabled": True}})
+        await ctx["guild_document"].update_db({"$set": {"levels.disabled": True}})
 
     @commands.command(
         name="enablexp",
@@ -236,7 +236,7 @@ class Levels(commands.Cog):
     )
     @checks.check_is_admin
     async def enablexp(self, ctx: CustomContext) -> None:
-        await ctx.guild_document.update_db({"$set": {"levels.disabled": False}})
+        await ctx["guild_document"].update_db({"$set": {"levels.disabled": False}})
 
     @commands.command(
         name="rank",

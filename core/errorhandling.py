@@ -5,9 +5,9 @@ import discord
 from asyncgTTS import LibraryException as TtsException
 from discord.ext import commands, menus
 from evb import LibraryException as EvbException
-from utils.bots import CustomContext
 
 from utils import checks, bots, attachments
+from utils.bots import CustomContext
 
 known_errors = {
     checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
@@ -100,24 +100,24 @@ class ErrorLogging(commands.Cog):
     @commands.Cog.listener("on_context_creation")
     async def append_command_document(self, ctx: commands.Context):
         ctx: CustomContext = cast(CustomContext, ctx)
-        ctx.command_document = await ctx.bot.get_command_document(ctx.command) if ctx.command is not None else None
+        ctx["command_document"] = await ctx.bot.get_command_document(ctx.command) if ctx.command is not None else None
 
     @commands.Cog.listener("on_command")
     async def log_command_uses(self, ctx: bots.CustomContext) -> None:
         if ctx.command is not None:
-            await ctx.command_document.update_db({"$inc": {"stats.uses": 1}})
+            await ctx["command_document"].update_db({"$inc": {"stats.uses": 1}})
 
     @commands.Cog.listener("on_command_completion")
     async def log_command_completion(self, ctx: bots.CustomContext) -> None:
         if ctx.command is not None:
-            await ctx.command_document.update_db({"$inc": {"stats.successes": 1}})
+            await ctx["command_document"].update_db({"$inc": {"stats.successes": 1}})
 
     @commands.Cog.listener("on_command_error")
     async def log_command_error(
             self, ctx: bots.CustomContext, error: Exception
     ) -> None:
         if ctx.command is not None:
-            await ctx.command_document.update_db({"$inc": {"stats.errors": 1}})
+            await ctx["command_document"].update_db({"$inc": {"stats.errors": 1}})
 
 
 class ErrorHandling(commands.Cog):

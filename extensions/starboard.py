@@ -79,8 +79,8 @@ class Starboard(commands.Cog):
             )
         )
 
-        send_emoji = ctx.guild_document.get("starboard", {}).get("emoji", "⭐")
-        threshold = ctx.guild_document.get("starboard", {}).get("threshold", 3)
+        send_emoji = ctx["guild_document"].get("starboard", {}).get("emoji", "⭐")
+        threshold = ctx["guild_document"].get("starboard", {}).get("threshold", 3)
 
         for reaction in ctx.message.reactions:
             if isinstance(reaction.emoji, (discord.Emoji, discord.PartialEmoji)):
@@ -98,7 +98,7 @@ class Starboard(commands.Cog):
         if react_count is None:
             return
         if react_count >= threshold or manager:
-            await send_star(ctx.guild_document, ctx.message)
+            await send_star(ctx["guild_document"], ctx.message)
         else:
             return
 
@@ -111,12 +111,12 @@ class Starboard(commands.Cog):
         brief="Starboard setup.",
     )
     async def starboard(self, ctx: bots.CustomContext) -> None:
-        if ctx.guild_document.get("starboard", {}).get("channel") is None:
+        if ctx["guild_document"].get("starboard", {}).get("channel") is None:
             raise bots.NotConfigured
         else:
             await ctx.send(
                 ctx.guild.get_channel(
-                    ctx.guild_document["starboard"]["channel"]
+                    ctx["guild_document"]["starboard"]["channel"]
                 ).mention
             )
 
@@ -130,28 +130,28 @@ class Starboard(commands.Cog):
     )
     @commands.check(checks.check_is_admin)
     async def sconfig(self, ctx: bots.CustomContext) -> None:
-        if ctx.guild_document.get("starboard", {}).get("channel") is None:
+        if ctx["guild_document"].get("starboard", {}).get("channel") is None:
             raise bots.NotConfigured
 
         try:
             emoji = await commands.EmojiConverter().convert(
-                ctx, ctx.guild_document["starboard"].get("emoji", "⭐")
+                ctx, ctx["guild_document"]["starboard"].get("emoji", "⭐")
             )
         except commands.EmojiNotFound:
-            emoji = ctx.guild_document["starboard"].get("emoji", "⭐")
+            emoji = ctx["guild_document"]["starboard"].get("emoji", "⭐")
 
         embed = (
             discord.Embed(title="Starboard Config")
                 .add_field(
                 name="Channel:",
                 value=ctx.guild.get_channel(
-                    ctx.guild_document["starboard"]["channel"]
+                    ctx["guild_document"]["starboard"]["channel"]
                 ).mention,
             )
                 .add_field(name="Emoji:", value=emoji)
                 .add_field(
                 name="Threshold:",
-                value=ctx.guild_document["starboard"].get("threshold", 3),
+                value=ctx["guild_document"]["starboard"].get("threshold", 3),
             )
         )
 
@@ -164,10 +164,10 @@ class Starboard(commands.Cog):
         description="Deletes all starboard data, including config and message cache.",
     )
     async def sdisable(self, ctx: bots.CustomContext) -> None:
-        if ctx.guild_document.get("starboard") is None:
+        if ctx["guild_document"].get("starboard") is None:
             raise bots.NotConfigured
         else:
-            await ctx.guild_document.update_db({"$unset": {"starboard": 1}})
+            await ctx["guild_document"].update_db({"$unset": {"starboard": 1}})
 
     @sconfig.command(
         name="channel",
@@ -180,7 +180,7 @@ class Starboard(commands.Cog):
             self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
         channel = channel or ctx.channel
-        await ctx.guild_document.update_db({"$set": {"starboard.channel": channel.id}})
+        await ctx["guild_document"].update_db({"$set": {"starboard.channel": channel.id}})
 
     @sconfig.command(
         name="emoji",
@@ -197,7 +197,7 @@ class Starboard(commands.Cog):
     ) -> None:
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
-        await ctx.guild_document.update_db({"$set": {"starboard.emoji": emoji}})
+        await ctx["guild_document"].update_db({"$set": {"starboard.emoji": emoji}})
 
     @sconfig.command(
         name="threshold",
@@ -206,7 +206,7 @@ class Starboard(commands.Cog):
         usage="<Threshold>",
     )
     async def sthreshold(self, ctx: bots.CustomContext, *, threshold: int) -> None:
-        await ctx.guild_document.update_db({"$set": {"starboard.threshold": threshold}})
+        await ctx["guild_document"].update_db({"$set": {"starboard.threshold": threshold}})
 
     @starboard.command(
         name="pin",
@@ -229,7 +229,7 @@ class Starboard(commands.Cog):
                     before=ctx.message.created_at, limit=1
                 ).flatten()
                 message = messages[0]
-        message: discord.Message = await send_star(ctx.guild_document, message)
+        message: discord.Message = await send_star(ctx["guild_document"], message)
         await ctx.send(message.jump_url)
 
     @starboard.command(
@@ -242,7 +242,7 @@ class Starboard(commands.Cog):
     ) -> None:
         channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:
-            await send_star(ctx.guild_document, pin)
+            await send_star(ctx["guild_document"], pin)
             await asyncio.sleep(1)  # Prevents rate-limiting
 
 

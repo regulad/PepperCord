@@ -34,7 +34,7 @@ class ReactionRoles(commands.Cog):
         reactor: discord.Member = guild.get_member(payload.user_id)
         emoji: discord.PartialEmoji = payload.emoji
 
-        reaction_dict = ctx.guild_document.get("reactions", {})
+        reaction_dict = ctx["guild_document"].get("reactions", {})
         if reaction_dict:
             for key_channel, channel_dict in reaction_dict.items():
                 if int(key_channel) == ctx.channel.id:
@@ -76,10 +76,10 @@ class ReactionRoles(commands.Cog):
         description="Deletes all reaction roles.",
     )
     async def sdisable(self, ctx: bots.CustomContext) -> None:
-        if ctx.guild_document.get("reactions") is None:
+        if ctx["guild_document"].get("reactions") is None:
             raise bots.NotConfigured
         else:
-            await ctx.guild_document.update_db({"$unset": {"reactions": 1}})
+            await ctx["guild_document"].update_db({"$unset": {"reactions": 1}})
 
     @reactionrole.command(
         name="add",
@@ -102,7 +102,7 @@ class ReactionRoles(commands.Cog):
         else:
             emoji_name = None
         await message.add_reaction(emoji)
-        await ctx.guild_document.update_db(
+        await ctx["guild_document"].update_db(
             {"$set": {f"reactions.{channel.id}.{message.id}.{emoji_name}": role.id}}
         )
 

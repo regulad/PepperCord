@@ -21,6 +21,10 @@ class Threads(commands.Cog):
         else:
             return True
 
+    async def on_thread_join(self, member: discord.ThreadMember) -> None:
+        if member.thread.me not in member.thread.members:
+            await member.thread.join()
+
     @commands.Cog.listener("on_thread_update")
     async def thread_unarchiver(self, before: discord.Thread, after: discord.Thread) -> None:
         ctx: CustomContext = await self.bot.get_context(

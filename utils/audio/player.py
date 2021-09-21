@@ -79,6 +79,9 @@ class AudioPlayer:
 
             track = await self.queue.get()
 
+            if hasattr(track, "refresh"):
+                track = await track.refresh()  # For YouTube time restrictions
+
             await _voice_client_play(self.voice_client, track)
 
 

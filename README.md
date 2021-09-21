@@ -1,6 +1,7 @@
 # PepperCord
 
-With the discontinuation of discord.py, I have decided to end this project for the time being. You can still build something off of this, but I wouldn't advise it.
+With the discontinuation of discord.py, I have decided to end this project for the time being. You can still build
+something off of this, but I wouldn't advise it.
 
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
 

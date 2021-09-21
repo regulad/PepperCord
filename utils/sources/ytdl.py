@@ -29,17 +29,45 @@ class YTDLSource(QueueSource):
     def url(self):
         return self.info["webpage_url"]
 
+    async def refresh(self):
+        """Regrabs audio from site. Useful if video is time limited."""
+
+        return await self.from_url_single(self.file_downloader, self.url, self.invoker)
+
+    @classmethod
+    async def from_url_single(cls,
+                              file_downloader: YoutubeDL,
+                              url: str,
+                              invoker: Union[discord.Member, discord.User],
+                              *,
+                              loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+                              ):
+        info: dict = await loop.run_in_executor(
+            None, lambda: file_downloader.extract_info(url, download=False)
+        )
+
+        if info.get("entries") is not None:
+            raise RuntimeError("Multiple tracks")
+        else:
+            return cls(
+                discord.FFmpegPCMAudio(info["url"], **ffmpeg_options),
+                info=info,
+                invoker=invoker,
+                file_downloader=file_downloader,
+            )
+
     @classmethod
     async def from_url(
             cls,
             file_downloader: YoutubeDL,
             url: str,
             invoker: Union[discord.Member, discord.User],
+            *,
+            loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
     ):
         """Returns a list of YTDLSources from a playlist or song."""
 
-        loop = asyncio.get_event_loop()
-        info = await loop.run_in_executor(
+        info: dict = await loop.run_in_executor(
             None, lambda: file_downloader.extract_info(url, download=False)
         )
 

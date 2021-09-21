@@ -22,7 +22,7 @@ class DocumentCog(commands.Cog):
     @commands.Cog.listener("on_context_creation")
     async def append_user_document(self, ctx: commands.Context):
         ctx: CustomContext = cast(CustomContext, ctx)
-        ctx["user_document"] = await ctx.bot.get_user_document(ctx.author)
+        ctx["author_document"] = await ctx.bot.get_user_document(ctx.author)
 
 
 def setup(bot: BOT_TYPES) -> None:

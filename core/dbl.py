@@ -98,12 +98,12 @@ class TopGGWebhook(commands.Cog, name="Voting"):
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: bots.CustomContext) -> None:
         if not (
-                ctx.author_document.get("nopester", False)
+                ctx["author_document"].get("nopester", False)
                 or await ctx.bot.is_owner(ctx.author)
         ):
-            if len(ctx.author_document.get("votes", [])) > 0:
+            if len(ctx["author_document"].get("votes", [])) > 0:
                 if (
-                        ctx.author_document["votes"][-1] + datetime.timedelta(days=1)
+                        ctx["author_document"]["votes"][-1] + datetime.timedelta(days=1)
                         > datetime.datetime.utcnow()
                 ):
                     return  # We don't want to pester a user who just voted.
@@ -117,11 +117,11 @@ class TopGGWebhook(commands.Cog, name="Voting"):
                 f"Psst... {choice(PESTERING_MESSAGES)} "
                 f"{get_top_gg_link(ctx.bot.user.id)}"
                 f" Tried of these messages? Try nopester."
-                if ctx.author_document.get("pestered", 0) > 2
+                if ctx["author_document"].get("pestered", 0) > 2
                 else ""
             )
 
-            await ctx.author_document.update_db({"$inc": {"pestered": 1}})
+            await ctx["author_document"].update_db({"$inc": {"pestered": 1}})
 
     @commands.command(
         name="nopester",
@@ -129,7 +129,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
         description='Stops the bot from "pestering" (reminding to vote) you.',
     )
     async def nopester(self, ctx: bots.CustomContext) -> None:
-        await ctx.author_document.update_db({"$set": {"nopester": True}})
+        await ctx["author_document"].update_db({"$set": {"nopester": True}})
 
     @commands.command(
         name="yespester",
@@ -137,7 +137,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
         description="Disables nopester. Back so soon?",
     )
     async def yespester(self, ctx: bots.CustomContext) -> None:
-        await ctx.author_document.update_db({"$set": {"nopester": False}})
+        await ctx["author_document"].update_db({"$set": {"nopester": False}})
 
     @commands.command(
         name="votes",

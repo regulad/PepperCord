@@ -60,15 +60,15 @@ class TextToSpeech(commands.Cog):
         async with ctx.typing():
             source = await TTSSource.from_text(
                 text,
-                ctx.author_document.get("voice", "en-US-Wavenet-D"),
+                ctx["author_document"].get("voice", "en-US-Wavenet-D"),
                 self._async_gtts_session,
                 ctx.author,
             )
 
-            if not len(list(ctx.audio_player.queue.deque)) > 0:
-                ctx.audio_player.queue.put_nowait(source)
+            if not len(list(ctx["audio_player"].queue.deque)) > 0:
+                ctx["audio_player"].queue.put_nowait(source)
             else:
-                ctx.audio_player.queue.deque.appendleft(source)  # Meh.
+                ctx["audio_player"].queue.deque.appendleft(source)  # Meh.
 
             await AudioSourceMenu(source).start(ctx)
 
@@ -94,7 +94,7 @@ class TextToSpeech(commands.Cog):
             else:
                 raise VoiceDoesNotExist
 
-            await ctx.author_document.update_db({"$set": {"voice": desired_voice}})
+            await ctx["author_document"].update_db({"$set": {"voice": desired_voice}})
 
     @commands.command(
         name="voices",

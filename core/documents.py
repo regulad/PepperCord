@@ -10,7 +10,7 @@ class DocumentCog(commands.Cog):  # Could use the custom state logic, but this i
     """Adds document keys to each document."""
 
     def __init__(self, bot: BOT_TYPES):
-        self._bot = bot
+        self.bot = bot
 
     @commands.Cog.listener("on_context_creation")
     async def append_guild_document(self, ctx: commands.Context):
@@ -23,3 +23,7 @@ class DocumentCog(commands.Cog):  # Could use the custom state logic, but this i
     async def append_user_document(self, ctx: commands.Context):
         ctx: CustomContext = cast(CustomContext, ctx)
         ctx.user_document = await ctx.bot.get_user_document(ctx.author)
+
+
+def setup(bot: BOT_TYPES) -> None:
+    bot.add_cog(DocumentCog(bot))

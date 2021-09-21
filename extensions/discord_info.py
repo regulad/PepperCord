@@ -74,6 +74,7 @@ class DiscordInfo(commands.Cog):
                     title=f"All about {user.name}#{user.discriminator}\n({user.id})",
                 )
                     .set_thumbnail(url=user.avatar.url)
+                    .add_field(name="Avatar URL", value=user.avatar.url)
                     .add_field(
                     name="Account creation date:",
                     value=f"<t:{user.created_at.timestamp():.0f}:R>",
@@ -118,6 +119,7 @@ class DiscordInfo(commands.Cog):
                     title=f"Info for {guild.name}\n({guild.id})",
                 )
                     .set_thumbnail(url=guild.icon.url)
+                    .add_field(name="Icon URL", value=guild.icon.url)
                     .add_field(
                     name="Server Owner:",
                     value=f"{guild.owner.display_name}#{guild.owner.discriminator} ({guild.owner.id})",

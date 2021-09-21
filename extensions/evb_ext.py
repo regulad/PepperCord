@@ -18,8 +18,8 @@ class EditVideoBot(commands.Cog):
     def __init__(self, bot: BOT_TYPES):
         self.bot = bot
 
-        self.client_session = ClientSession()
-        self.evb_session = AsyncEditVideoBotSession.from_api_key(self.bot.config.get("PEPPERCORD_EVB"))
+        self.client_session = None
+        self.evb_session = None
 
         self.cooldown = commands.CooldownMapping.from_cooldown(
             30, 86400, commands.BucketType.default
@@ -29,9 +29,13 @@ class EditVideoBot(commands.Cog):
         asyncio.create_task(self.evb_session.close())  # Not ideal.
 
     async def cog_check(self, ctx: CustomContext) -> bool:
-        # Jank Alert
+        # Jank Alert, ihateitihateitihateit
+        if self.client_session is None:
+            self.client_session = ClientSession()
+        if self.evb_session is None:
+            self.evb_session = AsyncEditVideoBotSession.from_api_key(self.bot.config.get("PEPPERCORD_EVB"))
         if self.evb_session.closed:
-            await self.evb_session.open()
+            await self.evb_session.open(client_session=self.client_session)
 
         cooldown: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
         retry_after: float = cooldown.update_rate_limit()

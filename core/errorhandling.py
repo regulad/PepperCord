@@ -5,6 +5,7 @@ import discord
 from asyncgTTS import LibraryException as TtsException
 from discord.ext import commands, menus
 from evb import LibraryException as EvbException
+from utils.bots import CustomContext
 
 from utils import checks, bots, attachments
 

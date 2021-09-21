@@ -13,6 +13,10 @@ class AudioQueue(commands.Cog):
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
 
+    @commands.Cog.listener()
+    async def on_context_creation(self, ctx: CustomContext) -> None:
+        ctx.audio_player = ctx.bot.get_audio_player(ctx.voice_client) if ctx.voice_client is not None else None
+
     async def cog_check(self, ctx: CustomContext) -> bool:
         if not await is_in_voice(ctx):
             raise NotInVoiceChannel

@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional
+from typing import Optional, cast
 
 import discord
 from asyncgTTS import LibraryException as TtsException
@@ -95,6 +95,11 @@ class ErrorLogging(commands.Cog):
 
     def __init__(self, bot: bots.BOT_TYPES):
         self.bot = bot
+
+    @commands.Cog.listener("on_context_creation")
+    async def append_command_document(self, ctx: commands.Context):
+        ctx: CustomContext = cast(CustomContext, ctx)
+        ctx.command_document = await ctx.bot.get_command_document(ctx.command) if ctx.command is not None else None
 
     @commands.Cog.listener("on_command")
     async def log_command_uses(self, ctx: bots.CustomContext) -> None:

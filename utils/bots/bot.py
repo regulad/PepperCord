@@ -1,5 +1,5 @@
 import logging
-from typing import Union, List, Any, Type, cast
+from typing import Union, List, Any, Type
 
 import discord
 from discord.ext import commands
@@ -80,11 +80,13 @@ class CustomBotBase(commands.bot.BotBase):
     async def get_context(self, message, *, cls: Type[commands.Context] = CustomContext):
         result: cls = await super().get_context(message, cls=cls)
         await self.wait_for_dispatch("context_creation", result)
+        # Possiblily could safely be made asynchronous?
+        # We don't need to wait for one to complete to start the other,
+        # just for all to complete before the context is sent.
         return result
 
     async def on_context_creation(self, ctx: commands.Context) -> None:  # Placeholder method
-        if isinstance(ctx, CustomContext):
-            await cast(CustomContext, ctx).get_documents()
+        pass
 
     async def wait_for_dispatch(self, event_name, *args, **kwargs):
         await super().wait_for_dispatch(event_name, *args, **kwargs)

@@ -75,7 +75,8 @@ class AudioQueue(commands.Cog):
     )
     async def queuecommand(self, ctx: CustomContext) -> None:
         source = embed_menus.QueueMenuSource(
-            list(ctx["audio_player"].queue.deque), "Current tracks on queue:"
+            list(ctx["audio_player"].queue.deque),
+            f"Current tracks on queue:{' (Loop on)' if ctx['audio_player'].loop else ''}",
         )
         await menus.MenuPages(source=source).start(ctx)
 
@@ -88,6 +89,14 @@ class AudioQueue(commands.Cog):
     async def qshuffle(self, ctx: CustomContext) -> None:
         if len(list(ctx["audio_player"].queue.deque)) > 0:
             random.shuffle(ctx["audio_player"].queue.deque)
+
+    @queuecommand.command(
+        name="loop",
+        description="Toggles loop function.",
+    )
+    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    async def qloop(self, ctx: CustomContext) -> None:
+        ctx["audio_player"].loop = not ctx["audio_player"].loop
 
     @queuecommand.command(
         name="clear",

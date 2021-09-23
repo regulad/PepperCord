@@ -17,6 +17,7 @@ from utils import bots, help
 
 def add_bot(
         config_provider: bots.CONFIGURATION_PROVIDERS,
+        token: Optional[str] = None,
         *,
         loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
         key_prefix: str = "PEPPERCORD",
@@ -73,7 +74,9 @@ def add_bot(
 
     logging.info(f"Added a bot ({bot})")
 
-    return bot, loop.create_task(bot.start(config_provider.get(f"{key_prefix.upper()}_TOKEN"), **kwargs))
+    return bot, loop.create_task(
+        bot.start(config_provider.get(f"{key_prefix.upper()}_TOKEN" if token is None else token), **kwargs)
+    )
 
 
 if __name__ == "__main__":
@@ -86,8 +89,16 @@ if __name__ == "__main__":
         level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s"
     )
 
-    peppercord_instances: List[Tuple[bots.BOT_TYPES, asyncio.Task]] = [add_bot(os.environ, loop=loop)]
+    peppercord_instances: List[Tuple[bots.BOT_TYPES, asyncio.Task]] = []
     # More can be added. For future use.
+
+    token_environment: Optional[str] = os.environ.get("PEPPERCORD_TOKEN")
+
+    if token_environment is not None and ";" in token_environment:
+        for token in token_environment.split(";"):
+            peppercord_instances.append(add_bot(os.environ, token, loop=loop))
+    else:
+        peppercord_instances.append(add_bot(os.environ, loop=loop))
 
     try:
         logging.info("Running...")

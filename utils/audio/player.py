@@ -39,6 +39,8 @@ class AudioPlayer:
 
         self.queue = AudioQueue()
 
+        self.loop: bool = False
+
         self._file_downloader = None
         self._tts_client_session = None
         # Set to none so they will only be created when required.
@@ -83,6 +85,9 @@ class AudioPlayer:
                 track = await track.refresh()  # For YouTube time restrictions
 
             await _voice_client_play(self.voice_client, track)
+
+            while self.loop:  # Python can suck my
+                await _voice_client_play(self.voice_client, track)
 
 
 __all__ = ["AudioPlayer", "AudioQueue"]

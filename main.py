@@ -89,24 +89,14 @@ if __name__ == "__main__":
         level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s"
     )
 
-    peppercord_instances: List[Tuple[bots.BOT_TYPES, asyncio.Task]] = []
-    # More can be added. For future use.
-
-    token_environment: Optional[str] = os.environ.get("PEPPERCORD_TOKEN")
-
-    if token_environment is not None and ";" in token_environment:
-        for token in token_environment.split(";"):
-            peppercord_instances.append(add_bot(os.environ, token, loop=loop))
-    else:
-        peppercord_instances.append(add_bot(os.environ, loop=loop))
+    bot, task = add_bot(os.environ, loop=loop)
 
     try:
         logging.info("Running...")
 
         loop.run_forever()
     except KeyboardInterrupt:
-        for bot, task in peppercord_instances:
-            loop.run_until_complete(bot.close())
-            task.cancel()
+        loop.run_until_complete(bot.close())
+        task.cancel()
     except Exception:
         raise

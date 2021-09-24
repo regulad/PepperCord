@@ -45,7 +45,7 @@ async def has_permission_level(ctx: CustomContext, value: Permission):
 
     permission_level: Optional[Permission] = get_permission(ctx)
 
-    return permission_level >= value if permission_level is not None else False
+    return (permission_level >= value if permission_level is not None else False) or ctx.author.guild_permissions.administrator
 
 
 @commands.check

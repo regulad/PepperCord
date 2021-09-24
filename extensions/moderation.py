@@ -1,5 +1,6 @@
+import copy
 import datetime
-from typing import Optional, Union, cast
+from typing import Optional, Union, cast, List, Dict
 
 import discord
 from discord.ext import commands, tasks
@@ -47,6 +48,17 @@ async def unmute(
     else:
         mute_role: discord.Role = member.guild.get_role(guild_document["mute_role"])
         await member.remove_roles(mute_role, reason="Unmute")
+
+
+async def get_any_id(ctx: commands.Context, uid: int) -> Optional[Union[discord.Member, discord.User]]:
+    possible_object: Optional[Union[discord.Member, discord.User]] = ctx.guild.get_member(uid) or ctx.bot.get_user(uid)
+    if possible_object is not None:
+        return possible_object
+    else:
+        try:
+            return await ctx.bot.fetch_user(uid)
+        except discord.NotFound:
+            return None
 
 
 class Moderation(commands.Cog):
@@ -141,6 +153,84 @@ class Moderation(commands.Cog):
             self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
     ) -> None:
         await member.unban(reason=reason)
+
+    @commands.command(
+        name="shufflenames",
+        aliases=["shufflenicks"],
+        brief="Shuffles usernames.",
+        description="Shuffles usernames around between people. Do it again to reverse."
+    )
+    @commands.cooldown(1, 3600, commands.BucketType.guild)
+    @commands.bot_has_permissions(manage_nicknames=True)
+    async def shufflenicks(self, ctx: bots.CustomContext) -> None:
+        async with ctx.typing():
+            if ctx["guild_document"].get("shuffled") is None:
+                if divmod(len(ctx.guild.members), 2)[-1] != 0:  # If member count is not even
+                    temp_member_list: Optional[List[discord.Member]] = copy.copy(ctx.guild.members)
+                    temp_member_list.pop()
+                    member_list: List[discord.Member] = temp_member_list
+                else:
+                    member_list: List[discord.Member] = copy.copy(ctx.guild.members)
+
+                middle_index: int = len(member_list) // 2
+                pair_set_one: List[discord.Member] = member_list[middle_index:]
+                pair_set_two: List[discord.Member] = member_list[:middle_index]
+
+                pairing: Dict[discord.Member, discord.Member] = {}
+
+                for one, two in zip(pair_set_one, pair_set_two):
+                    pairing[one] = two
+
+                member_pairings: Dict[Union[discord.Member, discord.User], Union[discord.Member, discord.User]] \
+                    = copy.copy(pairing)
+
+                db_pairings: Dict[str, int] = {}
+                for one, two in pairing.items():
+                    db_pairings[str(one.id)] = two.id
+
+                await ctx["guild_document"].update_db({"$set": {"shuffled": db_pairings}})
+            else:  # Previous paring exists, roll with it
+                db_pairings: Dict[str, int] = ctx["guild_document"]["shuffled"]
+                member_pairings: Dict[Union[discord.Member, discord.User], Union[discord.Member, discord.User]] = {}
+                for one_id_as_str, two_id in db_pairings.items():
+                    one: Optional[Union[discord.Member, discord.User]] = await get_any_id(ctx, int(one_id_as_str))
+                    two: Optional[Union[discord.Member, discord.User]] = await get_any_id(ctx, two_id)
+
+                    assert one is not None, two is not None
+
+                    member_pairings[one] = two
+            # Time to actually shuffle nicks...
+
+            for one, two in member_pairings.items():
+                one_display_name: str = copy.copy(one.display_name)
+                two_display_name: str = copy.copy(two.display_name)
+                if isinstance(one, discord.Member):
+                    try:
+                        await one.edit(nick=two_display_name,
+                                       reason=f"Nickname shuffle requested by {ctx.author.display_name}")
+                    except discord.Forbidden:
+                        pass
+                if isinstance(two, discord.Member):
+                    try:
+                        await two.edit(nick=one_display_name,
+                                       reason=f"Nickname shuffle requested by {ctx.author.display_name}")
+                    except discord.Forbidden:
+                        pass
+
+    @commands.command(
+        name="resetnames",
+        aliases=["resetnicks"],
+        brief="Resets all user's nicknames."
+    )
+    @commands.cooldown(1, 3600, commands.BucketType.guild)
+    @commands.bot_has_permissions(manage_nicknames=True)
+    async def resetnicks(self, ctx: bots.CustomContext) -> None:
+        async with ctx.typing():
+            for member in ctx.guild.members:
+                try:
+                    await member.edit(nick=None)
+                except discord.Forbidden:
+                    continue
 
     @commands.command(
         name="mute",

@@ -1,11 +1,13 @@
 import asyncio
 from io import BytesIO
 from os.path import splitext
+from typing import Optional
 
 import discord
 import evb
 from discord.ext import commands
 from evb import AsyncEditVideoBotSession
+from aiohttp import ClientSession
 
 from utils.attachments import find_url_recurse
 from utils.bots import CustomContext, BOT_TYPES
@@ -19,17 +21,21 @@ class EditVideoBot(commands.Cog):
 
         self.evb_session: AsyncEditVideoBotSession = AsyncEditVideoBotSession.from_api_key(
             self.bot.config.get("PEPPERCORD_EVB"))
+        self.client_session: Optional[ClientSession] = None
 
         self.cooldown = commands.CooldownMapping.from_cooldown(
             30, 86400, commands.BucketType.default
         )
 
     def cog_unload(self) -> None:
+        asyncio.create_task(self.client_session.close())
         asyncio.create_task(self.evb_session.close())  # Not ideal.
 
     async def cog_before_invoke(self, ctx: CustomContext) -> None:
+        if self.client_session is None:
+            self.client_session = ClientSession()
         if self.evb_session._client_session is None or self.evb_session.closed:
-            await self.evb_session.open()
+            await self.evb_session.open(self.client_session)
 
     async def cog_check(self, ctx: CustomContext) -> bool:
         cooldown: commands.Cooldown = self.cooldown.get_bucket(ctx.message)

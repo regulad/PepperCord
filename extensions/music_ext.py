@@ -68,7 +68,7 @@ class Music(commands.Cog):
         description="Sets user's playlist to the current queue.",
     )
     async def plset(self, ctx: CustomContext) -> None:
-        playlist = TrackPlaylist.from_queue(ctx["audio_player"].queue)
+        playlist = TrackPlaylist.from_queue(ctx["audio_player"]().queue)
         await ctx["author_document"].update_db(
             {"$set": {"audio.playlist": playlist.sanitized}}
         )
@@ -88,10 +88,10 @@ class Music(commands.Cog):
                 user_track_playlist = await TrackPlaylist.from_sanitized(
                     ctx["author_document"]["audio"]["playlist"],
                     ctx.author,
-                    file_downloader=ctx["audio_player"].file_downloader,
+                    file_downloader=ctx["audio_player"]().file_downloader,
                 )
                 for track in user_track_playlist:
-                    ctx["audio_player"].queue.put_nowait(track)
+                    ctx["audio_player"]().queue.put_nowait(track)
 
     @commands.group(
         invoke_without_command=True,
@@ -108,10 +108,10 @@ class Music(commands.Cog):
             else:
                 url = f"ytsearch:{query}"
             source = await sources.YTDLSource.from_url(
-                ctx["audio_player"].file_downloader, url, ctx.author
+                ctx["audio_player"]().file_downloader, url, ctx.author
             )
             for track in source:
-                ctx["audio_player"].queue.put_nowait(track)
+                ctx["audio_player"]().queue.put_nowait(track)
             menu_source = embed_menus.QueueMenuSource(source, "Added:")
             pages = menus.MenuPages(source=menu_source)
             await pages.start(ctx)
@@ -124,7 +124,7 @@ class Music(commands.Cog):
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def pt(self, ctx: CustomContext, *, query: str) -> None:
-        if not len(list(ctx["audio_player"].queue.deque)) > 0:
+        if not len(list(ctx["audio_player"]().queue.deque)) > 0:
             await ctx.invoke(self.play, query=query)
         else:
             async with ctx.typing():
@@ -133,10 +133,10 @@ class Music(commands.Cog):
                 else:
                     url = f"ytsearch:{query}"
                 source = await sources.YTDLSource.from_url(
-                    ctx["audio_player"].file_downloader, url, ctx.author
+                    ctx["audio_player"]().file_downloader, url, ctx.author
                 )
                 for track in source:
-                    ctx["audio_player"].queue.deque.appendleft(track)
+                    ctx["audio_player"]().queue.deque.appendleft(track)
                 menu_source = embed_menus.QueueMenuSource(source, "Added to top:")
                 pages = menus.MenuPages(source=menu_source)
                 await pages.start(ctx)

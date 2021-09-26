@@ -190,7 +190,8 @@ class Moderation(commands.Cog):
 
                 await ctx["guild_document"].update_db({"$set": {"shuffled": db_pairings}})
             else:  # Previous paring exists, roll with it
-                db_pairings: Dict[str, int] = ctx["guild_document"]["shuffled"]
+                db_pairings: Dict[str, int] = copy.copy(ctx["guild_document"]["shuffled"])
+                await ctx["guild_document"].update_db({"$unset": {"shuffled": 1}})  # Reset
                 member_pairings: Dict[Union[discord.Member, discord.User], Union[discord.Member, discord.User]] = {}
                 for one_id_as_str, two_id in db_pairings.items():
                     one: Optional[Union[discord.Member, discord.User]] = await get_any_id(ctx, int(one_id_as_str))
@@ -203,10 +204,9 @@ class Moderation(commands.Cog):
 
             for one, two in member_pairings.items():
                 one_display_name: str = copy.copy(one.display_name)
-                two_display_name: str = copy.copy(two.display_name)
                 if isinstance(one, discord.Member):
                     try:
-                        await one.edit(nick=two_display_name,
+                        await one.edit(nick=two.display_name,
                                        reason=f"Nickname shuffle requested by {ctx.author.display_name}")
                     except discord.Forbidden:
                         pass
@@ -226,6 +226,8 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(manage_nicknames=True)
     async def resetnicks(self, ctx: bots.CustomContext) -> None:
         async with ctx.typing():
+            if ctx["guild_document"].get("shuffled") is not None:
+                await ctx["guild_document"].update_db({"$unset": {"shuffled": 1}})
             for member in ctx.guild.members:
                 try:
                     await member.edit(nick=None)

@@ -15,7 +15,7 @@ class AudioQueue(commands.Cog):
 
     @commands.Cog.listener()
     async def on_context_creation(self, ctx: CustomContext) -> None:
-        ctx["audio_player"] = ctx.bot.get_audio_player(ctx.voice_client) if ctx.voice_client is not None else None
+        ctx["audio_player"] = lambda: ctx.bot.get_audio_player(ctx.voice_client)
 
     async def cog_check(self, ctx: CustomContext) -> bool:
         if not await is_in_voice(ctx):
@@ -44,7 +44,7 @@ class AudioQueue(commands.Cog):
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def pstop(self, ctx: CustomContext) -> None:
-        await ctx["audio_player"].voice_client.disconnect()
+        await ctx["audio_player"]().voice_client.disconnect()
 
     @player.command(
         name="pause",
@@ -52,10 +52,10 @@ class AudioQueue(commands.Cog):
         description="Toggles the audio player between playing and paused.",
     )
     async def ppause(self, ctx: CustomContext) -> None:
-        if ctx["audio_player"].paused:
-            ctx["audio_player"].voice_client.resume()
+        if ctx["audio_player"]().paused:
+            ctx["audio_player"]().voice_client.resume()
         else:
-            ctx["audio_player"].voice_client.pause()
+            ctx["audio_player"]().voice_client.pause()
 
     @player.command(
         name="skip",
@@ -64,7 +64,7 @@ class AudioQueue(commands.Cog):
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def pskip(self, ctx: CustomContext) -> None:
-        ctx["audio_player"].voice_client.stop()
+        ctx["audio_player"]().voice_client.stop()
 
     @commands.group(
         invoke_without_command=True,
@@ -75,7 +75,7 @@ class AudioQueue(commands.Cog):
     )
     async def queuecommand(self, ctx: CustomContext) -> None:
         source = embed_menus.QueueMenuSource(
-            list(ctx["audio_player"].queue.deque),
+            list(ctx["audio_player"]().queue.deque),
             f"Current tracks on queue:{' (Loop on)' if ctx['audio_player'].loop else ''}",
         )
         await menus.MenuPages(source=source).start(ctx)
@@ -87,8 +87,8 @@ class AudioQueue(commands.Cog):
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def qshuffle(self, ctx: CustomContext) -> None:
-        if len(list(ctx["audio_player"].queue.deque)) > 0:
-            random.shuffle(ctx["audio_player"].queue.deque)
+        if len(list(ctx["audio_player"]().queue.deque)) > 0:
+            random.shuffle(ctx["audio_player"]().queue.deque)
 
     @queuecommand.command(
         name="loop",
@@ -96,7 +96,7 @@ class AudioQueue(commands.Cog):
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def qloop(self, ctx: CustomContext) -> None:
-        ctx["audio_player"].loop = not ctx["audio_player"].loop
+        ctx["audio_player"]().loop = not ctx["audio_player"]().loop
 
     @queuecommand.command(
         name="clear",
@@ -105,7 +105,7 @@ class AudioQueue(commands.Cog):
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def qclear(self, ctx: CustomContext) -> None:
-        ctx["audio_player"].queue.clear()
+        ctx["audio_player"]().queue.clear()
         ctx.voice_client.stop()
 
     @queuecommand.command(
@@ -115,7 +115,7 @@ class AudioQueue(commands.Cog):
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def qpop(self, ctx: CustomContext, *, index: int) -> None:
-        del ctx["audio_player"].queue.deque[index - 1]
+        del ctx["audio_player"]().queue.deque[index - 1]
 
     @commands.command(
         name="nowplaying",
@@ -123,7 +123,7 @@ class AudioQueue(commands.Cog):
         description="Shows the currently playing track.",
     )
     async def nowplaying(self, ctx: CustomContext) -> None:
-        playing_track = ctx["audio_player"].voice_client.source
+        playing_track = ctx["audio_player"]().voice_client.source
         if playing_track is None:
             await ctx.send("No track is playing.")
         else:

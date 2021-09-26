@@ -65,10 +65,10 @@ class TextToSpeech(commands.Cog):
                 ctx.author,
             )
 
-            if not len(list(ctx["audio_player"].queue.deque)) > 0:
-                ctx["audio_player"].queue.put_nowait(source)
+            if not len(list(ctx["audio_player"]().queue.deque)) > 0:
+                ctx["audio_player"]().queue.put_nowait(source)
             else:
-                ctx["audio_player"].queue.deque.appendleft(source)  # Meh.
+                ctx["audio_player"]().queue.deque.appendleft(source)  # Meh.
 
             await AudioSourceMenu(source).start(ctx)
 

@@ -1,5 +1,5 @@
 import logging
-from typing import Union, List, Any, Type
+from typing import Union, List, Any, Type, Optional
 
 import discord
 from discord.ext import commands
@@ -42,16 +42,17 @@ class CustomBotBase(commands.bot.BotBase):
     def config(self) -> dict:
         return self._config
 
-    def get_audio_player(self, voice_client: discord.VoiceClient) -> AudioPlayer:
+    def get_audio_player(self, voice_client: Optional[discord.VoiceClient]) -> AudioPlayer:
         """Gets or creates audio player from VoiceClient."""
 
         for player in self._audio_players:
             if player.voice_client == voice_client:
                 return player
         else:
-            music_player = AudioPlayer(voice_client)
-            self._audio_players.append(music_player)
-            return music_player
+            if voice_client is not None:
+                music_player = AudioPlayer(voice_client)
+                self._audio_players.append(music_player)
+                return music_player
 
     async def get_command_document(self, command: commands.Command):
         """Gets a command's document from the database."""

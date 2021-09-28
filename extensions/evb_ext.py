@@ -5,9 +5,9 @@ from typing import Optional
 
 import discord
 import evb
+from aiohttp import ClientSession
 from discord.ext import commands
 from evb import AsyncEditVideoBotSession
-from aiohttp import ClientSession
 
 from utils.attachments import find_url_recurse
 from utils.bots import CustomContext, BOT_TYPES

@@ -128,11 +128,17 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_completion")
     async def affirm_success(self, ctx: bots.CustomContext) -> None:
-        await ctx.message.add_reaction("✅")
+        try:
+            await ctx.message.add_reaction("✅")
+        except discord.NotFound or discord.Forbidden:
+            pass
 
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        await ctx.message.add_reaction("‼️")
+        try:
+            await ctx.message.add_reaction("‼️")
+        except discord.NotFound or discord.Forbidden:
+            pass
         if ctx.command is not None:
             await ErrorMenu(error).start(ctx)
 

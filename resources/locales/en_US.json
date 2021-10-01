@@ -4,5 +4,7 @@
   "cc_get": "The custom command \"{cmd.command}\" has the message \"{cmd.message}\".",
   "prefix_get": "This server's prefix(es) is/are \\{prefix}",
   "thread_unarchive": "{thread.name} has been unarchived.",
-  "bot_leave": "**Warning**: This will cause the bot to leave the server and delete all data, in accordance with the privacy policy. If you are trying to leave a voice channel, see `mp stop`."
+  "bot_leave": "**Warning**: This will cause the bot to leave the server and delete all data, in accordance with the privacy policy. If you are trying to leave a voice channel, see `mp stop`.",
+  "avoid_bot_leave": "Operation cancelled.",
+  "confirm_bot_leave": "Leaving server. ||Do not ask for help from support with this! This action is irreversible!||"
 }

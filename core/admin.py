@@ -14,20 +14,18 @@ class DeleteMenu(menus.Menu):
     async def send_initial_message(
             self, ctx, channel: discord.TextChannel
     ) -> discord.Message:
-        return await channel.send(
-            "**Warning:** This action is destructive. *Please* only continue if you know what you are doing."
-        )
+        return await channel.send(ctx["locale"].get_message(Message.BOT_LEAVE))
 
     @menus.button("✅")
     async def confirm(self, payload) -> None:
-        await self.message.edit(content="Deleting guild information...")
+        await self.message.edit(content=self.ctx["locale"].get_message(Message.CONFIRM_BOT_LEAVE))
         await self.ctx["guild_document"].delete_db()
         await self.ctx.guild.leave()
         self.stop()
 
     @menus.button("❌")
     async def reject(self, payload) -> None:
-        await self.message.edit(content="Operation cancelled.")
+        await self.message.edit(content=self.ctx["locale"].get_message(Message.AVOID_BOT_LEAVE))
         self.stop()
 
     async def prompt(self, ctx):

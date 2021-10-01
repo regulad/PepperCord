@@ -11,6 +11,8 @@ class Message(Enum):
     PREFIX_GET = "prefix_get"
     THREAD_UNARCHIVED = "thread_unarchive"
     BOT_LEAVE = "bot_leave"
+    AVOID_BOT_LEAVE = "avoid_bot_leave"
+    CONFIRM_BOT_LEAVE = "confirm_bot_leave"
 
 
 class Locale(Enum):

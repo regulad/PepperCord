@@ -10,6 +10,7 @@ class Message(Enum):
     CUSTOM_COMMAND_GET = "cc_get"
     PREFIX_GET = "prefix_get"
     THREAD_UNARCHIVED = "thread_unarchive"
+    BOT_LEAVE = "bot_leave"
 
 
 class Locale(Enum):

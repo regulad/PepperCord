@@ -96,7 +96,7 @@ class ReactionRoles(commands.Cog):
         name="add",
         description="Adds reaction roles.\n"
                     "The bot must have permissions to add rections in the desired channel.",
-        usage="<Channel> <Message> <Emoji> <Role>",
+        usage="<Message (URL)> <Emoji> <Role>",
     )
     async def add(
             self,

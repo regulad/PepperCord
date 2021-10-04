@@ -40,15 +40,7 @@ async def find_url(
     Else, if a message has embeds from an extraneous source, return the first embed's URL and it's object instance.
     """
 
-    if message.reference:
-        referenced_message: Optional[discord.Message] = message.reference.cached_message
-        if referenced_message is None:
-            referenced_message = await message.channel.fetch_message(
-                message.reference.message_id
-            )
-
-        return await find_url(referenced_message)
-    elif message.attachments:
+    if message.attachments:
         attachment: discord.Attachment = message.attachments[0]
 
         return attachment.url, attachment
@@ -61,7 +53,16 @@ async def find_url(
             embed_url = embed.url
 
         return embed_url, embed
-    raise NoMedia
+    elif message.reference:
+        referenced_message: Optional[discord.Message] = message.reference.cached_message
+        if referenced_message is None:
+            referenced_message = await message.channel.fetch_message(
+                message.reference.message_id
+            )
+
+        return await find_url(referenced_message)
+    else:
+        raise NoMedia
 
 
 async def find_url_recurse(

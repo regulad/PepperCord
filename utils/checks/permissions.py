@@ -74,6 +74,15 @@ async def check_is_man(ctx: CustomContext) -> bool:
         return True
 
 
+@commands.check
+async def check_is_allowed_nsfw(ctx: CustomContext) -> bool:
+    if ctx.channel.id in ctx["guild_document"].get("customnsfw", []) or ctx.channel.nsfw:
+        return True
+    else:
+        raise commands.NSFWChannelRequired(ctx.channel)
+
+
+
 __all__ = [
     "Blacklisted",
     "LowPrivilege",
@@ -82,4 +91,5 @@ __all__ = [
     "check_is_admin",
     "check_is_mod",
     "check_is_man",
+    "check_is_allowed_nsfw",
 ]

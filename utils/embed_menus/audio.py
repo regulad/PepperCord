@@ -31,7 +31,7 @@ class QueueMenuSource(menus.ListPageSource):
                 base_embed.add_field(
                     name=f"{iteration + 1}: {converters.duration_to_str(time_until)} left",
                     value=f"[{title}]({url})\n{converters.duration_to_str(duration)} long"
-                          f"\nAdded by: {invoker.display_name}",
+                    f"\nAdded by: {invoker.display_name}",
                     inline=False,
                 )
             elif isinstance(value, sources.TTSSource):
@@ -64,11 +64,11 @@ class AudioSourceMenu(menus.Menu):
                 info = self.source.info
                 embed = (
                     discord.Embed(title=info["title"], description=info["webpage_url"])
-                        .add_field(
+                    .add_field(
                         name="Duration:",
                         value=converters.duration_to_str(info["duration"]),
                     )
-                        .add_field(name="Added by:", value=self.source.invoker.display_name)
+                    .add_field(name="Added by:", value=self.source.invoker.display_name)
                 )
 
                 thumbnail = info.get("thumbnail")

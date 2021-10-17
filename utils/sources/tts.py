@@ -12,12 +12,12 @@ from asyncgTTS import (
 
 class TTSSource(discord.PCMVolumeTransformer):
     def __init__(
-            self,
-            source: discord.FFmpegPCMAudio,
-            volume=0.7,
-            *,
-            text: str,
-            invoker: Union[discord.Member, discord.User]
+        self,
+        source: discord.FFmpegPCMAudio,
+        volume=0.7,
+        *,
+        text: str,
+        invoker: Union[discord.Member, discord.User]
     ):
         super().__init__(source, volume)
 
@@ -26,11 +26,11 @@ class TTSSource(discord.PCMVolumeTransformer):
 
     @classmethod
     async def from_text(
-            cls,
-            text: str,
-            voice: str,
-            tts_session: AsyncGTTSSession,
-            invoker: Union[discord.Member, discord.User],
+        cls,
+        text: str,
+        voice: str,
+        tts_session: AsyncGTTSSession,
+        invoker: Union[discord.Member, discord.User],
     ):
         synthesis_input: SynthesisInput = SynthesisInput(text)
         voice_selection_params: VoiceSelectionParams = VoiceSelectionParams(

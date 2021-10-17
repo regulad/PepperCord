@@ -11,10 +11,10 @@ from utils.permissions import Permission, get_permission
 
 
 async def mute(
-        member: discord.Member,
-        *,
-        guild_document: Optional[database.Document] = None,
-        bot: Optional[bots.BOT_TYPES] = None,
+    member: discord.Member,
+    *,
+    guild_document: Optional[database.Document] = None,
+    bot: Optional[bots.BOT_TYPES] = None,
 ) -> None:
     """Mutes a user. Requires a bot or a guild document."""
 
@@ -31,10 +31,10 @@ async def mute(
 
 
 async def unmute(
-        member: discord.Member,
-        *,
-        guild_document: Optional[database.Document] = None,
-        bot: Optional[bots.BOT_TYPES] = None,
+    member: discord.Member,
+    *,
+    guild_document: Optional[database.Document] = None,
+    bot: Optional[bots.BOT_TYPES] = None,
 ) -> None:
     """Unmutes a user. Requires a bot or a guild document."""
 
@@ -50,8 +50,12 @@ async def unmute(
         await member.remove_roles(mute_role, reason="Unmute")
 
 
-async def get_any_id(ctx: commands.Context, uid: int) -> Optional[Union[discord.Member, discord.User]]:
-    possible_object: Optional[Union[discord.Member, discord.User]] = ctx.guild.get_member(uid) or ctx.bot.get_user(uid)
+async def get_any_id(
+    ctx: commands.Context, uid: int
+) -> Optional[Union[discord.Member, discord.User]]:
+    possible_object: Optional[
+        Union[discord.Member, discord.User]
+    ] = ctx.guild.get_member(uid) or ctx.bot.get_user(uid)
     if possible_object is not None:
         return possible_object
     else:
@@ -79,8 +83,13 @@ class Moderation(commands.Cog):
             if guild_doc.get("punishments") is not None:
                 for user_id, user_dict in guild_doc["punishments"].items():
                     for punishment, unpunish_time in user_dict.items():
-                        if (unpunish_time if isinstance(unpunish_time, datetime.datetime) else datetime.datetime(
-                                second=unpunish_time, tzinfo=datetime.timezone.utc)) < datetime.datetime.utcnow():
+                        if (
+                            unpunish_time
+                            if isinstance(unpunish_time, datetime.datetime)
+                            else datetime.datetime(
+                                second=unpunish_time, tzinfo=datetime.timezone.utc
+                            )
+                        ) < datetime.datetime.utcnow():
                             try:  # Messy.
                                 if punishment == "mute":
                                     await unmute(
@@ -124,7 +133,7 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(kick_members=True)
     async def kick(
-            self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
+        self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
     ) -> None:
         await member.kick(reason=reason)
 
@@ -135,11 +144,11 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def ban(
-            self,
-            ctx: bots.CustomContext,
-            member: Union[discord.Member, discord.User],
-            *,
-            reason: Optional[str],
+        self,
+        ctx: bots.CustomContext,
+        member: Union[discord.Member, discord.User],
+        *,
+        reason: Optional[str],
     ) -> None:
         await member.ban(reason=reason)
 
@@ -150,7 +159,7 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def unban(
-            self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
+        self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
     ) -> None:
         await member.unban(reason=reason)
 
@@ -158,15 +167,19 @@ class Moderation(commands.Cog):
         name="shufflenames",
         aliases=["shufflenicks"],
         brief="Shuffles usernames.",
-        description="Shuffles usernames around between people. Do it again to reverse."
+        description="Shuffles usernames around between people. Do it again to reverse.",
     )
     @commands.cooldown(1, 3600, commands.BucketType.guild)
     @commands.bot_has_permissions(manage_nicknames=True)
     async def shufflenicks(self, ctx: bots.CustomContext) -> None:
         async with ctx.typing():
             if ctx["guild_document"].get("shuffled") is None:
-                if divmod(len(ctx.guild.members), 2)[-1] != 0:  # If member count is not even
-                    temp_member_list: Optional[List[discord.Member]] = copy.copy(ctx.guild.members)
+                if (
+                    divmod(len(ctx.guild.members), 2)[-1] != 0
+                ):  # If member count is not even
+                    temp_member_list: Optional[List[discord.Member]] = copy.copy(
+                        ctx.guild.members
+                    )
                     temp_member_list.pop()
                     member_list: List[discord.Member] = temp_member_list
                 else:
@@ -181,21 +194,36 @@ class Moderation(commands.Cog):
                 for one, two in zip(pair_set_one, pair_set_two):
                     pairing[one] = two
 
-                member_pairings: Dict[Union[discord.Member, discord.User], Union[discord.Member, discord.User]] \
-                    = copy.copy(pairing)
+                member_pairings: Dict[
+                    Union[discord.Member, discord.User],
+                    Union[discord.Member, discord.User],
+                ] = copy.copy(pairing)
 
                 db_pairings: Dict[str, int] = {}
                 for one, two in pairing.items():
                     db_pairings[str(one.id)] = two.id
 
-                await ctx["guild_document"].update_db({"$set": {"shuffled": db_pairings}})
+                await ctx["guild_document"].update_db(
+                    {"$set": {"shuffled": db_pairings}}
+                )
             else:  # Previous paring exists, roll with it
-                db_pairings: Dict[str, int] = copy.copy(ctx["guild_document"]["shuffled"])
-                await ctx["guild_document"].update_db({"$unset": {"shuffled": 1}})  # Reset
-                member_pairings: Dict[Union[discord.Member, discord.User], Union[discord.Member, discord.User]] = {}
+                db_pairings: Dict[str, int] = copy.copy(
+                    ctx["guild_document"]["shuffled"]
+                )
+                await ctx["guild_document"].update_db(
+                    {"$unset": {"shuffled": 1}}
+                )  # Reset
+                member_pairings: Dict[
+                    Union[discord.Member, discord.User],
+                    Union[discord.Member, discord.User],
+                ] = {}
                 for one_id_as_str, two_id in db_pairings.items():
-                    one: Optional[Union[discord.Member, discord.User]] = await get_any_id(ctx, int(one_id_as_str))
-                    two: Optional[Union[discord.Member, discord.User]] = await get_any_id(ctx, two_id)
+                    one: Optional[
+                        Union[discord.Member, discord.User]
+                    ] = await get_any_id(ctx, int(one_id_as_str))
+                    two: Optional[
+                        Union[discord.Member, discord.User]
+                    ] = await get_any_id(ctx, two_id)
 
                     assert one is not None, two is not None
 
@@ -206,21 +234,23 @@ class Moderation(commands.Cog):
                 one_display_name: str = copy.copy(one.display_name)
                 if isinstance(one, discord.Member):
                     try:
-                        await one.edit(nick=two.display_name,
-                                       reason=f"Nickname shuffle requested by {ctx.author.display_name}")
+                        await one.edit(
+                            nick=two.display_name,
+                            reason=f"Nickname shuffle requested by {ctx.author.display_name}",
+                        )
                     except discord.Forbidden:
                         pass
                 if isinstance(two, discord.Member):
                     try:
-                        await two.edit(nick=one_display_name,
-                                       reason=f"Nickname shuffle requested by {ctx.author.display_name}")
+                        await two.edit(
+                            nick=one_display_name,
+                            reason=f"Nickname shuffle requested by {ctx.author.display_name}",
+                        )
                     except discord.Forbidden:
                         pass
 
     @commands.command(
-        name="resetnames",
-        aliases=["resetnicks"],
-        brief="Resets all user's nicknames."
+        name="resetnames", aliases=["resetnicks"], brief="Resets all user's nicknames."
     )
     @commands.cooldown(1, 3600, commands.BucketType.guild)
     @commands.bot_has_permissions(manage_nicknames=True)
@@ -263,10 +293,10 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(manage_roles=True)
     async def timemute(
-            self,
-            ctx: bots.CustomContext,
-            member: discord.Member,
-            unpunishtime: converters.TimedeltaShorthand,
+        self,
+        ctx: bots.CustomContext,
+        member: discord.Member,
+        unpunishtime: converters.TimedeltaShorthand,
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         await ctx.invoke(self.mute, member=member)
@@ -274,7 +304,7 @@ class Moderation(commands.Cog):
             {
                 "$set": {
                     f"punishments.{member.id}.mute": (
-                            datetime.datetime.utcnow() + unpunishtime
+                        datetime.datetime.utcnow() + unpunishtime
                     )
                 }
             }
@@ -289,10 +319,10 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
-            self,
-            ctx: bots.CustomContext,
-            member: discord.Member,
-            unpunishtime: converters.TimedeltaShorthand,
+        self,
+        ctx: bots.CustomContext,
+        member: discord.Member,
+        unpunishtime: converters.TimedeltaShorthand,
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         await ctx.invoke(self.mute, member=member)
@@ -300,7 +330,7 @@ class Moderation(commands.Cog):
             {
                 "$set": {
                     f"punishments.{member.id}.ban": (
-                            datetime.datetime.utcnow() + unpunishtime
+                        datetime.datetime.utcnow() + unpunishtime
                     )
                 }
             }

@@ -19,11 +19,11 @@ class TrackPlaylist(list):
 
     @classmethod
     async def from_sanitized(
-            cls,
-            sanitized: list,
-            user: Union[discord.Member, discord.User],
-            *,
-            file_downloader: YoutubeDL,
+        cls,
+        sanitized: list,
+        user: Union[discord.Member, discord.User],
+        *,
+        file_downloader: YoutubeDL,
     ):
         new_playlist = cls()
         for url in sanitized:
@@ -56,7 +56,7 @@ class Music(commands.Cog):
         name="playlist",
         aliases=["pl"],
         description="Commands for playlists.\n"
-                    "Each user can have their own playlist, which persists between guilds.",
+        "Each user can have their own playlist, which persists between guilds.",
     )
     async def playlist(self, ctx: CustomContext) -> None:
         pass
@@ -77,7 +77,7 @@ class Music(commands.Cog):
         name="load",
         aliases=["get", "put"],
         description="Loads a playlist into the current queue.\n"
-                    "Does not overwrite existing queue, it just appends to it.",
+        "Does not overwrite existing queue, it just appends to it.",
     )
     async def plget(self, ctx: CustomContext) -> None:
         async with ctx.typing():

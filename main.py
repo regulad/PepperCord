@@ -9,6 +9,7 @@ import os
 from typing import Optional, List, Tuple, Type
 
 import discord
+import art
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pretty_help import PrettyHelp
 
@@ -16,22 +17,23 @@ from utils import bots, help
 
 
 def add_bot(
-        config_provider: bots.CONFIGURATION_PROVIDERS,
-        token: Optional[str] = None,
-        *,
-        loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
-        key_prefix: str = "PEPPERCORD",
-        **kwargs
+    config_provider: bots.CONFIGURATION_PROVIDERS,
+    token: Optional[str] = None,
+    *,
+    loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
+    **kwargs,
 ) -> Tuple[bots.BOT_TYPES, asyncio.Task]:
     # Configure the database
     db_client: AsyncIOMotorClient = AsyncIOMotorClient(
-        config_provider.get(f"{key_prefix.upper()}_URI", "mongodb://mongo")
+        config_provider.get("PEPPERCORD_URI", "mongodb://mongo")
     )
-    db: AsyncIOMotorDatabase = db_client[config_provider.get("PEPPERCORD_DB_NAME", "peppercord")]
+    db: AsyncIOMotorDatabase = db_client[
+        config_provider.get("PEPPERCORD_DB_NAME", "peppercord")
+    ]
 
     # Configure Sharding
     bot_class: Type[bots.BOT_TYPES]
-    shards: Optional[int] = int(config_provider.get(f"{key_prefix.upper()}_SHARDS", "0"))
+    shards: Optional[int] = int(config_provider.get("PEPPERCORD_SHARDS", "0"))
     if shards > 0:
         bot_class = bots.CustomAutoShardedBot
     elif shards == -1:
@@ -43,7 +45,7 @@ def add_bot(
 
     # Configure bot
     bot: bots.BOT_TYPES = bot_class(
-        command_prefix=config_provider.get(f"{key_prefix.upper()}_PREFIX", "?"),
+        command_prefix=config_provider.get("PEPPERCORD_PREFIX", "?"),
         case_insensitive=True,
         help_command=PrettyHelp(
             color=discord.Colour.orange(),
@@ -58,12 +60,12 @@ def add_bot(
     )
 
     directories: List[str] = (
-        config_provider.get(f"{key_prefix.upper()}_FOLDERS", "extensions")
-            .lower()
-            .strip()
-            .split(", ")
+        config_provider.get("PEPPERCORD_FOLDERS", "extensions, external")
+        .lower()
+        .strip()
+        .split(", ")
     )
-    if "core" not in directories:
+    if "core" not in directories:  # Core *must* be loaded.
         directories.append("core")
 
     for directory in directories:
@@ -75,7 +77,10 @@ def add_bot(
     logging.info(f"Added a bot ({bot})")
 
     return bot, loop.create_task(
-        bot.start(config_provider.get(f"{key_prefix.upper()}_TOKEN" if token is None else token), **kwargs)
+        bot.start(
+            config_provider.get("PEPPERCORD_TOKEN" if token is None else token),
+            **kwargs,
+        )
     )
 
 
@@ -91,9 +96,11 @@ if __name__ == "__main__":
 
     bot, task = add_bot(os.environ, loop=loop)
 
+    logging.info("Ready.")
+    logging.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")
+
     try:
         logging.info("Running...")
-
         loop.run_forever()
     except KeyboardInterrupt:
         loop.run_until_complete(bot.close())

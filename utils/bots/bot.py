@@ -8,19 +8,21 @@ from utils.audio import AudioPlayer
 from utils.database import Document
 from .context import CustomContext
 
-CONFIGURATION_PROVIDERS = Union[dict, Any]  # Added the any type for now. I hate this mess.
+CONFIGURATION_PROVIDERS = Union[
+    dict, Any
+]  # Added the any type for now. I hate this mess.
 
 
 class CustomBotBase(commands.bot.BotBase):
     def __init__(
-            self,
-            command_prefix,
-            help_command=commands.HelpCommand(),
-            description=None,
-            *,
-            database,
-            config: CONFIGURATION_PROVIDERS,
-            **options,
+        self,
+        command_prefix,
+        help_command=commands.HelpCommand(),
+        description=None,
+        *,
+        database,
+        config: CONFIGURATION_PROVIDERS,
+        **options,
     ):
         self._database = database
         self._config: CONFIGURATION_PROVIDERS = config
@@ -42,7 +44,9 @@ class CustomBotBase(commands.bot.BotBase):
     def config(self) -> dict:
         return self._config
 
-    def get_audio_player(self, voice_client: Optional[discord.VoiceClient]) -> AudioPlayer:
+    def get_audio_player(
+        self, voice_client: Optional[discord.VoiceClient]
+    ) -> AudioPlayer:
         """Gets or creates audio player from VoiceClient."""
 
         for player in self._audio_players:
@@ -72,13 +76,15 @@ class CustomBotBase(commands.bot.BotBase):
         return await Document.get_document(self._database["guild"], {"_id": model.id})
 
     async def get_user_document(
-            self, model: Union[discord.Member, discord.User]
+        self, model: Union[discord.Member, discord.User]
     ) -> Document:
         """Gets a user's document from the database."""
 
         return await Document.get_document(self._database["user"], {"_id": model.id})
 
-    async def get_context(self, message, *, cls: Type[commands.Context] = CustomContext):
+    async def get_context(
+        self, message, *, cls: Type[commands.Context] = CustomContext
+    ):
         result: cls = await super().get_context(message, cls=cls)
         await self.wait_for_dispatch("context_creation", result)
         # Possiblily could safely be made asynchronous?
@@ -86,20 +92,22 @@ class CustomBotBase(commands.bot.BotBase):
         # just for all to complete before the context is sent.
         return result
 
-    async def on_context_creation(self, ctx: commands.Context) -> None:  # Placeholder method
+    async def on_context_creation(
+        self, ctx: commands.Context
+    ) -> None:  # Placeholder method
         pass
 
     async def wait_for_dispatch(self, event_name, *args, **kwargs):
         await super().wait_for_dispatch(event_name, *args, **kwargs)
-        ev = 'on_' + event_name
+        ev = "on_" + event_name
         for event in self.extra_events.get(ev, []):
             await super()._schedule_event(event, ev, *args, **kwargs)
 
 
 class CustomClientBase:
     async def wait_for_dispatch(self, event: str, *args, **kwargs):
-        logging.debug('Dispatching event %s', event)
-        method = 'on_' + event
+        logging.debug("Dispatching event %s", event)
+        method = "on_" + event
 
         listeners = self._listeners.get(event)
         if listeners:

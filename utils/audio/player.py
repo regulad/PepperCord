@@ -1,5 +1,7 @@
 import asyncio
 import collections
+import copy
+import datetime
 from typing import Optional
 
 import discord
@@ -11,7 +13,7 @@ from .config import ytdl_format_options
 class AudioQueue(asyncio.Queue):
     @property
     def deque(
-            self,
+        self,
     ) -> collections.deque:  # Nasty, but its a weird property of how the Queue works. This may break!
         return self._queue
 
@@ -29,6 +31,17 @@ def _voice_client_play(voice_client: discord.VoiceClient, source) -> asyncio.Fut
         source, after=lambda exception: _play_callback(exception, future=future)
     )
     return future
+
+
+async def prepare_track(track):  # I would typehint this, but circular imports.
+    if (
+        hasattr(track, "refresh")
+        and hasattr(track, "created")
+        and track.created + datetime.timedelta(seconds=10) <= datetime.datetime.now()
+    ):  # Relatively arbitrary.
+        return await track.refresh()  # For YouTube time restrictions
+    else:
+        return track
 
 
 class AudioPlayer:
@@ -81,13 +94,15 @@ class AudioPlayer:
 
             track = await self.queue.get()
 
-            if hasattr(track, "refresh"):
-                track = await track.refresh()  # For YouTube time restrictions
-
-            await _voice_client_play(self.voice_client, track)
-
-            while self.loop:  # Python can suck my
-                await _voice_client_play(self.voice_client, track)
+            if not self.loop:
+                await _voice_client_play(self.voice_client, await prepare_track(track))
+            else:
+                while self.loop:
+                    await _voice_client_play(
+                        self.voice_client, await prepare_track(copy.copy(track))
+                    )
+                    # I have no idea why this object needs to be shallow copied before it works.
+                    # Raises AttributeError on something called a _MissingSentinel?
 
 
 __all__ = ["AudioPlayer", "AudioQueue"]

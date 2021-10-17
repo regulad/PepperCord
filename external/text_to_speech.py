@@ -24,7 +24,7 @@ class LanguageSource(menus.ListPageSource):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value['name']}",
                 value=f"Gender: {value['ssmlGender'].title()}"
-                      f"\nSample Rate: {round(value['naturalSampleRateHertz'] / 1000, 1)}kHz",
+                f"\nSample Rate: {round(value['naturalSampleRateHertz'] / 1000, 1)}kHz",
                 inline=False,
             )
         return base_embed
@@ -34,7 +34,7 @@ class TextToSpeech(commands.Cog):
     """Sends Text-To-Speech in the voice chat."""
 
     def __init__(
-            self, bot: bots.BOT_TYPES, async_gtts_client_session: AsyncGTTSSession
+        self, bot: bots.BOT_TYPES, async_gtts_client_session: AsyncGTTSSession
     ) -> None:
         self._async_gtts_session: AsyncGTTSSession = async_gtts_client_session
         self.bot: bots.BOT_TYPES = bot
@@ -80,10 +80,10 @@ class TextToSpeech(commands.Cog):
         usage="[Voice]",
     )
     async def set_voice(
-            self,
-            ctx: bots.CustomContext,
-            *,
-            desired_voice: Optional[str] = "en-US-Wavenet-D",
+        self,
+        ctx: bots.CustomContext,
+        *,
+        desired_voice: Optional[str] = "en-US-Wavenet-D",
     ) -> None:
         async with ctx.typing():
             voices: list = await self._async_gtts_session.get_voices("en-US")

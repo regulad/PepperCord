@@ -27,8 +27,8 @@ async def is_blacklisted(ctx: CustomContext) -> bool:
     """Checks if a context is blacklisted from executing commands."""
 
     return (
-                   ctx.guild is not None and ctx["guild_document"].get("blacklisted", False)
-           ) or ctx["author_document"].get("blacklisted", False)
+        ctx.guild is not None and ctx["guild_document"].get("blacklisted", False)
+    ) or ctx["author_document"].get("blacklisted", False)
 
 
 @commands.check
@@ -46,7 +46,8 @@ async def has_permission_level(ctx: CustomContext, value: Permission):
     permission_level: Optional[Permission] = get_permission(ctx)
 
     return (
-               permission_level >= value if permission_level is not None else False) or ctx.author.guild_permissions.administrator
+        permission_level >= value if permission_level is not None else False
+    ) or ctx.author.guild_permissions.administrator
 
 
 @commands.check

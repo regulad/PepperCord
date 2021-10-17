@@ -21,17 +21,18 @@ class ReactionRoles(commands.Cog):
         else:
             return True
 
-    async def _assemble_reaction(self, payload: discord.RawReactionActionEvent) \
-            -> Tuple[discord.Message, discord.Member]:
+    async def _assemble_reaction(
+        self, payload: discord.RawReactionActionEvent
+    ) -> Tuple[discord.Message, discord.Member]:
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
 
-        return \
-            await (guild.get_channel_or_thread(payload.channel_id)).fetch_message(payload.message_id), \
-            guild.get_member(payload.user_id)
+        return await (guild.get_channel_or_thread(payload.channel_id)).fetch_message(
+            payload.message_id
+        ), guild.get_member(payload.user_id)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(
-            self, payload: discord.RawReactionActionEvent
+        self, payload: discord.RawReactionActionEvent
     ) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
@@ -48,11 +49,13 @@ class ReactionRoles(commands.Cog):
                         if int(key_message) == ctx.message.id:
                             for role_emoji, role_id in message_dict.items():
                                 if role_emoji == payload.emoji.name:
-                                    await member.add_roles(ctx.guild.get_role(int(role_id)))
+                                    await member.add_roles(
+                                        ctx.guild.get_role(int(role_id))
+                                    )
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(
-            self, payload: discord.RawReactionActionEvent
+        self, payload: discord.RawReactionActionEvent
     ) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
@@ -69,7 +72,9 @@ class ReactionRoles(commands.Cog):
                         if int(key_message) == ctx.message.id:
                             for role_emoji, role_id in message_dict.items():
                                 if role_emoji == payload.emoji.name:
-                                    await member.remove_roles(ctx.guild.get_role(role_id))
+                                    await member.remove_roles(
+                                        ctx.guild.get_role(role_id)
+                                    )
 
     @commands.group(
         invoke_without_command=True,
@@ -95,20 +100,23 @@ class ReactionRoles(commands.Cog):
     @reactionrole.command(
         name="add",
         description="Adds reaction roles.\n"
-                    "The bot must have permissions to add rections in the desired channel.",
+        "The bot must have permissions to add rections in the desired channel.",
         usage="<Message (URL)> <Emoji> <Role>",
     )
     async def add(
-            self,
-            ctx: bots.CustomContext,
-            message: typing.Union[discord.Message, discord.PartialMessage],
-            emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
-            role: discord.Role,
+        self,
+        ctx: bots.CustomContext,
+        message: typing.Union[discord.Message, discord.PartialMessage],
+        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
+        role: discord.Role,
     ) -> None:
         await message.add_reaction(emoji)
         await ctx["guild_document"].update_db(
-            {"$set": {
-                f"reactions.{message.channel.id}.{message.id}.{emoji.name if not isinstance(emoji, str) else emoji}": role.id}}
+            {
+                "$set": {
+                    f"reactions.{message.channel.id}.{message.id}.{emoji.name if not isinstance(emoji, str) else emoji}": role.id
+                }
+            }
         )
 
 

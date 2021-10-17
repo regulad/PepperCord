@@ -147,7 +147,7 @@ class DiscordInfo(commands.Cog):
 
     @commands.command(
         name="botinfo",
-        aliases=["bot", "invite", "donate", "bug", "support", "owner"],
+        aliases=["bot", "invite", "donate", "bug", "support", "owner", "info", "version"],
         description="Displays information about the bot",
         brief="Get bot info.",
     )
@@ -192,7 +192,7 @@ class DiscordInfo(commands.Cog):
                         value=f"OS: {platform.system()} (`{platform.release()}`)"
                         f"\nPython: `{version}`"
                         f"\ndiscord.py: `{discord.__version__}`"
-                        f"\nPepperCord: `{git.Repo().tags[-1].name}` (`{git.Repo().head.commit}`)",
+                        f"\nPepperCord: `{git.Repo().tags[-1].name if len(git.Repo().tags) > 0 else '?'}` (`{git.Repo().head.commit}`)",
                         inline=False,
                     )
                 )

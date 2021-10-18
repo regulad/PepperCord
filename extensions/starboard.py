@@ -74,7 +74,7 @@ class Starboard(commands.Cog):
 
         guild = self.bot.get_guild(payload.guild_id)
         ctx = await self.bot.get_context(
-            await guild.get_channel(payload.channel_id).fetch_message(
+            await guild.get_channel_or_thread(payload.channel_id).fetch_message(
                 payload.message_id
             )
         )

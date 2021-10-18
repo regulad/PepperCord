@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+import discord
 from discord.ext import commands
 
 from utils.bots import CustomContext
@@ -74,9 +75,15 @@ async def check_is_man(ctx: CustomContext) -> bool:
         return True
 
 
+def is_nsfw_allowed(ctx: CustomContext, channel: Optional[discord.TextChannel] = None) -> bool:
+    channel: discord.TextChannel = channel or ctx.channel
+    return channel.id in ctx["guild_document"].get("customnsfw", []) \
+           or channel.nsfw if hasattr(channel, "nsfw") else False
+
+
 @commands.check
 async def check_is_allowed_nsfw(ctx: CustomContext) -> bool:
-    if ctx.channel.id in ctx["guild_document"].get("customnsfw", []) or ctx.channel.nsfw:
+    if is_nsfw_allowed(ctx) or (hasattr(ctx.channel, "parent") and is_nsfw_allowed(ctx, ctx.channel.parent)):
         return True
     else:
         raise commands.NSFWChannelRequired(ctx.channel)
@@ -87,6 +94,7 @@ __all__ = [
     "Blacklisted",
     "LowPrivilege",
     "is_blacklisted",
+    "is_nsfw_allowed",
     "has_permission_level",
     "check_is_admin",
     "check_is_mod",

@@ -1,4 +1,5 @@
-from typing import Optional, cast, Union, Type
+import asyncio
+from typing import Optional, cast, Union, Type, List
 from io import BytesIO
 from os.path import basename
 from urllib.parse import urlparse
@@ -49,6 +50,7 @@ async def send_sampler(
     nekos_life_client: NekosLifeClient,
     nsfw_type: NSFWType,
     iteration: int = 1,
+    add_author: bool = False,
 ) -> discord.Thread:
     tag_type: Type[Union[SFWImageTags, NSFWImageTags]] = (
         NSFWImageTags if nsfw_type is NSFWType.NSFW else SFWImageTags
@@ -59,7 +61,8 @@ async def send_sampler(
         result_name: str = f"Results {iteration}"
         message: discord.Message = await ctx.send(f"**{result_name}**")
         thread: discord.Thread = await message.create_thread(name=result_name)
-        await thread.add_user(ctx.author)
+        if add_author:
+            await thread.add_user(ctx.author)
     for tag in tag_type.__members__.values():
         image_response = await nekos_life_client.image(
             tag, True
@@ -85,11 +88,44 @@ async def send_samplers(
     nekos_life_client: NekosLifeClient,
     nsfw_type: NSFWType,
     iterations: int = 1,
+    add_author: bool = False,
 ) -> None:
-    for iteration in [item + 1 for item in range(iterations)]:
-        ctx.bot.loop.create_task(
-            send_sampler(ctx, nekos_life_client, nsfw_type, iteration)
+    tasks: List[asyncio.Task] = []
+    for iteration in range(1, iterations + 1):
+        tasks.append(
+            ctx.bot.loop.create_task(
+                send_sampler(ctx, nekos_life_client, nsfw_type, iteration, add_author)
+            )
         )
+    await asyncio.wait(tasks)
+
+
+async def send_image(
+    channel: discord.abc.Messageable,
+    nekos_life_client: NekosLifeClient,
+    tag: Union[NSFWImageTags, SFWImageTags],
+) -> discord.Message:
+    image_response = await nekos_life_client.image(tag)
+    return await channel.send(image_response.url)
+
+
+async def send_images(
+    ctx: CustomContext,
+    nekos_life_client: NekosLifeClient,
+    tag: Union[NSFWImageTags, SFWImageTags],
+    iterations: int = 1,
+) -> None:
+    if iterations == 1:
+        await send_image(ctx, nekos_life_client, tag)
+    else:
+        thread: discord.Thread = await ctx.message.create_thread(name="Results")
+        tasks: List[asyncio.Task] = []
+        for iterations in range(1, iterations + 1):
+            tasks.append(
+                ctx.bot.loop.create_task(send_image(thread, nekos_life_client, tag))
+            )
+        await asyncio.wait(tasks)
+        await thread.edit(archived=True)
 
 
 class Nekos(commands.Cog):
@@ -135,20 +171,21 @@ class Nekos(commands.Cog):
         name="nsfw",
         brief="Grabs a NSFW picture from nekos.life",
     )
+    @commands.cooldown(3, 120, commands.BucketType.channel)
     @check_is_allowed_nsfw
     async def nsfwneko(
-        self, ctx: CustomContext, *, tag: Optional[NSFWNekosTagConverter] = None
+        self,
+        ctx: CustomContext,
+        quantity: Optional[int] = 1,
+        *,
+        tag: Optional[NSFWNekosTagConverter] = None,
     ) -> None:
         if tag is not None:
-            tag: NSFWImageTags = cast(NSFWImageTags, tag)
-            image_response = await self.nekos_life_client.image(
-                tag, True
-            )  # ImageResponse class is not exposed.
-            image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(
-                image_buffer, filename=image_response.full_name
+            if quantity > 7 and not await ctx.bot.is_owner(ctx.author):
+                raise RuntimeError("Too many iterations! Maximum is 7.")
+            await send_images(
+                ctx, self.nekos_life_client, cast(NSFWImageTags, tag), quantity
             )
-            await ctx.send(files=[image_file])
         else:
             await ctx.send(
                 embed=discord.Embed(
@@ -167,27 +204,35 @@ class Nekos(commands.Cog):
         aliases=["ansfw"],
         brief="Shows all NSFW tags.",
     )
+    @commands.cooldown(3, 120, commands.BucketType.channel)
     @check_is_allowed_nsfw
-    async def ansfwneko(self, ctx: CustomContext, *, quantity: int = 1) -> None:
-        await send_samplers(ctx, self.nekos_life_client, NSFWType.NSFW, quantity)
+    async def ansfwneko(
+        self, ctx: CustomContext, quantity: int = 1, add_author: bool = False
+    ) -> None:
+        if quantity > 3 and not await ctx.bot.is_owner(ctx.author):
+            raise RuntimeError("Too many iterations! Maximum is 3.")
+        await send_samplers(
+            ctx, self.nekos_life_client, NSFWType.NSFW, quantity, add_author
+        )
 
     @nekosg.command(
         name="sfw",
         brief="Grabs a SFW picture from nekos.life",
     )
+    @commands.cooldown(3, 120, commands.BucketType.channel)
     async def sfwneko(
-        self, ctx: CustomContext, *, tag: Optional[SFWNekosTagConverter] = None
+        self,
+        ctx: CustomContext,
+        quantity: Optional[int] = 1,
+        *,
+        tag: Optional[SFWNekosTagConverter] = None,
     ) -> None:
         if tag is not None:
-            tag: SFWImageTags = cast(SFWImageTags, tag)
-            image_response = await self.nekos_life_client.image(
-                tag, True
-            )  # ImageResponse class is not exposed.
-            image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(
-                image_buffer, filename=image_response.full_name
+            if quantity > 7 and not await ctx.bot.is_owner(ctx.author):
+                raise RuntimeError("Too many iterations! Maximum is 7.")
+            await send_images(
+                ctx, self.nekos_life_client, cast(SFWImageTags, tag), quantity
             )
-            await ctx.send(files=[image_file])
         else:
             await ctx.send(
                 embed=discord.Embed(
@@ -206,8 +251,15 @@ class Nekos(commands.Cog):
         aliases=["asfw"],
         brief="Shows all SFW tags.",
     )
-    async def asfwneko(self, ctx: CustomContext, *, quantity: int = 1) -> None:
-        await send_samplers(ctx, self.nekos_life_client, NSFWType.SFW, quantity)
+    @commands.cooldown(3, 120, commands.BucketType.channel)
+    async def asfwneko(
+        self, ctx: CustomContext, quantity: int = 1, add_author: bool = False
+    ) -> None:
+        if quantity > 3 and not await ctx.bot.is_owner(ctx.author):
+            raise RuntimeError("Too many iterations! Maximum is 3.")
+        await send_samplers(
+            ctx, self.nekos_life_client, NSFWType.SFW, quantity, add_author
+        )
 
     @nekosg.command(
         name="8ball",
@@ -218,17 +270,12 @@ class Nekos(commands.Cog):
         self, ctx: CustomContext, *, question: Optional[str] = None
     ) -> None:
         eightball_resposne = await self.nekos_life_client.random_8ball(
-            question or "question", get_image_bytes=True
-        )
-        eightball_buffer: BytesIO = BytesIO(eightball_resposne.image_bytes)
-        eightball_filename: str = basename(urlparse(eightball_resposne.image_url).path)
-        eightball_file: discord.File = discord.File(
-            eightball_buffer, filename=eightball_filename
+            question or "question"
         )
         eightball_embed: discord.Embed = discord.Embed(
             title=eightball_resposne.text.title(), color=discord.Colour.blurple()
-        ).set_image(url=f"attachment://{eightball_filename}")
-        await ctx.send(files=[eightball_file], embed=eightball_embed)
+        ).set_image(url=eightball_resposne.image_url)
+        await ctx.send(embed=eightball_embed)
 
     @nekosg.command(
         name="owoify",

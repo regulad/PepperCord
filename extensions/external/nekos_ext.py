@@ -1,7 +1,8 @@
-from typing import Optional, cast, Any
+from typing import Optional, cast, Union, Type
 from io import BytesIO
 from os.path import basename
 from urllib.parse import urlparse
+from enum import Enum, auto
 
 import discord
 from anekos import *
@@ -10,6 +11,11 @@ from discord.ext import commands
 
 from utils.bots import BOT_TYPES, CustomContext
 from utils.checks import check_is_allowed_nsfw
+
+
+class NSFWType(Enum):
+    NSFW = auto()
+    SFW = auto()
 
 
 class NSFWNekosTagConverter(commands.Converter):
@@ -36,6 +42,54 @@ class SFWNekosTagConverter(commands.Converter):
             return tag
         else:
             raise commands.BadArgument("Could not find tag.")
+
+
+async def send_sampler(
+    ctx: CustomContext,
+    nekos_life_client: NekosLifeClient,
+    nsfw_type: NSFWType,
+    iteration: int = 1,
+) -> discord.Thread:
+    tag_type: Type[Union[SFWImageTags, NSFWImageTags]] = (
+        NSFWImageTags if nsfw_type is NSFWType.NSFW else SFWImageTags
+    )
+    if iteration == 1:
+        thread: discord.Thread = await ctx.message.create_thread(name="Results")
+    else:
+        result_name: str = f"Results {iteration}"
+        message: discord.Message = await ctx.send(f"**{result_name}**")
+        thread: discord.Thread = await message.create_thread(name=result_name)
+        await thread.add_user(ctx.author)
+    for tag in tag_type.__members__.values():
+        image_response = await nekos_life_client.image(
+            tag, True
+        )  # ImageResponse class is not exposed.
+        image_buffer: BytesIO = BytesIO(image_response.bytes)
+        image_file: discord.File = discord.File(
+            image_buffer, filename=image_response.full_name
+        )
+        try:
+            await thread.send(
+                f"**{tag.name.title().replace('_', ' ')}**", files=[image_file]
+            )
+        except discord.HTTPException:
+            await thread.send(
+                f"Couldn't send **{tag.name.title().replace('_', ' ')}**: {image_response.url}"
+            )
+    await thread.edit(archived=True)
+    return thread
+
+
+async def send_samplers(
+    ctx: CustomContext,
+    nekos_life_client: NekosLifeClient,
+    nsfw_type: NSFWType,
+    iterations: int = 1,
+) -> None:
+    for iteration in [item + 1 for item in range(iterations)]:
+        ctx.bot.loop.create_task(
+            send_sampler(ctx, nekos_life_client, nsfw_type, iteration)
+        )
 
 
 class Nekos(commands.Cog):
@@ -84,7 +138,7 @@ class Nekos(commands.Cog):
     @check_is_allowed_nsfw
     async def nsfwneko(
         self, ctx: CustomContext, *, tag: Optional[NSFWNekosTagConverter] = None
-    ):
+    ) -> None:
         if tag is not None:
             tag: NSFWImageTags = cast(NSFWImageTags, tag)
             image_response = await self.nekos_life_client.image(
@@ -114,25 +168,8 @@ class Nekos(commands.Cog):
         brief="Shows all NSFW tags.",
     )
     @check_is_allowed_nsfw
-    async def ansfwneko(self, ctx: CustomContext):
-        thread: discord.Thread = await ctx.message.create_thread(name="Results")
-        for tag in NSFWImageTags.__members__.values():
-            image_response = await self.nekos_life_client.image(
-                tag, True
-            )  # ImageResponse class is not exposed.
-            image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(
-                image_buffer, filename=image_response.full_name
-            )
-            try:
-                await thread.send(
-                    f"**{tag.name.title().replace('_', ' ')}**", files=[image_file]
-                )
-            except discord.HTTPException:
-                await thread.send(
-                    f"Couldn't send **{tag.name.title().replace('_', ' ')}**: {image_response.url}"
-                )
-        await thread.edit(archived=True)
+    async def ansfwneko(self, ctx: CustomContext, *, quantity: int = 1) -> None:
+        await send_samplers(ctx, self.nekos_life_client, NSFWType.NSFW, quantity)
 
     @nekosg.command(
         name="sfw",
@@ -140,7 +177,7 @@ class Nekos(commands.Cog):
     )
     async def sfwneko(
         self, ctx: CustomContext, *, tag: Optional[SFWNekosTagConverter] = None
-    ):
+    ) -> None:
         if tag is not None:
             tag: SFWImageTags = cast(SFWImageTags, tag)
             image_response = await self.nekos_life_client.image(
@@ -169,25 +206,8 @@ class Nekos(commands.Cog):
         aliases=["asfw"],
         brief="Shows all SFW tags.",
     )
-    async def asfwneko(self, ctx: CustomContext):
-        thread: discord.Thread = await ctx.message.create_thread(name="Results")
-        for tag in SFWImageTags.__members__.values():
-            image_response = await self.nekos_life_client.image(
-                tag, True
-            )  # ImageResponse class is not exposed.
-            image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(
-                image_buffer, filename=image_response.full_name
-            )
-            try:
-                await thread.send(
-                    f"**{tag.name.title().replace('_', ' ')}**", files=[image_file]
-                )
-            except discord.HTTPException:
-                await thread.send(
-                    f"Couldn't send **{tag.name.title().replace('_', ' ')}**: {image_response.url}"
-                )
-        await thread.edit(archived=True)
+    async def asfwneko(self, ctx: CustomContext, *, quantity: int = 1) -> None:
+        await send_samplers(ctx, self.nekos_life_client, NSFWType.SFW, quantity)
 
     @nekosg.command(
         name="8ball",
@@ -216,10 +236,20 @@ class Nekos(commands.Cog):
     )
     async def owoify(self, ctx: CustomContext, *, text: Optional[str] = None):
         text: str = (
-            ctx.message.reference.resolved.clean_content
-            if ctx.message.reference is not None
-            else text
-        ) or "You didn't supply any text..."
+            (
+                ctx.message.reference.resolved.clean_content
+                if ctx.message.reference is not None
+                else text
+            )
+            or (
+                (
+                    await ctx.channel.history(
+                        limit=1, before=ctx.message.created_at
+                    ).flatten()
+                )[0].clean_content
+            )
+            or "You didn't supply any text... Reply to a message you like or pass it as an argument!"
+        )
         await ctx.send((await self.nekos_life_client.owoify(text)).text)
 
     @nekosg.command(

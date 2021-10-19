@@ -111,13 +111,13 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
 * `PEPPERCORD_DB_NAME`: Name of the primary database. Default is `peppercord`.
 * `PEPPERCORD_PREFIX`: Command prefix. Default is `?`.
 * `PEPPERCORD_WEB`: Website used in some commands. Default is `https://www.regulad.xyz/PepperCord`.
-* `PEPPERCORD_FOLDERS`: Folders to load extensions from. Default is `core, extensions`.
 
 # Extending
 
 If you want to extend PepperCord as a contribution to the main project or to make it your own, there are a couple things you should know.
 
 1. Extensions are split into different folders.
-   1. `core` is for extensions critical to the functioning of the bot (i.e. database access, etc.)
-   2. `extensions` is for self-contained extensions that add features to the bot (i.e. starboard, reaction roles)
-   3. `external` is for external apis that the bot interacts with, likely with help from a wrapper library (i.e. quotes, editvideobot, nekos.life)
+   1. Each subfolder is fairly self-explanatory.
+      1. `core` is for extensions that are critical to the bot's functioning.
+      2. `external` is for interactions with external APIs
+      3. `features` is for self-contained features added to the bot.

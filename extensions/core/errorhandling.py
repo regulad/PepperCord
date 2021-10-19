@@ -34,7 +34,7 @@ known_errors = {
 }
 
 try:
-    from extensions.starboard import AlreadyPinned
+    from extensions.features.starboard import AlreadyPinned
 except ImportError:
     AlreadyPinned = object
 else:

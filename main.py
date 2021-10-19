@@ -59,14 +59,10 @@ def add_bot(
         loop=loop,
     )
 
-    directories: List[str] = (
-        config_provider.get("PEPPERCORD_FOLDERS", "extensions, external")
-        .lower()
-        .strip()
-        .split(", ")
-    )
-    if "core" not in directories:  # Core *must* be loaded.
-        directories.append("core")
+    directories: List[str] = [entry[0] for entry in os.walk("extensions")]
+
+    if os.name == "nt":
+        directories: List[str] = [entry.replace("\\", "/") for entry in directories]
 
     for directory in directories:
         for file in os.listdir(f"{directory}/"):

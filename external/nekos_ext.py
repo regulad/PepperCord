@@ -68,7 +68,12 @@ class Nekos(commands.Cog):
         await ctx.send(
             embed=discord.Embed(
                 title="Endpoints",
-                description="\n".join([f"* {item.url if not 'hentai' in str(item.url) else '<redacted>'}" for item in await self.nekos_life_client.endpoints()])
+                description="\n".join(
+                    [
+                        f"* {item.url if not 'hentai' in str(item.url) else '<redacted>'}"
+                        for item in await self.nekos_life_client.endpoints()
+                    ]
+                ),
             )
         )
 
@@ -77,18 +82,29 @@ class Nekos(commands.Cog):
         brief="Grabs a NSFW picture from nekos.life",
     )
     @check_is_allowed_nsfw
-    async def nsfwneko(self, ctx: CustomContext, *, tag: Optional[NSFWNekosTagConverter] = None):
+    async def nsfwneko(
+        self, ctx: CustomContext, *, tag: Optional[NSFWNekosTagConverter] = None
+    ):
         if tag is not None:
             tag: NSFWImageTags = cast(NSFWImageTags, tag)
-            image_response = await self.nekos_life_client.image(tag, True)  # ImageResponse class is not exposed.
+            image_response = await self.nekos_life_client.image(
+                tag, True
+            )  # ImageResponse class is not exposed.
             image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(image_buffer, filename=image_response.full_name)
+            image_file: discord.File = discord.File(
+                image_buffer, filename=image_response.full_name
+            )
             await ctx.send(files=[image_file])
         else:
             await ctx.send(
                 embed=discord.Embed(
                     title="Tags",
-                    description="\n".join([f"* {tag.title().replace('_', ' ')}" for tag in NSFWImageTags.__members__.keys()]),
+                    description="\n".join(
+                        [
+                            f"* {tag.title().replace('_', ' ')}"
+                            for tag in NSFWImageTags.__members__.keys()
+                        ]
+                    ),
                 )
             )
 
@@ -101,31 +117,50 @@ class Nekos(commands.Cog):
     async def ansfwneko(self, ctx: CustomContext):
         thread: discord.Thread = await ctx.message.create_thread(name="Results")
         for tag in NSFWImageTags.__members__.values():
-            image_response = await self.nekos_life_client.image(tag, True)  # ImageResponse class is not exposed.
+            image_response = await self.nekos_life_client.image(
+                tag, True
+            )  # ImageResponse class is not exposed.
             image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(image_buffer, filename=image_response.full_name)
+            image_file: discord.File = discord.File(
+                image_buffer, filename=image_response.full_name
+            )
             try:
-                await thread.send(f"**{tag.name.title().replace('_', ' ')}**", files=[image_file])
+                await thread.send(
+                    f"**{tag.name.title().replace('_', ' ')}**", files=[image_file]
+                )
             except discord.HTTPException:
-                await thread.send(f"Couldn't send **{tag.name.title().replace('_', ' ')}**: {image_response.url}")
+                await thread.send(
+                    f"Couldn't send **{tag.name.title().replace('_', ' ')}**: {image_response.url}"
+                )
         await thread.edit(archived=True)
 
     @nekosg.command(
         name="sfw",
         brief="Grabs a SFW picture from nekos.life",
     )
-    async def sfwneko(self, ctx: CustomContext, *, tag: Optional[SFWNekosTagConverter] = None):
+    async def sfwneko(
+        self, ctx: CustomContext, *, tag: Optional[SFWNekosTagConverter] = None
+    ):
         if tag is not None:
             tag: SFWImageTags = cast(SFWImageTags, tag)
-            image_response = await self.nekos_life_client.image(tag, True)  # ImageResponse class is not exposed.
+            image_response = await self.nekos_life_client.image(
+                tag, True
+            )  # ImageResponse class is not exposed.
             image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(image_buffer, filename=image_response.full_name)
+            image_file: discord.File = discord.File(
+                image_buffer, filename=image_response.full_name
+            )
             await ctx.send(files=[image_file])
         else:
             await ctx.send(
                 embed=discord.Embed(
                     title="Tags",
-                    description="\n".join([f"* {tag.title().replace('_', ' ')}" for tag in SFWImageTags.__members__.keys()]),
+                    description="\n".join(
+                        [
+                            f"* {tag.title().replace('_', ' ')}"
+                            for tag in SFWImageTags.__members__.keys()
+                        ]
+                    ),
                 )
             )
 
@@ -137,13 +172,21 @@ class Nekos(commands.Cog):
     async def asfwneko(self, ctx: CustomContext):
         thread: discord.Thread = await ctx.message.create_thread(name="Results")
         for tag in SFWImageTags.__members__.values():
-            image_response = await self.nekos_life_client.image(tag, True)  # ImageResponse class is not exposed.
+            image_response = await self.nekos_life_client.image(
+                tag, True
+            )  # ImageResponse class is not exposed.
             image_buffer: BytesIO = BytesIO(image_response.bytes)
-            image_file: discord.File = discord.File(image_buffer, filename=image_response.full_name)
+            image_file: discord.File = discord.File(
+                image_buffer, filename=image_response.full_name
+            )
             try:
-                await thread.send(f"**{tag.name.title().replace('_', ' ')}**", files=[image_file])
+                await thread.send(
+                    f"**{tag.name.title().replace('_', ' ')}**", files=[image_file]
+                )
             except discord.HTTPException:
-                await thread.send(f"Couldn't send **{tag.name.title().replace('_', ' ')}**: {image_response.url}")
+                await thread.send(
+                    f"Couldn't send **{tag.name.title().replace('_', ' ')}**: {image_response.url}"
+                )
         await thread.edit(archived=True)
 
     @nekosg.command(
@@ -151,15 +194,20 @@ class Nekos(commands.Cog):
         aliases=["eightball"],
         brief="Uses the 8Ball.",
     )
-    async def eightball(self, ctx: CustomContext, *, question: Optional[str] = None) -> None:
-        eightball_resposne = await self.nekos_life_client.random_8ball(question or "question", get_image_bytes=True)
+    async def eightball(
+        self, ctx: CustomContext, *, question: Optional[str] = None
+    ) -> None:
+        eightball_resposne = await self.nekos_life_client.random_8ball(
+            question or "question", get_image_bytes=True
+        )
         eightball_buffer: BytesIO = BytesIO(eightball_resposne.image_bytes)
         eightball_filename: str = basename(urlparse(eightball_resposne.image_url).path)
-        eightball_file: discord.File = discord.File(eightball_buffer, filename=eightball_filename)
-        eightball_embed: discord.Embed = (
-            discord.Embed(title=eightball_resposne.text.title(), color=discord.Colour.blurple())
-            .set_image(url=f"attachment://{eightball_filename}")
+        eightball_file: discord.File = discord.File(
+            eightball_buffer, filename=eightball_filename
         )
+        eightball_embed: discord.Embed = discord.Embed(
+            title=eightball_resposne.text.title(), color=discord.Colour.blurple()
+        ).set_image(url=f"attachment://{eightball_filename}")
         await ctx.send(files=[eightball_file], embed=eightball_embed)
 
     @nekosg.command(
@@ -167,8 +215,11 @@ class Nekos(commands.Cog):
         brief="OwO your text!",
     )
     async def owoify(self, ctx: CustomContext, *, text: Optional[str] = None):
-        text: str = (ctx.message.reference.resolved.clean_content if ctx.message.reference is not None else text) \
-                    or "You didn't supply any text..."
+        text: str = (
+            ctx.message.reference.resolved.clean_content
+            if ctx.message.reference is not None
+            else text
+        ) or "You didn't supply any text..."
         await ctx.send((await self.nekos_life_client.owoify(text)).text)
 
     @nekosg.command(
@@ -176,7 +227,7 @@ class Nekos(commands.Cog):
         brief="Get a fact!",
     )
     async def fact(self, ctx: CustomContext) -> None:
-        await ctx.send(f"*\"{(await self.nekos_life_client.random_fact_text()).text}\"*")
+        await ctx.send(f'*"{(await self.nekos_life_client.random_fact_text()).text}"*')
 
 
 def setup(bot: BOT_TYPES) -> None:

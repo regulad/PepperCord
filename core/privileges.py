@@ -66,9 +66,11 @@ class Privileges(commands.Cog):
     @permissions.command(
         name="allownsfw",
         aliases=["nsfw"],
-        brief="Allows NSFW content. in channel not marked as NSFW."
+        brief="Allows NSFW content. in channel not marked as NSFW.",
     )
-    async def allownsfw(self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel] = None) -> None:
+    async def allownsfw(
+        self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel] = None
+    ) -> None:
         channel: discord.TextChannel = channel or ctx.channel
         await ctx["guild_document"].update_db({"$push": {"customnsfw": channel.id}})
 

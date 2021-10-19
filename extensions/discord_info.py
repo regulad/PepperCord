@@ -147,7 +147,16 @@ class DiscordInfo(commands.Cog):
 
     @commands.command(
         name="botinfo",
-        aliases=["bot", "invite", "donate", "bug", "support", "owner", "info", "version"],
+        aliases=[
+            "bot",
+            "invite",
+            "donate",
+            "bug",
+            "support",
+            "owner",
+            "info",
+            "version",
+        ],
         description="Displays information about the bot",
         brief="Get bot info.",
     )

@@ -75,19 +75,25 @@ async def check_is_man(ctx: CustomContext) -> bool:
         return True
 
 
-def is_nsfw_allowed(ctx: CustomContext, channel: Optional[discord.TextChannel] = None) -> bool:
+def is_nsfw_allowed(
+    ctx: CustomContext, channel: Optional[discord.TextChannel] = None
+) -> bool:
     channel: discord.TextChannel = channel or ctx.channel
-    return channel.id in ctx["guild_document"].get("customnsfw", []) \
-           or channel.nsfw if hasattr(channel, "nsfw") else False
+    return (
+        channel.id in ctx["guild_document"].get("customnsfw", []) or channel.nsfw
+        if hasattr(channel, "nsfw")
+        else False
+    )
 
 
 @commands.check
 async def check_is_allowed_nsfw(ctx: CustomContext) -> bool:
-    if is_nsfw_allowed(ctx) or (hasattr(ctx.channel, "parent") and is_nsfw_allowed(ctx, ctx.channel.parent)):
+    if is_nsfw_allowed(ctx) or (
+        hasattr(ctx.channel, "parent") and is_nsfw_allowed(ctx, ctx.channel.parent)
+    ):
         return True
     else:
         raise commands.NSFWChannelRequired(ctx.channel)
-
 
 
 __all__ = [

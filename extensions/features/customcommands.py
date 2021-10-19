@@ -4,7 +4,7 @@ from typing import Optional, List, cast
 import discord
 from discord.ext import commands, menus
 
-from extensions.moderation import mute
+from extensions.features.moderation import mute
 from utils import checks, bots
 from utils.attachments import find_url_recurse
 from utils.localization import Message

@@ -1,5 +1,6 @@
 import copy
 import datetime
+import math
 from typing import Optional, Union, cast, List, Dict
 
 import discord
@@ -283,9 +284,10 @@ class Moderation(commands.Cog):
 
     @commands.command(
         name="timeban",
-        brief="Mutes a user and unmutes them later",
-        description="Mutes a user then schedueles their unmuting",
-        usage="<Member> [Time (Seconds)]",
+        alasies=["timekick"],
+        brief="Bans a user and unbans them later",
+        description="Ban a user then schedueles their unbanning.",
+        usage="<Member> <Time> [Reason]",
     )
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
@@ -293,14 +295,21 @@ class Moderation(commands.Cog):
             ctx: bots.CustomContext,
             member: discord.Member,
             unpunishtime: converters.TimedeltaShorthand,
+            *,
+            reason: str = None,
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
-        await ctx.invoke(self.mute, member=member)
+        unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + unpunishtime
+        await member.send(
+            embed=discord.Embed(description=f"To rejoin, at <t:{math.floor(datetime.datetime.now().timestamp())}:R>, "
+                                            f"use [this]({(await ctx.guild.vanity_invite()).url or (await ctx.channel.create_invite(reason=f'Unban for {reason}', max_uses=1, max_age=int((unpunishtime + datetime.timedelta(days=1)).total_seconds())))}) link. It will not work until then.")
+        )
+        await member.ban(reason=reason)
         await ctx["guild_document"].update_db(
             {
                 "$set": {
                     f"punishments.{member.id}.ban": (
-                            datetime.datetime.utcnow() + unpunishtime
+                            unpunishdatetime
                     )
                 }
             }

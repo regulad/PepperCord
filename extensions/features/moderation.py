@@ -77,7 +77,7 @@ class Moderation(commands.Cog):
     def cog_unload(self) -> None:
         self.unpunish.stop()
 
-    @tasks.loop(seconds=120)
+    @tasks.loop(seconds=10)
     async def unpunish(self) -> None:
         for guild in self.bot.guilds:
             guild_doc: database.Document = await self.bot.get_guild_document(guild)
@@ -98,7 +98,7 @@ class Moderation(commands.Cog):
                                         guild_document=guild_doc,
                                     )
                                 elif punishment == "ban":
-                                    user: discord.User = self.bot.get_user(user_id)
+                                    user: discord.User = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
                                     await guild.unban(
                                         user=user, reason="Timeban expired."
                                     )
@@ -330,9 +330,11 @@ class Moderation(commands.Cog):
     ) -> None:
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + unpunishtime
+        localunpunishdatetime: datetime.datetime = datetime.datetime.now() + unpunishtime  # Us "humans" have this "time" thing all wrong. ow.
         await member.send(
-            embed=discord.Embed(description=f"To rejoin, at <t:{math.floor(datetime.datetime.now().timestamp())}:R>, "
-                                            f"use [this]({(await ctx.guild.vanity_invite()).url or (await ctx.channel.create_invite(reason=f'Unban for {reason}', max_uses=1, max_age=int((unpunishtime + datetime.timedelta(days=1)).total_seconds())))}) link. It will not work until then.")
+            (await ctx.channel.create_invite(reason=f'Unban for {reason}', max_uses=1, max_age=int((unpunishtime + datetime.timedelta(days=1)).total_seconds()))).url,
+            embed=discord.Embed(description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> ({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
+                                            f"use this link. It will not work until then.")
         )
         await member.ban(reason=reason)
         await ctx["guild_document"].update_db(

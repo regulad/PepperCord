@@ -45,7 +45,7 @@ class Minecraft(commands.Cog):
         usage="[Server:Port]",
     )
     async def java(
-            self, ctx: CustomContext, *, server: Optional[str] = "smp.play.regulad.xyz"
+        self, ctx: CustomContext, *, server: Optional[str] = "smp.play.regulad.xyz"
     ) -> None:
         async with ctx.typing():
             try:
@@ -65,8 +65,8 @@ class Minecraft(commands.Cog):
             file = discord.File(decoded, filename="favicon.png")
 
             if (
-                    isinstance(status.description, dict)
-                    and status.description.get("extra") is not None
+                isinstance(status.description, dict)
+                and status.description.get("extra") is not None
             ):
                 strings: List[str] = []
 
@@ -97,8 +97,8 @@ class Minecraft(commands.Cog):
 
                 motd: Optional[str] = "".join(strings)
             elif (
-                    isinstance(status.description, dict)
-                    and status.description.get("text") is not None
+                isinstance(status.description, dict)
+                and status.description.get("text") is not None
             ):
                 motd: Optional[str] = status.description["text"]
             elif isinstance(status.description, str):
@@ -108,24 +108,24 @@ class Minecraft(commands.Cog):
 
             embed: discord.Embed = (
                 discord.Embed(colour=discord.Colour.dark_gold(), title=server)
-                    .add_field(
+                .add_field(
                     name="MOTD:",
                     value=motd
                     if motd is not None and len(motd) > 0
                     else "Couldn't read the MOTD. Likely a server issue.",
                     inline=False,
                 )
-                    .add_field(name="Ping:", value=f"{round(status.latency, 2)}ms")
-                    .add_field(
+                .add_field(name="Ping:", value=f"{round(status.latency, 2)}ms")
+                .add_field(
                     name="Players:",
                     value=f"{status.players.online}/{status.players.max}",
                 )
-                    .add_field(
+                .add_field(
                     name="Version:",
                     value=f"{status.version.name}, (ver. {status.version.protocol})",
                     inline=False,
                 )
-                    .set_thumbnail(url="attachment://favicon.png")
+                .set_thumbnail(url="attachment://favicon.png")
             )
 
             await ctx.send(embed=embed, file=file)
@@ -137,7 +137,7 @@ class Minecraft(commands.Cog):
         usage="[Server:Port]",
     )
     async def bedrock(
-            self, ctx: CustomContext, *, server: Optional[str] = "play.regulad.xyz"
+        self, ctx: CustomContext, *, server: Optional[str] = "play.regulad.xyz"
     ) -> None:
         async with ctx.typing():
             try:
@@ -152,15 +152,15 @@ class Minecraft(commands.Cog):
 
             embed: discord.Embed = (
                 discord.Embed(colour=discord.Colour.dark_gold(), title=server)
-                    .add_field(name="MOTD:", value=f"```{status.motd}```", inline=False)
-                    .add_field(name="Ping:", value=f"{round(status.latency, 2)}ms")
-                    .add_field(
+                .add_field(name="MOTD:", value=f"```{status.motd}```", inline=False)
+                .add_field(name="Ping:", value=f"{round(status.latency, 2)}ms")
+                .add_field(
                     name="Players:",
                     value=f"{status.players_online}/{status.players_max}",
                 )
-                    .add_field(name="Map:", value=f'"{status.map}"')
-                    .add_field(name="Brand:", value=status.version.brand)
-                    .add_field(name="Protocol:", value=status.version.protocol)
+                .add_field(name="Map:", value=f'"{status.map}"')
+                .add_field(name="Brand:", value=status.version.brand)
+                .add_field(name="Protocol:", value=status.version.protocol)
             )
 
             await ctx.send(embed=embed)

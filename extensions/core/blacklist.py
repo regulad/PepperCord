@@ -28,10 +28,10 @@ class Blacklist(commands.Cog):
         description="Blacklists an entity from using the bot.",
     )
     async def blacklist(
-            self,
-            ctx: CustomContext,
-            *,
-            entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
+        self,
+        ctx: CustomContext,
+        *,
+        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ) -> None:
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
         if isinstance(entity, discord.Guild):
@@ -45,10 +45,10 @@ class Blacklist(commands.Cog):
         description="Unblacklists an entity from using the bot.",
     )
     async def unblacklist(
-            self,
-            ctx: CustomContext,
-            *,
-            entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
+        self,
+        ctx: CustomContext,
+        *,
+        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ):
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
         if isinstance(entity, discord.Guild):

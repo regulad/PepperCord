@@ -28,7 +28,7 @@ class CustomPrefix(commands.Cog):
     @commands.command(
         name="prefix",
         description="Sets the bot's prefix.\n"
-                    "It can be any string, and will only apply to this server.",
+        "It can be any string, and will only apply to this server.",
     )
     @checks.check_is_admin
     async def prefix(self, ctx: CustomContext, *, prefix: str) -> None:
@@ -43,9 +43,9 @@ class CustomPrefix(commands.Cog):
     )
     async def prefix(self, ctx: CustomContext) -> None:
         await ctx.send(
-            ctx["locale"].get_message(Message.PREFIX_GET).format(
-                prefix=str(await get_prefix(ctx.bot, ctx.message))
-            )
+            ctx["locale"]
+            .get_message(Message.PREFIX_GET)
+            .format(prefix=str(await get_prefix(ctx.bot, ctx.message)))
         )
 
 

@@ -17,8 +17,8 @@ class Privileges(commands.Cog):
 
     async def cog_check(self, ctx: bots.CustomContext) -> bool:
         if not (
-                await has_permission_level(ctx, Permission.ADMINISTRATOR)
-                or ctx.author.guild_permissions.administrator
+            await has_permission_level(ctx, Permission.ADMINISTRATOR)
+            or ctx.author.guild_permissions.administrator
         ):
             raise LowPrivilege(Permission.ADMINISTRATOR, get_permission(ctx))
         else:
@@ -31,10 +31,10 @@ class Privileges(commands.Cog):
         aliases=["perms", "priv", "privileges"],
         brief="Change server permissions.",
         description="Read & write permissions of various entities on the server. "
-                    "Level 0 means that the entity has no permissions, "
-                    "level 1 means that they have manager permissions (think controlling music or reading audit logs), "
-                    "level 2 means that they have moderator privileges, "
-                    "and level 3 means that they have administrator privileges.",
+        "Level 0 means that the entity has no permissions, "
+        "level 1 means that they have manager permissions (think controlling music or reading audit logs), "
+        "level 2 means that they have moderator privileges, "
+        "and level 3 means that they have administrator privileges.",
     )
     async def permissions(self, ctx: bots.CustomContext) -> None:
         pass
@@ -64,18 +64,29 @@ class Privileges(commands.Cog):
         )
 
     @permissions.command(
+        name="allownsfw",
+        aliases=["nsfw"],
+        brief="Allows NSFW content. in channel not marked as NSFW.",
+    )
+    async def allownsfw(
+        self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel] = None
+    ) -> None:
+        channel: discord.TextChannel = channel or ctx.channel
+        await ctx["guild_document"].update_db({"$push": {"customnsfw": channel.id}})
+
+    @permissions.command(
         name="write",
         brief="Write permission level of a role.",
         description="Writes given permission level into a role. "
-                    "Valid options include: Manager, Moderator, and Administrator.",
+        "Valid options include: Manager, Moderator, and Administrator.",
         usage="[Permission Level (Admin)] <Role>",
     )
     async def write(
-            self,
-            ctx: bots.CustomContext,
-            value: PermissionConverter,
-            *,
-            entity: discord.Role,
+        self,
+        ctx: bots.CustomContext,
+        value: PermissionConverter,
+        *,
+        entity: discord.Role,
     ) -> None:
         permission: permissions.Permission = cast(permissions.Permission, value)
         await permissions.write_permission(ctx, entity, permission)

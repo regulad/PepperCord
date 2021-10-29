@@ -4,6 +4,7 @@ from typing import Union, Optional
 
 import discord
 import psutil
+import git
 from discord.ext import commands, tasks
 
 from utils import bots
@@ -60,10 +61,10 @@ class DiscordInfo(commands.Cog):
         usage="[User (ID/Mention/Name)]",
     )
     async def whois(
-            self,
-            ctx: bots.CustomContext,
-            *,
-            user: Optional[Union[discord.Member, discord.User]],
+        self,
+        ctx: bots.CustomContext,
+        *,
+        user: Optional[Union[discord.Member, discord.User]],
     ) -> None:
         if not user:
             user = ctx.author
@@ -73,9 +74,9 @@ class DiscordInfo(commands.Cog):
                     colour=user.colour,
                     title=f"All about {user.name}#{user.discriminator}\n({user.id})",
                 )
-                    .set_thumbnail(url=user.avatar.url)
-                    .add_field(name="Avatar URL", value=user.avatar.url)
-                    .add_field(
+                .set_thumbnail(url=user.avatar.url)
+                .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
+                .add_field(
                     name="Account creation date:",
                     value=f"<t:{user.created_at.timestamp():.0f}:R>",
                 )
@@ -109,7 +110,7 @@ class DiscordInfo(commands.Cog):
     )
     @commands.guild_only()
     async def server_info(
-            self, ctx: bots.CustomContext, *, guild: Optional[discord.Guild]
+        self, ctx: bots.CustomContext, *, guild: Optional[discord.Guild]
     ) -> None:
         guild = guild or ctx.guild
         try:
@@ -118,25 +119,25 @@ class DiscordInfo(commands.Cog):
                     colour=discord.Colour.random(),
                     title=f"Info for {guild.name}\n({guild.id})",
                 )
-                    .set_thumbnail(url=guild.icon.url)
-                    .add_field(name="Icon URL", value=guild.icon.url)
-                    .add_field(
+                .set_thumbnail(url=guild.icon.url)
+                .add_field(name="Icon URL:", value=f"[Click Here]({guild.icon.url})")
+                .add_field(
                     name="Server Owner:",
                     value=f"{guild.owner.display_name}#{guild.owner.discriminator} ({guild.owner.id})",
                 )
-                    .add_field(
+                .add_field(
                     name="Created at:",
                     value=f"<t:{guild.created_at.timestamp():.0f}:R>",
                 )
-                    .add_field(name="Roles:", value=len(guild.roles))
-                    .add_field(
+                .add_field(name="Roles:", value=len(guild.roles))
+                .add_field(
                     name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}"
                 )
-                    .add_field(
+                .add_field(
                     name="Total channels:",
                     value=f"{len(guild.channels)} channels, {len(guild.categories)} categories.",
                 )
-                    .add_field(name="Total members:", value=guild.member_count)
+                .add_field(name="Total members:", value=guild.member_count)
             )
         except discord.NotFound:
             await ctx.send("Couldn't find information on your guild.")
@@ -146,7 +147,16 @@ class DiscordInfo(commands.Cog):
 
     @commands.command(
         name="botinfo",
-        aliases=["bot", "invite", "donate", "bug", "support", "owner"],
+        aliases=[
+            "bot",
+            "invite",
+            "donate",
+            "bug",
+            "support",
+            "owner",
+            "info",
+            "version",
+        ],
         description="Displays information about the bot",
         brief="Get bot info.",
     )
@@ -161,41 +171,37 @@ class DiscordInfo(commands.Cog):
                         colour=discord.Colour.orange(),
                         title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
                         description=f"**Important Links**: "
-                                    f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
-                                    f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
-                                    f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
+                        f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
+                        f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
+                        f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
                     )
-                        .set_thumbnail(url=ctx.bot.user.avatar.url)
-                        .add_field(
+                    .set_thumbnail(url=ctx.bot.user.avatar.url)
+                    .add_field(
                         name="Invite:",
-                        value=discord.utils.oauth_url(
-                            client_id=str(ctx.bot.user.id),
-                            permissions=discord.Permissions(permissions=3157650678),
-                            guild=ctx.guild,
-                            scopes=("bot", "applications.commands"),
-                        ),
+                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
                         inline=False,
                     )
-                        .add_field(
+                    .add_field(
                         name="Bot status:",
                         value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
                     )
-                        .add_field(
+                    .add_field(
                         name="System resources:",
                         value=f"Memory: "
-                              f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
-                              f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
-                              f"({psutil.virtual_memory().percent}%)"
-                              f"\nCPU: {platform.processor()} running at "
-                              f"{round(psutil.cpu_freq().current) / 1000}GHz, "
-                              f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
-                              f"{psutil.cpu_count(logical=False)} physcial cores",
+                        f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
+                        f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
+                        f"({psutil.virtual_memory().percent}%)"
+                        f"\nCPU: {platform.processor()} running at "
+                        f"{round(psutil.cpu_freq().current) / 1000}GHz, "
+                        f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
+                        f"{psutil.cpu_count(logical=False)} physcial cores",
                     )
-                        .add_field(
+                    .add_field(
                         name="Versions:",
                         value=f"OS: {platform.system()} (`{platform.release()}`)"
-                              f"\nPython: `{version}`"
-                              f"\ndiscord.py: `{discord.__version__}`",
+                        f"\nPython: `{version}`"
+                        f"\ndiscord.py: `{discord.__version__}`"
+                        f"\nPepperCord: `{git.Repo().tags[-1].name if len(git.Repo().tags) > 0 else '?'}` (`{git.Repo().head.commit}`)",
                         inline=False,
                     )
                 )

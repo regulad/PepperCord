@@ -111,7 +111,7 @@ def shorthand_to_timedelta(shorthand: str) -> datetime.timedelta:
         if shorthand.find(possible_shorthand) != -1:
             index: int = shorthand.find(possible_shorthand)
             units[possible_shorthand] = float(shorthand[:index])
-            shorthand = shorthand[index + 1:]
+            shorthand = shorthand[index + 1 :]
 
     days: float = (units["y"] * 365 if units["y"] is not None else 0) + (
         units["mo"] * 30 if units["mo"] is not None else 0

@@ -12,20 +12,24 @@ class DeleteMenu(menus.Menu):
     """Confirmation menu for deleting server information."""
 
     async def send_initial_message(
-            self, ctx, channel: discord.TextChannel
+        self, ctx, channel: discord.TextChannel
     ) -> discord.Message:
         return await channel.send(ctx["locale"].get_message(Message.BOT_LEAVE))
 
     @menus.button("✅")
     async def confirm(self, payload) -> None:
-        await self.message.edit(content=self.ctx["locale"].get_message(Message.CONFIRM_BOT_LEAVE))
+        await self.message.edit(
+            content=self.ctx["locale"].get_message(Message.CONFIRM_BOT_LEAVE)
+        )
         await self.ctx["guild_document"].delete_db()
         await self.ctx.guild.leave()
         self.stop()
 
     @menus.button("❌")
     async def reject(self, payload) -> None:
-        await self.message.edit(content=self.ctx["locale"].get_message(Message.AVOID_BOT_LEAVE))
+        await self.message.edit(
+            content=self.ctx["locale"].get_message(Message.AVOID_BOT_LEAVE)
+        )
         self.stop()
 
     async def prompt(self, ctx):
@@ -50,9 +54,9 @@ class Administration(commands.Cog):
         usage="<Channel> <Message>",
     )
     async def do_message(
-            self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
+        self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
     ) -> None:
-        channel = ctx.bot.get_channel(channel.id)
+        channel = ctx.bot.get_channel_or_thread(channel.id)
         await channel.send(text)
 
     @commands.group(
@@ -68,7 +72,7 @@ class Administration(commands.Cog):
     @config.command(
         name="mute",
         description="Sets the role that is given to people who are muted.\n"
-                    "The role must already be configured.",
+        "The role must already be configured.",
     )
     async def mute(self, ctx: CustomContext, *, role: discord.Role) -> None:
         await ctx["guild_document"].update_db({"$set": {"mute_role": role.id}})
@@ -76,9 +80,9 @@ class Administration(commands.Cog):
     @config.command(
         name="locale",
         description="Sets the server's locale.\n"
-                    "Supported locales:\n\n"
-                    "* en_US\n"
-                    "* catspeak",
+        "Supported locales:\n\n"
+        "* en_US\n"
+        "* catspeak",
     )
     async def locale(self, ctx: CustomContext, *, locale: LocaleConverter) -> None:
         await ctx["guild_document"].update_db({"$set": {"locale": locale.name}})

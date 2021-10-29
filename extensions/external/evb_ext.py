@@ -19,8 +19,9 @@ class EditVideoBot(commands.Cog):
     def __init__(self, bot: BOT_TYPES):
         self.bot = bot
 
-        self.evb_session: AsyncEditVideoBotSession = AsyncEditVideoBotSession.from_api_key(
-            self.bot.config.get("PEPPERCORD_EVB"))
+        self.evb_session: AsyncEditVideoBotSession = (
+            AsyncEditVideoBotSession.from_api_key(self.bot.config.get("PEPPERCORD_EVB"))
+        )
         self.client_session: Optional[ClientSession] = None
 
         self.cooldown = commands.CooldownMapping.from_cooldown(
@@ -60,7 +61,7 @@ class EditVideoBot(commands.Cog):
                 attachment_bytes = await resp.read()
 
             if (
-                    isinstance(source, discord.Embed) and source.type == "gifv"
+                isinstance(source, discord.Embed) and source.type == "gifv"
             ):  # deprecated!... kinda
                 extension: str = "mp4"
             else:
@@ -70,14 +71,17 @@ class EditVideoBot(commands.Cog):
                 attachment_bytes, evb_commands, extension
             )
 
-            file = discord.File(BytesIO(await response.download()), f"output{splitext(response.media_url)[1]}")
+            file = discord.File(
+                BytesIO(await response.download()),
+                f"output{splitext(response.media_url)[1]}",
+            )
             await ctx.reply(files=[file])
 
     @commands.command(
         name="editsleft",
         aliases=["evbleft"],
         description="Gets the amount of edits that can still be made today.\n"
-                    "This number is global.",
+        "This number is global.",
     )
     async def left(self, ctx: CustomContext) -> None:
         async with ctx.typing():

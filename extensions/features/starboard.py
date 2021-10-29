@@ -14,7 +14,7 @@ class AlreadyPinned(Exception):
 
 
 async def send_star(
-        document: database.Document, message: discord.Message
+    document: database.Document, message: discord.Message
 ) -> discord.Message:
     send_channel_id: Optional[int] = document.get("starboard", {}).get("channel")
 
@@ -42,11 +42,11 @@ async def send_star(
         url, source = None, None
     else:
         if isinstance(source, discord.Attachment) and source.content_type.startswith(
-                "image"
+            "image"
         ):
             embed.set_image(url=url)
         elif (
-                isinstance(source, discord.Embed) and source.type == "image"
+            isinstance(source, discord.Embed) and source.type == "image"
         ):  # deprecated!... kinda
             embed.set_image(url=url)
 
@@ -67,14 +67,14 @@ class Starboard(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(
-            self, payload: discord.RawReactionActionEvent
+        self, payload: discord.RawReactionActionEvent
     ) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
 
         guild = self.bot.get_guild(payload.guild_id)
         ctx = await self.bot.get_context(
-            await guild.get_channel(payload.channel_id).fetch_message(
+            await guild.get_channel_or_thread(payload.channel_id).fetch_message(
                 payload.message_id
             )
         )
@@ -142,14 +142,14 @@ class Starboard(commands.Cog):
 
         embed = (
             discord.Embed(title="Starboard Config")
-                .add_field(
+            .add_field(
                 name="Channel:",
                 value=ctx.guild.get_channel(
                     ctx["guild_document"]["starboard"]["channel"]
                 ).mention,
             )
-                .add_field(name="Emoji:", value=emoji)
-                .add_field(
+            .add_field(name="Emoji:", value=emoji)
+            .add_field(
                 name="Threshold:",
                 value=ctx["guild_document"]["starboard"].get("threshold", 3),
             )
@@ -177,23 +177,25 @@ class Starboard(commands.Cog):
         usage="[Channel]",
     )
     async def schannel(
-            self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
+        self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
         channel = channel or ctx.channel
-        await ctx["guild_document"].update_db({"$set": {"starboard.channel": channel.id}})
+        await ctx["guild_document"].update_db(
+            {"$set": {"starboard.channel": channel.id}}
+        )
 
     @sconfig.command(
         name="emoji",
         brief="Sets emoji people can react with to star a message.",
         description="Sets emoji people can react with to star a message. "
-                    "Defaults to ⭐. If a manager placed the reaction, it will get pinned to the starboard instantly.",
+        "Defaults to ⭐. If a manager placed the reaction, it will get pinned to the starboard instantly.",
         usage="<Emoji>",
     )
     async def semoji(
-            self,
-            ctx: bots.CustomContext,
-            *,
-            emoji: Union[discord.Emoji, discord.PartialEmoji, str],
+        self,
+        ctx: bots.CustomContext,
+        *,
+        emoji: Union[discord.Emoji, discord.PartialEmoji, str],
     ) -> None:
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
@@ -206,20 +208,22 @@ class Starboard(commands.Cog):
         usage="<Threshold>",
     )
     async def sthreshold(self, ctx: bots.CustomContext, *, threshold: int) -> None:
-        await ctx["guild_document"].update_db({"$set": {"starboard.threshold": threshold}})
+        await ctx["guild_document"].update_db(
+            {"$set": {"starboard.threshold": threshold}}
+        )
 
     @starboard.command(
         name="pin",
         brief="Pins message to the starboard.",
         description="Pins a message of your choice to the starboard. "
-                    "You can also reply to a message with the command to pin it.",
+        "You can also reply to a message with the command to pin it.",
         usage="[Message]",
     )
     async def spin(
-            self,
-            ctx: bots.CustomContext,
-            *,
-            message: Optional[Union[discord.Message, discord.PartialMessage]],
+        self,
+        ctx: bots.CustomContext,
+        *,
+        message: Optional[Union[discord.Message, discord.PartialMessage]],
     ) -> None:
         if not isinstance(message, (discord.Message, discord.PartialMessage)):
             if ctx.message.reference:
@@ -238,7 +242,7 @@ class Starboard(commands.Cog):
         description="Converts pins in channel to pins on starboard. Does not unpin channels.",
     )
     async def sconvert(
-            self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
+        self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
         channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:

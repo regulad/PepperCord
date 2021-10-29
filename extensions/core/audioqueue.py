@@ -83,7 +83,7 @@ class AudioQueue(commands.Cog):
     @queuecommand.command(
         name="shuffle",
         description="Shuffles the current queue.\n"
-                    "Note that this changes the queue, and cannot be undone.",
+        "Note that this changes the queue, and cannot be undone.",
     )
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def qshuffle(self, ctx: CustomContext) -> None:

@@ -7,6 +7,14 @@ something off of this, but I wouldn't advise it.
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)
 
+# TODO
+
+## This project is not in a perfect state, here's some stuff that needs to be done.
+
+* Improve localization.
+* Improve running process via alternative processes.
+  * It's kinda there? See `main.py`. I don't quite think it's possible to compile and just run raw on windows.
+
 # About
 
 PepperCord was born out of necessity for a simpler alternative to other utility bots.
@@ -103,4 +111,13 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
 * `PEPPERCORD_DB_NAME`: Name of the primary database. Default is `peppercord`.
 * `PEPPERCORD_PREFIX`: Command prefix. Default is `?`.
 * `PEPPERCORD_WEB`: Website used in some commands. Default is `https://www.regulad.xyz/PepperCord`.
-* `PEPPERCORD_FOLDERS`: Folders to load extensions from. Default is `core, extensions`.
+
+# Extending
+
+If you want to extend PepperCord as a contribution to the main project or to make it your own, there are a couple things you should know.
+
+1. Extensions are split into different folders.
+   1. Each subfolder is fairly self-explanatory.
+      1. `core` is for extensions that are critical to the bot's functioning.
+      2. `external` is for interactions with external APIs
+      3. `features` is for self-contained features added to the bot.

@@ -32,7 +32,7 @@ class UserLevel:
     """An object that represents the level of a user via their user_doc."""
 
     def __init__(
-            self, user: Union[discord.Member, discord.User], document: database.Document
+        self, user: Union[discord.Member, discord.User], document: database.Document
     ):
         self.user = user
         self.document = document
@@ -112,13 +112,13 @@ class UserLevelMenu(menus.Menu):
                 colour=self.source.user.colour,
                 title=f"{self.source.user.display_name}'s level",
             )
-                .add_field(name="XP:", value=f"```{self.source.xp}```")
-                .add_field(name="Level:", value=f"```{self.source.level}```")
-                .add_field(
+            .add_field(name="XP:", value=f"```{self.source.xp}```")
+            .add_field(name="Level:", value=f"```{self.source.level}```")
+            .add_field(
                 name="To next:",
                 value=f"```{round(self.source.next - self.source.xp)}```",
             )
-                .set_thumbnail(url=self.source.user.avatar.url)
+            .set_thumbnail(url=self.source.user.avatar.url)
         )
         if self.level_up:
             return await channel.send(
@@ -160,10 +160,10 @@ class Levels(commands.Cog):
         user_level_up = await user_level.increment(gen_xp)
 
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
-                not ctx["guild_document"].get("levels", {}).get("disabled", True)
+            not ctx["guild_document"].get("levels", {}).get("disabled", True)
         ):
-            redirect_channel_id: int = ctx["guild_document"].get("levels", {}).get(
-                "redirect"
+            redirect_channel_id: int = (
+                ctx["guild_document"].get("levels", {}).get("redirect")
             )
 
             if redirect_channel_id is None:
@@ -180,11 +180,11 @@ class Levels(commands.Cog):
     )
     @commands.is_owner()
     async def set_xp(
-            self,
-            ctx: CustomContext,
-            xp: int,
-            *,
-            user: Optional[Union[discord.User, discord.Member]],
+        self,
+        ctx: CustomContext,
+        xp: int,
+        *,
+        user: Optional[Union[discord.User, discord.Member]],
     ) -> None:
         user: Union[discord.User, discord.Member] = user or ctx.author
         document: database.Document = await ctx.bot.get_user_document(user)
@@ -197,11 +197,11 @@ class Levels(commands.Cog):
     )
     @commands.is_owner()
     async def set_level(
-            self,
-            ctx: CustomContext,
-            level: int,
-            *,
-            user: Optional[Union[discord.User, discord.Member]],
+        self,
+        ctx: CustomContext,
+        level: int,
+        *,
+        user: Optional[Union[discord.User, discord.Member]],
     ) -> None:
         user: Union[discord.User, discord.Member] = user or ctx.author
         document: database.Document = await ctx.bot.get_user_document(user)
@@ -210,12 +210,12 @@ class Levels(commands.Cog):
     @commands.command(
         name="redirect",
         description="Sets channel to redirect level-up alerts to.\n"
-                    "Defaults to sending in the same channel.",
+        "Defaults to sending in the same channel.",
         usage="[Channel]",
     )
     @checks.check_is_admin
     async def redirect(
-            self, ctx: CustomContext, *, channel: Optional[discord.TextChannel]
+        self, ctx: CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
         channel = channel or ctx.channel
         await ctx["guild_document"].update_db({"$set": {"levels.redirect": channel.id}})

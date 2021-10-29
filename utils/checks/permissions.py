@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+import discord
 from discord.ext import commands
 
 from utils.bots import CustomContext
@@ -27,8 +28,8 @@ async def is_blacklisted(ctx: CustomContext) -> bool:
     """Checks if a context is blacklisted from executing commands."""
 
     return (
-                   ctx.guild is not None and ctx["guild_document"].get("blacklisted", False)
-           ) or ctx["author_document"].get("blacklisted", False)
+        ctx.guild is not None and ctx["guild_document"].get("blacklisted", False)
+    ) or ctx["author_document"].get("blacklisted", False)
 
 
 @commands.check
@@ -46,7 +47,8 @@ async def has_permission_level(ctx: CustomContext, value: Permission):
     permission_level: Optional[Permission] = get_permission(ctx)
 
     return (
-               permission_level >= value if permission_level is not None else False) or ctx.author.guild_permissions.administrator
+        permission_level >= value if permission_level is not None else False
+    ) or ctx.author.guild_permissions.administrator
 
 
 @commands.check
@@ -73,12 +75,35 @@ async def check_is_man(ctx: CustomContext) -> bool:
         return True
 
 
+def is_nsfw_allowed(
+    ctx: CustomContext, channel: Optional[discord.TextChannel] = None
+) -> bool:
+    channel: discord.TextChannel = channel or ctx.channel
+    return (
+        channel.id in ctx["guild_document"].get("customnsfw", []) or channel.nsfw
+        if hasattr(channel, "nsfw")
+        else False
+    )
+
+
+@commands.check
+async def check_is_allowed_nsfw(ctx: CustomContext) -> bool:
+    if is_nsfw_allowed(ctx) or (
+        hasattr(ctx.channel, "parent") and is_nsfw_allowed(ctx, ctx.channel.parent)
+    ):
+        return True
+    else:
+        raise commands.NSFWChannelRequired(ctx.channel)
+
+
 __all__ = [
     "Blacklisted",
     "LowPrivilege",
     "is_blacklisted",
+    "is_nsfw_allowed",
     "has_permission_level",
     "check_is_admin",
     "check_is_mod",
     "check_is_man",
+    "check_is_allowed_nsfw",
 ]

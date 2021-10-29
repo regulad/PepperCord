@@ -65,12 +65,12 @@ class Alerts(commands.Cog):
         description="Sets message displayed when an action occursm. Message types include on_member_join and on_member_remove.",
     )
     async def setmessage(
-            self,
-            ctx: CustomContext,
-            message_type: str,
-            channel: discord.TextChannel,
-            *,
-            message: str,
+        self,
+        ctx: CustomContext,
+        message_type: str,
+        channel: discord.TextChannel,
+        *,
+        message: str,
     ) -> None:
         await ctx["guild_document"].update_db(
             {"$set": {f"messages.{message_type}.{channel.id}": message}}

@@ -147,10 +147,11 @@ class Moderation(commands.Cog):
     async def ban(
         self,
         ctx: bots.CustomContext,
-        member: Union[discord.Member, discord.User],
+        member: Union[discord.Member, discord.User, int],
         *,
         reason: Optional[str],
     ) -> None:
+        member: member if not isinstance(member, int) else discord.Object(id=member)
         await member.ban(reason=reason)
 
     @commands.command(
@@ -160,8 +161,9 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def unban(
-        self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
+        self, ctx: bots.CustomContext, member: Union[discord.Member, discord.User, int], *, reason: Optional[str]
     ) -> None:
+        member: member if not isinstance(member, int) else discord.Object(id=member)
         await member.unban(reason=reason)
 
     @commands.command(
@@ -323,11 +325,12 @@ class Moderation(commands.Cog):
     async def timeban(
         self,
         ctx: bots.CustomContext,
-        member: discord.Member,
+        member: Union[discord.Member, int],
         unpunishtime: converters.TimedeltaShorthand,
         *,
         reason: str = None,
     ) -> None:
+        member: member if not isinstance(member, int) else discord.Object(id=member)
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + unpunishtime
         localunpunishdatetime: datetime.datetime = datetime.datetime.now() + unpunishtime  # Us "humans" have this "time" thing all wrong. ow.
@@ -336,7 +339,7 @@ class Moderation(commands.Cog):
             embed=discord.Embed(description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> ({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
                                             f"use this link. It will not work until then.")
         )
-        await member.ban(reason=reason)
+        await member.ban(reason=reason, delete_message_days=0)
         await ctx["guild_document"].update_db(
             {
                 "$set": {

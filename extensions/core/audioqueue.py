@@ -76,7 +76,7 @@ class AudioQueue(commands.Cog):
     async def queuecommand(self, ctx: CustomContext) -> None:
         source = embed_menus.QueueMenuSource(
             list(ctx["audio_player"]().queue.deque),
-            f"Current tracks on queue:{' (Loop on)' if ctx['audio_player'].loop else ''}",
+            f"Current tracks on queue:{' (Loop on)' if ctx['audio_player']().loop else ''}",
         )
         await menus.MenuPages(source=source).start(ctx)
 

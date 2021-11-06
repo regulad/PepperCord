@@ -1,5 +1,6 @@
 import copy
 import datetime
+import math
 from typing import Optional, Union, cast, List, Dict
 
 import discord
@@ -76,7 +77,7 @@ class Moderation(commands.Cog):
     def cog_unload(self) -> None:
         self.unpunish.stop()
 
-    @tasks.loop(seconds=120)
+    @tasks.loop(seconds=10)
     async def unpunish(self) -> None:
         for guild in self.bot.guilds:
             guild_doc: database.Document = await self.bot.get_guild_document(guild)
@@ -97,7 +98,7 @@ class Moderation(commands.Cog):
                                         guild_document=guild_doc,
                                     )
                                 elif punishment == "ban":
-                                    user: discord.User = self.bot.get_user(user_id)
+                                    user: discord.User = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
                                     await guild.unban(
                                         user=user, reason="Timeban expired."
                                     )
@@ -146,10 +147,11 @@ class Moderation(commands.Cog):
     async def ban(
         self,
         ctx: bots.CustomContext,
-        member: Union[discord.Member, discord.User],
+        member: Union[discord.Member, discord.User, int],
         *,
         reason: Optional[str],
     ) -> None:
+        member: member if not isinstance(member, int) else discord.Object(id=member)
         await member.ban(reason=reason)
 
     @commands.command(
@@ -159,8 +161,9 @@ class Moderation(commands.Cog):
     )
     @commands.bot_has_permissions(ban_members=True)
     async def unban(
-        self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
+        self, ctx: bots.CustomContext, member: Union[discord.Member, discord.User, int], *, reason: Optional[str]
     ) -> None:
+        member: member if not isinstance(member, int) else discord.Object(id=member)
         await member.unban(reason=reason)
 
     @commands.command(
@@ -313,24 +316,35 @@ class Moderation(commands.Cog):
 
     @commands.command(
         name="timeban",
-        brief="Mutes a user and unmutes them later",
-        description="Mutes a user then schedueles their unmuting",
-        usage="<Member> [Time (Seconds)]",
+        alasies=["timekick"],
+        brief="Bans a user and unbans them later",
+        description="Ban a user then schedueles their unbanning.",
+        usage="<Member> <Time> [Reason]",
     )
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
         self,
         ctx: bots.CustomContext,
-        member: discord.Member,
+        member: Union[discord.Member, int],
         unpunishtime: converters.TimedeltaShorthand,
+        *,
+        reason: str = None,
     ) -> None:
+        member: member if not isinstance(member, int) else discord.Object(id=member)
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
-        await ctx.invoke(self.mute, member=member)
+        unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + unpunishtime
+        localunpunishdatetime: datetime.datetime = datetime.datetime.now() + unpunishtime  # Us "humans" have this "time" thing all wrong. ow.
+        await member.send(
+            (await ctx.channel.create_invite(reason=f'Unban for {reason}', max_uses=1, max_age=int((unpunishtime + datetime.timedelta(days=1)).total_seconds()))).url,
+            embed=discord.Embed(description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> ({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
+                                            f"use this link. It will not work until then.")
+        )
+        await member.ban(reason=reason, delete_message_days=0)
         await ctx["guild_document"].update_db(
             {
                 "$set": {
                     f"punishments.{member.id}.ban": (
-                        datetime.datetime.utcnow() + unpunishtime
+                        unpunishdatetime
                     )
                 }
             }

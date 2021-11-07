@@ -56,7 +56,7 @@ class Administration(commands.Cog):
     async def do_message(
         self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
     ) -> None:
-        channel = ctx.bot.get_channel_or_thread(channel.id)
+        channel = ctx.guild.get_channel_or_thread(channel.id)
         await channel.send(text)
 
     @commands.group(

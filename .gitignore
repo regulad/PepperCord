@@ -92,6 +92,7 @@ celerybeat-schedule
 .venv
 env/
 venv/
+venv310/ # For 3.10 validation
 ENV/
 env.bak/
 venv.bak/

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - chesmond
     tags:
       - v*
   pull_request:

@@ -1,4 +1,4 @@
-# PepperCord
+# PepperCord (chesmond edition 🤨)
 
 With the discontinuation of discord.py, I have decided to end this project for the time being. You can still build
 something off of this, but I wouldn't advise it.

@@ -151,9 +151,9 @@ class Moderation(commands.Cog):
         *,
         reason: Optional[str],
     ) -> None:
-        if get_permission(ctx, member) is Permission.ADMINISTRATOR:
-            raise RuntimeError("You cannot ban this member.")
         member: member if not isinstance(member, int) else discord.Object(id=member)
+        if get_permission(ctx, member) >= get_permission(ctx, ctx.author):
+            raise RuntimeError("You cannot ban this member.")
         await member.ban(reason=reason)
 
     @commands.command(
@@ -333,7 +333,7 @@ class Moderation(commands.Cog):
         reason: str = None,
     ) -> None:
         member: member if not isinstance(member, int) else discord.Object(id=member)
-        if get_permission(ctx, member) is Permission.ADMINISTRATOR:
+        if get_permission(ctx, member) >= get_permission(ctx, ctx.author):
             raise RuntimeError("You cannot ban this member.")
         unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
         unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + unpunishtime

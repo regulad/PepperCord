@@ -93,9 +93,7 @@ class Music(commands.Cog):
                 for track in user_track_playlist:
                     ctx["audio_player"]().queue.put_nowait(track)
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
+    @commands.command(
         name="play",
         aliases=["p", "a", "add"],
         description="Adds a supported song to the current queue.",
@@ -116,8 +114,8 @@ class Music(commands.Cog):
             pages = menus.MenuPages(source=menu_source)
             await pages.start(ctx)
 
-    @play.command(
-        name="top",
+    @commands.command(
+        name="playtop",
         aliases=["t"],
         brief="Adds a song to the top of the queue.",
         description="Adds a supported song to the top of the current queue.",

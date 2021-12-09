@@ -102,8 +102,8 @@ class DiscordInfo(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command(
-        name="serverInfo",
-        aliases=["guildInfo", "server", "guild"],
+        name="serverinfo",
+        aliases=["guildinfo", "server", "guild"],
         description="Displays information about the server the bot is in.",
         brief="Get server info.",
         usage="[Guild ID]",

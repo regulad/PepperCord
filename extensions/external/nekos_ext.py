@@ -155,17 +155,7 @@ class Nekos(commands.Cog):
         description="Utilizes nekos.life. Displays all endpoints.",
     )
     async def nekosg(self, ctx: CustomContext) -> None:
-        await ctx.send(
-            embed=discord.Embed(
-                title="Endpoints",
-                description="\n".join(
-                    [
-                        f"* {item.url if not 'hentai' in str(item.url) else '<redacted>'}"
-                        for item in await self.nekos_life_client.endpoints()
-                    ]
-                ),
-            )
-        )
+        pass
 
     @nekosg.command(
         name="nsfw",

@@ -75,8 +75,7 @@ class CoinGecko(commands.Cog):
         description="Get information from many CoinGecko API Routes.",
     )
     async def coingecko(self, ctx) -> None:
-        get: dict = await self.coin_gecko_session.ping()
-        await ctx.send(get["gecko_says"])
+        pass
 
     @coingecko.command(
         name="coins",

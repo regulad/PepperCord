@@ -257,6 +257,13 @@ class CustomCommands(commands.Cog):
         description="Tools for configuration of custom commands.",
     )
     async def customcommands(self, ctx: bots.CustomContext) -> None:
+        pass
+
+    @customcommands.command(
+        name="list",
+        description="List custom commands.",
+    )
+    async def cclist(self, ctx: bots.CustomContext) -> None:
         commands_dict = ctx["guild_document"].get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)

@@ -74,6 +74,13 @@ class AudioQueue(commands.Cog):
         description="Commands for the active queue currently being played.",
     )
     async def queuecommand(self, ctx: CustomContext) -> None:
+        pass
+
+    @queuecommand.command(
+        name="list",
+        description="Lists all songs in the queue currently."
+    )
+    async def queuelist(self, ctx: CustomContext) -> None:
         source = embed_menus.QueueMenuSource(
             list(ctx["audio_player"]().queue.deque),
             f"Current tracks on queue:{' (Loop on)' if ctx['audio_player']().loop else ''}",

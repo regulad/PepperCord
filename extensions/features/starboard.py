@@ -111,25 +111,13 @@ class Starboard(commands.Cog):
         brief="Starboard setup.",
     )
     async def starboard(self, ctx: bots.CustomContext) -> None:
-        if ctx["guild_document"].get("starboard", {}).get("channel") is None:
-            raise bots.NotConfigured
-        else:
-            await ctx.send(
-                ctx.guild.get_channel(
-                    ctx["guild_document"]["starboard"]["channel"]
-                ).mention
-            )
+        pass
 
-    @starboard.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="config",
-        aliases=["setup"],
-        brief="Starboard setup.",
-        description="Configures Starboard",
+    @starboard.command(
+        name="settings",
+        description="Lists the settings of the starboard."
     )
-    @commands.check(checks.check_is_admin)
-    async def sconfig(self, ctx: bots.CustomContext) -> None:
+    async def sbsettings(self, ctx: bots.CustomContext) -> None:
         if ctx["guild_document"].get("starboard", {}).get("channel") is None:
             raise bots.NotConfigured
 
@@ -156,6 +144,19 @@ class Starboard(commands.Cog):
         )
 
         await ctx.send(embed=embed)
+
+
+    @starboard.group(
+        invoke_without_command=True,
+        case_insensitive=True,
+        name="config",
+        aliases=["setup"],
+        brief="Starboard setup.",
+        description="Configures Starboard",
+    )
+    @commands.check(checks.check_is_admin)
+    async def sconfig(self, ctx: bots.CustomContext) -> None:
+        pass
 
     @sconfig.command(
         name="disable",

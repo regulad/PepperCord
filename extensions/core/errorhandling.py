@@ -42,7 +42,7 @@ else:
 
 try:
     from external.text_to_speech import VoiceDoesNotExist
-except ImportError:
+except ImportError:  # it might not exist if it's not configured
     VoiceDoesNotExist = object
 else:
     known_errors[VoiceDoesNotExist] = "This voice doesn't exist. Check voices."
@@ -56,14 +56,14 @@ def find_error(error) -> Optional[str]:
         return None
 
 
-class ErrorMenu(menus.Menu):
-    def __init__(self, error: Exception):
+class ErrorMenu(menus.ViewMenu):
+    def __init__(self, error: Exception, **kwargs):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
 
         self.error = error
 
-        super().__init__()
+        super().__init__(**kwargs)
 
     async def send_initial_message(self, ctx, channel):
         error_response = find_error(self.error)
@@ -83,12 +83,7 @@ class ErrorMenu(menus.Menu):
         if error_response is not None:
             embed.set_footer(text=f"Tip: {error_response}")
 
-        return await ctx.send(embed=embed)
-
-    @menus.button("🛑")
-    async def on_stop(self, payload):
-        await self.message.delete()
-        self.stop()
+        return await ctx.send(embed=embed, ephemeral=True)
 
 
 class ErrorLogging(commands.Cog):
@@ -132,7 +127,7 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        if ctx.command is not None:
+        if ctx.command is not None and ctx.interaction is not None:
             await ErrorMenu(error).start(ctx)
 
     @commands.Cog.listener("on_command_error")

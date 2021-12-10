@@ -76,33 +76,23 @@ class ReactionRoles(commands.Cog):
                                         ctx.guild.get_role(role_id)
                                     )
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="reactionrole",
-        aliases=["reaction", "rr"],
-        description="Configures reaction roles.",
-    )
+    @commands.group()
     async def reactionrole(self, ctx: bots.CustomContext) -> None:
+        """
+        Reaction Roles are a system that allow users to get a role by reacting to a message.
+        """
         pass
 
-    @reactionrole.command(
-        name="disable",
-        aliases=["off", "delete"],
-        description="Deletes all reaction roles.",
-    )
-    async def sdisable(self, ctx: bots.CustomContext) -> None:
+    @reactionrole.command()
+    async def disable(self, ctx: bots.CustomContext) -> None:
+        """Disables all existing reaction roles. You will need to readd them to have them work again"""
         if ctx["guild_document"].get("reactions") is None:
             raise bots.NotConfigured
         else:
             await ctx["guild_document"].update_db({"$unset": {"reactions": 1}})
+            await ctx.send("Deleted all reaction roles.")
 
-    @reactionrole.command(
-        name="add",
-        description="Adds reaction roles.\n"
-        "The bot must have permissions to add rections in the desired channel.",
-        usage="<Message (URL)> <Emoji> <Role>",
-    )
+    @reactionrole.command()
     async def add(
         self,
         ctx: bots.CustomContext,
@@ -110,6 +100,10 @@ class ReactionRoles(commands.Cog):
         emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
         role: discord.Role,
     ) -> None:
+        """
+        Adds a reaction role to a message.
+        The message parameter must be a link to the message.
+        """
         await message.add_reaction(emoji)
         await ctx["guild_document"].update_db(
             {
@@ -118,6 +112,7 @@ class ReactionRoles(commands.Cog):
                 }
             }
         )
+        await ctx.send("Reaction role added.", ephemeral=True)
 
 
 def setup(bot: bots.BOT_TYPES) -> None:

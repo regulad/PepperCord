@@ -3,7 +3,6 @@ from typing import cast
 from discord.ext import commands
 
 from utils.bots import BOT_TYPES, CustomContext
-from utils.localization import Locale
 
 
 class DocumentCog(commands.Cog):
@@ -17,8 +16,6 @@ class DocumentCog(commands.Cog):
         if ctx.guild is not None:
             ctx: CustomContext = cast(CustomContext, ctx)
             ctx["guild_document"] = await ctx.bot.get_guild_document(ctx.guild)
-            # May be split off into localization cog.
-            ctx["locale"] = Locale[ctx["guild_document"].get("locale", "en_US")]
 
     @commands.Cog.listener("on_context_creation")
     async def append_user_document(self, ctx: commands.Context):

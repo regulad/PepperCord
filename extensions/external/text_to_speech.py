@@ -49,62 +49,58 @@ class TextToSpeech(commands.Cog):
     def cog_unload(self) -> None:
         self.bot.loop.create_task(self._async_gtts_session.client_session.close())
 
-    @commands.command(
-        name="tts",
-        aliases=["texttospeech"],
-        description="Turns text into speech and adds it to the audio queue.",
-        usage="<Text>",
-    )
+    @commands.command()
     @commands.cooldown(10, 2, commands.BucketType.user)
-    async def text_to_speech(self, ctx: bots.CustomContext, *, text: str) -> None:
-        async with ctx.typing():
-            source = await TTSSource.from_text(
-                text,
-                ctx["author_document"].get("voice", "en-US-Wavenet-D"),
-                self._async_gtts_session,
-                ctx.author,
-            )
+    async def texttospeech(self, ctx: bots.CustomContext, *, text: str) -> None:
+        """Have the bot talk for you in a voice channel."""
+        await ctx.defer(ephemeral=True)
 
-            if not len(list(ctx["audio_player"]().queue.deque)) > 0:
-                ctx["audio_player"]().queue.put_nowait(source)
-            else:
-                ctx["audio_player"]().queue.deque.appendleft(source)  # Meh.
+        source = await TTSSource.from_text(
+            text,
+            ctx["author_document"].get("voice", "en-US-Wavenet-D"),
+            self._async_gtts_session,
+            ctx.author,
+        )
 
-            await AudioSourceMenu(source).start(ctx)
+        if not len(list(ctx["audio_player"]().queue.deque)) > 0:
+            ctx["audio_player"]().queue.put_nowait(source)
+        else:
+            ctx["audio_player"]().queue.deque.appendleft(source)  # Meh.
 
-    @commands.command(
-        name="voice",
-        aliases=["setvoice"],
-        brief="Set the voice that you will use with tts.",
-        description="Set the voice that you will use with tts. You can see all voice with voices.",
-        usage="[Voice]",
-    )
-    async def set_voice(
+        await AudioSourceMenu(source).start(ctx, ephemeral=True)
+
+    @commands.group()
+    async def ttssettings(self, ctx: bots.CustomContext) -> None:
+        pass
+
+    @ttssettings.command()
+    async def setvoice(
         self,
         ctx: bots.CustomContext,
         *,
-        desired_voice: Optional[str] = "en-US-Wavenet-D",
+        desiredvoice: Optional[str] = "en-US-Wavenet-D",
     ) -> None:
-        async with ctx.typing():
-            voices: list = await self._async_gtts_session.get_voices("en-US")
+        """Allows you to select a voice that the bot will use to portray you in Text-To-Speech conversations."""
+        await ctx.defer(ephemeral=True)
 
-            for voice in voices:
-                if voice["name"] == desired_voice:
-                    break
-            else:
-                raise VoiceDoesNotExist
+        voices: list = await self._async_gtts_session.get_voices("en-US")
 
-            await ctx["author_document"].update_db({"$set": {"voice": desired_voice}})
+        for voice in voices:
+            if voice["name"] == desiredvoice:
+                break
+        else:
+            raise VoiceDoesNotExist
 
-    @commands.command(
-        name="voices",
-        brief="List all voices.",
-        description="List all usable voices.",
-    )
+        await ctx["author_document"].update_db({"$set": {"voice": desiredvoice}})
+
+        await ctx.send("Updated.", ephemeral=True)
+
+    @ttssettings.command()
     async def list_voices(self, ctx: bots.CustomContext) -> None:
-        async with ctx.typing():
-            voices: list = await self._async_gtts_session.get_voices("en-US")
-            await menus.ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(ctx)
+        """Lists all voices that the bot can use."""
+        await ctx.defer(ephemeral=True)
+        voices: list = await self._async_gtts_session.get_voices("en-US")
+        await menus.ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(ctx, ephemeral=True)
 
 
 def setup(bot: bots.BOT_TYPES):

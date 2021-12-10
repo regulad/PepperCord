@@ -55,9 +55,9 @@ class VotesMenu(menus.ViewMenu):
                 )
             )
 
-            return await channel.send(embed=embed)
+            return await ctx.send(embed=embed, ephemeral=True)
         else:
-            return await channel.send(f"{self.user.display_name} hasn't voted yet.")
+            return await ctx.send(f"{self.user.display_name} hasn't voted yet.")
 
 
 class TopGGWebhook(commands.Cog, name="Voting"):
@@ -123,38 +123,29 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
             await ctx["author_document"].update_db({"$inc": {"pestered": 1}})
 
-    @commands.command(
-        name="nopester",
-        brief='Stops the bot from "pestering" you.',
-        description='Stops the bot from "pestering" (reminding to vote) you.',
-    )
-    async def nopester(self, ctx: bots.CustomContext) -> None:
-        await ctx["author_document"].update_db({"$set": {"nopester": True}})
+    @commands.group()
+    async def votesettings(self):
+        pass
 
-    @commands.command(
-        name="yespester",
-        brief="Disables nopester.",
-        description="Disables nopester. Back so soon?",
-    )
-    async def yespester(self, ctx: bots.CustomContext) -> None:
-        await ctx["author_document"].update_db({"$set": {"nopester": False}})
+    @votesettings.command()
+    async def pester(self, ctx: bots.CustomContext, *, nopester: bool = False) -> None:
+        """Adjust the pester status."""
+        await ctx["author_document"].update_db({"$set": {"nopester": nopester}})
+        await ctx.send("Settings updated.", ephemeral=True)
 
-    @commands.command(
-        name="votes",
-        brief="Gives some info about the user's voting status.",
-        description="Gives you info about when the user first voted and when the most recently voted.",
-    )
+    @commands.command()
     async def votes(
         self,
         ctx: bots.CustomContext,
         *,
         user: Optional[Union[discord.Member, discord.User]],
     ) -> None:
-        async with ctx.typing():
-            user: Union[discord.Member, discord.User] = user or ctx.author
-            document: database.Document = await self.bot.get_user_document(user)
+        """Shows you your voting stats."""
+        await ctx.defer(ephemeral=True)
+        user: Union[discord.Member, discord.User] = user or ctx.author
+        document: database.Document = await self.bot.get_user_document(user)
 
-            await VotesMenu(document, user).start(ctx)
+        await VotesMenu(document, user).start(ctx)
 
 
 class TopGG(commands.Cog):
@@ -176,26 +167,24 @@ class TopGG(commands.Cog):
     def cog_unload(self) -> None:
         self.bot.loop.create_task(self.topggpy.close())
 
-    @commands.command(
-        name="vote",
-        aliases=["bump"],
-        brief="Gets the link to vote for the bot on Top.gg.",
-        description="Gets the link to vote for the bot on Top.gg.",
-    )
-    async def vote(self, ctx: bots.CustomContext) -> None:
-        await ctx.send(get_top_gg_link(ctx.bot.user.id))
+    @commands.group()
+    async def topgg(self, ctx: bots.CustomContext) -> None:
+        pass
 
-    @commands.command(
-        name="totalvotes",
-        brief="Shows the total amount of votes the bot has obtained.",
-        description="Shows how many votes the bot has received.",
-    )
+    @topgg.command()
+    async def vote(self, ctx: bots.CustomContext) -> None:
+        """Shows you where to vote for the bot on top.gg"""
+        await ctx.send(get_top_gg_link(ctx.bot.user.id), ephemeral=True)
+
+    @topgg.command()
     async def totalvotes(self, ctx: bots.CustomContext) -> None:
-        async with ctx.typing():
-            bot_info: BotData = await self.topggpy.get_bot_info()
-            await ctx.send(
-                f"{ctx.bot.user.name} has received {bot_info['points']} votes on Top.gg. Why don't you make it {int(bot_info['points']) + 1}?"
-            )
+        """Shows the total amount of votes the bot as accumulated."""
+        await ctx.defer(ephemeral=True)
+        bot_info: BotData = await self.topggpy.get_bot_info()
+        await ctx.send(
+            f"{ctx.bot.user.name} has received {bot_info['points']} votes on Top.gg. Why don't you make it {int(bot_info['points']) + 1}?",
+            ephemeral=True
+        )
 
 
 def setup(bot: bots.BOT_TYPES) -> None:

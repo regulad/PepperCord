@@ -173,111 +173,70 @@ class Levels(commands.Cog):
 
             await UserLevelMenu(user_level, True).start(ctx, channel=channel)
 
-    @commands.command(
-        name="setxp",
-        description="Sets a user's xp count to a certain number.",
-        usage="<Xp> [User]",
-    )
-    @commands.is_owner()
-    async def set_xp(
-        self,
-        ctx: CustomContext,
-        xp: int,
-        *,
-        user: Optional[Union[discord.User, discord.Member]],
-    ) -> None:
-        user: Union[discord.User, discord.Member] = user or ctx.author
-        document: database.Document = await ctx.bot.get_user_document(user)
-        await document.update_db({"$set": {"xp": xp}})
+    @commands.group()
+    async def levelsettings(self, ctx: CustomContext) -> None:
+        pass
 
-    @commands.command(
-        name="setlevel",
-        description="Sets a user's level count to a certain number.",
-        usage="<Level> [User]",
-    )
-    @commands.is_owner()
-    async def set_level(
-        self,
-        ctx: CustomContext,
-        level: int,
-        *,
-        user: Optional[Union[discord.User, discord.Member]],
-    ) -> None:
-        user: Union[discord.User, discord.Member] = user or ctx.author
-        document: database.Document = await ctx.bot.get_user_document(user)
-        await document.update_db({"$set": {"xp": _get_xp(level)}})
-
-    @commands.command(
+    @levelsettings.command(
         name="redirect",
-        description="Sets channel to redirect level-up alerts to.\n"
-        "Defaults to sending in the same channel.",
         usage="[Channel]",
     )
     @checks.check_is_admin
     async def redirect(
         self, ctx: CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
+        """
+        Sets the channel level-up alerts will go to.
+        By default, it's the current channel.
+        This feature is currently broken.
+        """
         channel = channel or ctx.channel
         await ctx["guild_document"].update_db({"$set": {"levels.redirect": channel.id}})
+        await ctx.send("Settings updated.", ephemeral=True)
 
-    @commands.command(
-        name="disablexp",
-        aliases=["disablelevels"],
-        description="Disables level-up alerts. You will still earn XP to use in other servers.",
-    )
+    @levelsettings.command()
     @checks.check_is_admin
-    async def disablexp(self, ctx: CustomContext) -> None:
-        await ctx["guild_document"].update_db({"$set": {"levels.disabled": True}})
+    async def disablexp(self, ctx: CustomContext, *, enabled: Optional[bool] = False) -> None:
+        """Sets if levels are enabled or not."""
+        await ctx["guild_document"].update_db({"$set": {"levels.disabled": not enabled}})
+        await ctx.send("Settings updated.", ephemeral=True)
 
-    @commands.command(
-        name="enablexp",
-        aliases=["enablelevels"],
-        description="Enables level-up alerts. You will still earn XP to use in other servers.",
-    )
-    @checks.check_is_admin
-    async def enablexp(self, ctx: CustomContext) -> None:
-        await ctx["guild_document"].update_db({"$set": {"levels.disabled": False}})
-
-    @commands.command(
-        name="rank",
-        aliases=["level"],
-        description="Displays current level & rank.",
-    )
+    @commands.command()
     async def rank(self, ctx: CustomContext, *, user: Optional[discord.Member]) -> None:
-        async with ctx.typing():
-            user: discord.Member = user or ctx.author
-            user_level: Optional[UserLevel] = await UserLevel.get_user(self.bot, user)
-            if user_level is None:
-                await ctx.send(f"{user.display_name} doesn't have a level.")
-            else:
-                await UserLevelMenu(user_level).start(ctx)
+        """Displays your current rank."""
+        await ctx.defer(ephemeral=True)
 
-    @commands.command(
-        name="leaderboard",
-        aliases=["top"],
-        description="Displays current level & rank.",
-    )
+        user: discord.Member = user or ctx.author
+        user_level: Optional[UserLevel] = await UserLevel.get_user(self.bot, user)
+        if user_level is None:
+            await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
+        else:
+            await UserLevelMenu(user_level).start(ctx)
+
+    @commands.command()
     async def leaderboard(self, ctx: CustomContext) -> None:
-        async with ctx.typing():
-            member_xps = []
+        """Displays the level of all members of the server relative to each other."""
+        await ctx.defer()
 
-            for member in ctx.guild.members[:500]:  # To prevent DB from exploding
-                xp = await UserLevel.get_user(ctx.bot, member)
-                if xp is not None:
-                    member_xps.append(xp)
+        member_xps = []
 
-            source = LevelSource(
-                sorted(member_xps, key=operator.attrgetter("xp"), reverse=True),
-                ctx.guild,
+        for member in ctx.guild.members[:500]:  # To prevent DB from exploding
+            xp = await UserLevel.get_user(ctx.bot, member)
+            if xp is not None:
+                member_xps.append(xp)
+
+        source = LevelSource(
+            sorted(member_xps, key=operator.attrgetter("xp"), reverse=True),
+            ctx.guild,
+        )
+
+        if len(ctx.guild.members) > 500:
+            await ctx.send(
+                "Please note that in large guilds (Larger than 500 members), "
+                "the leaderboard may be inaccurate."
             )
 
-            if len(ctx.guild.members) > 500:
-                await ctx.send(
-                    "Please note that in large guilds (Larger than 500 members), "
-                    "the leaderboard may be inaccurate."
-                )
-
-            await menus.ViewMenuPages(source=source).start(ctx)
+        await menus.ViewMenuPages(source=source).start(ctx)
 
 
 def setup(bot: BOT_TYPES):

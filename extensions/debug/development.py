@@ -76,66 +76,21 @@ class Dev(commands.Cog):
             raise commands.NotOwner("You do not own this bot.")
         return True
 
-    @commands.command(
-        name="nick",
-        aliases=["nickname"],
-        description="Change the bots's nickname, for situations where you do not have privileges to.",
-    )
+    @commands.command()
     @commands.guild_only()
     async def nick(self, ctx: bots.CustomContext, *, name: Optional[str]) -> None:
+        """Sets the bots nickname in this guild to a desired string."""
         await ctx.guild.me.edit(nick=name)
+        await ctx.send("Changed nickname", ephemeral=True)
 
-    @commands.command(
-        name="guildraw",
-        aliases=["document", "raw", "guilddocument"],
-        description="Prints an guild's raw document. Be careful! It can contain sensitive information.",
-    )
-    async def guildraw(
-        self,
-        ctx: bots.CustomContext,
-        entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
-    ) -> None:
-        entity = entity or ctx.guild
-        document = await ctx.bot.get_guild_document(entity)
 
-        buffer = StringIO()
-        dump(document, buffer)
-
-        buffer.seek(0)
-        file = discord.File(buffer, f"{entity.id}.json")
-        await ctx.send(file=file)
-
-    @commands.command(
-        name="userraw",
-        aliases=["userdocument"],
-        brief="Get raw document for a user.",
-        description="Prints an user's raw document. Be careful! It can contain sensitive information.",
-    )
-    async def userraw(
-        self,
-        ctx: bots.CustomContext,
-        entity: Optional[Union[discord.Guild, discord.Member, discord.User]],
-    ) -> None:
-        entity = entity or ctx.author
-        document = await ctx.bot.get_user_document(entity)
-
-        buffer = StringIO()
-        dump(document, buffer)
-
-        buffer.seek(0)
-        file = discord.File(buffer, f"{entity.id}.json")
-        await ctx.send(file=file)
-
-    @commands.command(
-        name="shardinfo",
-        aliases=["si"],
-        brief="Gets info on a shard.",
-        description="Gets info on a shard and presents a menu which can be used to manage the shard.",
-    )
+    @commands.command(name="shardinfo")
     @checks.check_bot_is_sharded
     async def shard_info(
         self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]
     ) -> None:
+        """Get info on the bots current shard, if the bot is sharded."""
+
         shard_id = shard_id or ctx.guild
 
         if isinstance(shard_id, discord.Guild):
@@ -150,12 +105,9 @@ class Dev(commands.Cog):
 
         await ShardMenu(shard_info=shard_info).start(ctx)
 
-    @commands.command(
-        name="guilds",
-        brief="Lists all guilds the bot is in.",
-        description="Lists all guilds that the bot is in. May contain sensitive information!",
-    )
+    @commands.command()
     async def guilds(self, ctx: bots.CustomContext) -> None:
+        """List all the guilds the bot is in."""
         await menus.ViewMenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(ctx)
 
 

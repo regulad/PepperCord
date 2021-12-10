@@ -88,7 +88,7 @@ class Moderation(commands.Cog):
                             unpunish_time
                             if isinstance(unpunish_time, datetime.datetime)
                             else datetime.datetime(
-                                second=unpunish_time, tzinfo=datetime.timezone.utc
+                                second=unpunish_time, day=0, month=0, year=0, tzinfo=datetime.timezone.utc
                             )
                         ) < datetime.datetime.utcnow():
                             try:  # Messy.
@@ -117,229 +117,74 @@ class Moderation(commands.Cog):
         else:
             return True
 
-    @commands.command(
-        name="purge",
-        aliases=["purgemessages", "deletemessages"],
-        brief="Delete a set amount of messages.",
-        description="Delete a specified amount of messages in the current channel.",
-    )
+    @commands.command()
     @commands.bot_has_permissions(manage_messages=True)
     async def purge(self, ctx: bots.CustomContext, messages: int) -> None:
-        await ctx.channel.purge(limit=messages + 1)
+        """Deletes a set amount of messages from a channel."""
+        await ctx.channel.purge(limit=messages)
+        await ctx.send("Deleted.", ephemeral=True)
 
-    @commands.command(
-        name="kick",
-        brief="Kicks user from the server.",
-        description="Kicks user from the server.",
-    )
-    @commands.bot_has_permissions(kick_members=True)
-    async def kick(
-        self, ctx: bots.CustomContext, member: discord.Member, *, reason: Optional[str]
-    ) -> None:
-        await member.kick(reason=reason)
-
-    @commands.command(
-        name="ban",
-        brief="Bans user from the server.",
-        description="Bans user from the server.",
-    )
-    @commands.bot_has_permissions(ban_members=True)
-    async def ban(
-        self,
-        ctx: bots.CustomContext,
-        member: Union[discord.Member, discord.User, int],
-        *,
-        reason: Optional[str],
-    ) -> None:
-        member: member if not isinstance(member, int) else discord.Object(id=member)
-        if get_permission(ctx, member) >= get_permission(ctx, ctx.author):
-            raise RuntimeError("You cannot ban this member.")
-        await member.ban(reason=reason)
-
-    @commands.command(
-        name="unban",
-        brief="Unbans user from the server.",
-        description="Unbans user from the server.",
-    )
-    @commands.bot_has_permissions(ban_members=True)
-    async def unban(
-        self, ctx: bots.CustomContext, member: Union[discord.Member, discord.User, int], *, reason: Optional[str]
-    ) -> None:
-        member: member if not isinstance(member, int) else discord.Object(id=member)
-        await member.unban(reason=reason)
-
-    @commands.command(
-        name="shufflenames",
-        aliases=["shufflenicks"],
-        brief="Shuffles usernames.",
-        description="Shuffles usernames around between people. Do it again to reverse.",
-    )
-    @commands.cooldown(1, 3600, commands.BucketType.guild)
-    @commands.bot_has_permissions(manage_nicknames=True)
-    async def shufflenicks(self, ctx: bots.CustomContext) -> None:
-        async with ctx.typing():
-            if ctx["guild_document"].get("shuffled") is None:
-                if (
-                    divmod(len(ctx.guild.members), 2)[-1] != 0
-                ):  # If member count is not even
-                    temp_member_list: Optional[List[discord.Member]] = copy.copy(
-                        ctx.guild.members
-                    )
-                    temp_member_list.pop()
-                    member_list: List[discord.Member] = temp_member_list
-                else:
-                    member_list: List[discord.Member] = copy.copy(ctx.guild.members)
-
-                middle_index: int = len(member_list) // 2
-                pair_set_one: List[discord.Member] = member_list[middle_index:]
-                pair_set_two: List[discord.Member] = member_list[:middle_index]
-
-                pairing: Dict[discord.Member, discord.Member] = {}
-
-                for one, two in zip(pair_set_one, pair_set_two):
-                    pairing[one] = two
-
-                member_pairings: Dict[
-                    Union[discord.Member, discord.User],
-                    Union[discord.Member, discord.User],
-                ] = copy.copy(pairing)
-
-                db_pairings: Dict[str, int] = {}
-                for one, two in pairing.items():
-                    db_pairings[str(one.id)] = two.id
-
-                await ctx["guild_document"].update_db(
-                    {"$set": {"shuffled": db_pairings}}
-                )
-            else:  # Previous paring exists, roll with it
-                db_pairings: Dict[str, int] = copy.copy(
-                    ctx["guild_document"]["shuffled"]
-                )
-                await ctx["guild_document"].update_db(
-                    {"$unset": {"shuffled": 1}}
-                )  # Reset
-                member_pairings: Dict[
-                    Union[discord.Member, discord.User],
-                    Union[discord.Member, discord.User],
-                ] = {}
-                for one_id_as_str, two_id in db_pairings.items():
-                    one: Optional[
-                        Union[discord.Member, discord.User]
-                    ] = await get_any_id(ctx, int(one_id_as_str))
-                    two: Optional[
-                        Union[discord.Member, discord.User]
-                    ] = await get_any_id(ctx, two_id)
-
-                    assert one is not None, two is not None
-
-                    member_pairings[one] = two
-            # Time to actually shuffle nicks...
-
-            for one, two in member_pairings.items():
-                one_display_name: str = copy.copy(one.display_name)
-                if isinstance(one, discord.Member):
-                    try:
-                        await one.edit(
-                            nick=two.display_name,
-                            reason=f"Nickname shuffle requested by {ctx.author.display_name}",
-                        )
-                    except discord.Forbidden:
-                        pass
-                if isinstance(two, discord.Member):
-                    try:
-                        await two.edit(
-                            nick=one_display_name,
-                            reason=f"Nickname shuffle requested by {ctx.author.display_name}",
-                        )
-                    except discord.Forbidden:
-                        pass
-
-    @commands.command(
-        name="resetnames", aliases=["resetnicks"], brief="Resets all user's nicknames."
-    )
-    @commands.cooldown(1, 3600, commands.BucketType.guild)
-    @commands.bot_has_permissions(manage_nicknames=True)
-    async def resetnicks(self, ctx: bots.CustomContext) -> None:
-        async with ctx.typing():
-            if ctx["guild_document"].get("shuffled") is not None:
-                await ctx["guild_document"].update_db({"$unset": {"shuffled": 1}})
-            for member in ctx.guild.members:
-                try:
-                    await member.edit(nick=None)
-                except discord.Forbidden:
-                    continue
-
-    @commands.command(
-        name="mute",
-        aliases=["gulag"],
-        brief="Mutes user from typing in text channels.",
-        description="Mutes user from typing in text channels. Must be configured first.",
-    )
+    @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     async def mute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
+        """
+        Mutes a member of the server.
+        You must first configure this with the config command.
+        """
         await mute(member, guild_document=ctx["guild_document"])
+        await ctx.send(f"<@{member.id}> has been muted.")
 
-    @commands.command(
-        name="unmute",
-        aliases=["ungulag"],
-        brief="Unmutes user from typing in text channels.",
-        description="Unmutes user from typing in text channels. Must be configured first.",
-    )
+    @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     async def unmute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
+        """
+        Unmutes a member of the server.
+        You must first configure this with the config command, and you must also have muted this member previously.
+        """
         await unmute(member, guild_document=ctx["guild_document"])
+        await ctx.send(f"<@{member.id}> has been unmuted.")
 
-    @commands.command(
-        name="timemute",
-        aliases=["timegulag"],
-        brief="Mutes a user and unmutes them later",
-        description="Mutes a user then schedueles their unmuting",
-        usage="<Member> [Time (Seconds)]",
-    )
+    @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
     async def timemute(
         self,
         ctx: bots.CustomContext,
         member: discord.Member,
-        unpunishtime: converters.TimedeltaShorthand,
+        time: converters.TimedeltaShorthand,
     ) -> None:
-        unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
+        """Mutes a member, and then unmutes them later."""
+        time: datetime.timedelta = cast(datetime.timedelta, time)
         await ctx.invoke(self.mute, member=member)
         await ctx["guild_document"].update_db(
             {
                 "$set": {
                     f"punishments.{member.id}.mute": (
-                        datetime.datetime.utcnow() + unpunishtime
+                            datetime.datetime.utcnow() + time
                     )
                 }
             }
         )
-        await ctx.send("Done.", ephemeral=True)
+        await ctx.send("This member has been muted, and their unpunishment has been scheduled.", ephemeral=True)
 
-    @commands.command(
-        name="timeban",
-        alasies=["timekick"],
-        brief="Bans a user and unbans them later",
-        description="Ban a user then schedueles their unbanning.",
-        usage="<Member> <Time> [Reason]",
-    )
+    @commands.command()
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
         self,
         ctx: bots.CustomContext,
-        member: Union[discord.Member, int],
-        unpunishtime: converters.TimedeltaShorthand,
+        member: discord.Member,
+        time: converters.TimedeltaShorthand,
         *,
         reason: str = None,
     ) -> None:
+        """Bans a member, and then unbans them later."""
         member: member if not isinstance(member, int) else discord.Object(id=member)
         if get_permission(ctx, member) >= get_permission(ctx, ctx.author):
             raise RuntimeError("You cannot ban this member.")
-        unpunishtime: datetime.timedelta = cast(datetime.timedelta, unpunishtime)
-        unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + unpunishtime
-        localunpunishdatetime: datetime.datetime = datetime.datetime.now() + unpunishtime  # Us "humans" have this "time" thing all wrong. ow.
+        time: datetime.timedelta = cast(datetime.timedelta, time)
+        unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + time
+        localunpunishdatetime: datetime.datetime = datetime.datetime.now() + time  # Us "humans" have this "time" thing all wrong. ow.
         await member.send(
-            (await ctx.channel.create_invite(reason=f'Unban for {reason}', max_uses=1, max_age=int((unpunishtime + datetime.timedelta(days=1)).total_seconds()))).url,
+            (await ctx.channel.create_invite(reason=f'Unban for {reason}', max_uses=1, max_age=int((time + datetime.timedelta(days=1)).total_seconds()))).url,
             embed=discord.Embed(description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> ({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
                                             f"use this link. It will not work until then.")
         )
@@ -353,7 +198,7 @@ class Moderation(commands.Cog):
                 }
             }
         )
-        await ctx.send("Done.", ephemeral=True)
+        await ctx.send("This member has been bans, and their unpunishment has been scheduled.", ephemeral=True)
 
 
 def setup(bot):

@@ -24,63 +24,29 @@ class Privileges(commands.Cog):
         else:
             return True
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="permissions",
-        aliases=["perms", "priv", "privileges"],
-        brief="Change server permissions.",
-        description="Read & write permissions of various entities on the server. "
-        "Level 0 means that the entity has no permissions, "
-        "level 1 means that they have manager permissions (think controlling music or reading audit logs), "
-        "level 2 means that they have moderator privileges, "
-        "and level 3 means that they have administrator privileges.",
-    )
+    @commands.group()
     async def permissions(self, ctx: bots.CustomContext) -> None:
         pass
 
-    @permissions.command(
-        name="disable",
-        aliases=["off", "delete"],
-        brief="Deletes permission data.",
-        description="Deletes all permission data. This reverts permissions to their initial state.",
-    )
+    @permissions.command()
     async def sdisable(self, ctx: bots.CustomContext) -> None:
+        """Disables the permission system in this server."""
         if ctx["guild_document"] is None:
             raise bots.NotConfigured
         else:
             await ctx["guild_document"].update_db({"$unset": {"permissions": 1}})
+        await ctx.send("Disabled.", ephemeral=True)
 
-    @permissions.command(
-        name="read",
-        brief="Displays permission level of entity.",
-        description="Gets raw permission level from member or role.",
-        usage="[Member|Role]",
-    )
-    async def read(self, ctx, *, entity: Optional[Union[discord.Member, discord.Role]]):
+    @permissions.command()
+    async def read(self, ctx: bots.CustomContext, *, entity: Optional[Union[discord.Member, discord.Role]]):
+        """Reads the permission level of a member or role"""
         entity = entity or ctx.author
         await ctx.send(
-            f"{entity.name} has permission level `{await permissions.get_permission(ctx, entity)}`"
+            f"{entity.name} has permission level `{permissions.get_permission(ctx, entity)}`",
+            ephemeral=True
         )
 
-    @permissions.command(
-        name="allownsfw",
-        aliases=["nsfw"],
-        brief="Allows NSFW content. in channel not marked as NSFW.",
-    )
-    async def allownsfw(
-        self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel] = None
-    ) -> None:
-        channel: discord.TextChannel = channel or ctx.channel
-        await ctx["guild_document"].update_db({"$push": {"customnsfw": channel.id}})
-
-    @permissions.command(
-        name="write",
-        brief="Write permission level of a role.",
-        description="Writes given permission level into a role. "
-        "Valid options include: Manager, Moderator, and Administrator.",
-        usage="[Permission Level (Admin)] <Role>",
-    )
+    @permissions.command()
     async def write(
         self,
         ctx: bots.CustomContext,
@@ -88,6 +54,7 @@ class Privileges(commands.Cog):
         *,
         entity: discord.Role,
     ) -> None:
+        """Writes a permission of Admin, Moderator, or Manager to a role."""
         permission: permissions.Permission = cast(permissions.Permission, value)
         await permissions.write_permission(ctx, entity, permission)
 

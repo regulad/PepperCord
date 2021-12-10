@@ -22,7 +22,7 @@ class BetterMenu(PrettyMenu):
         (
             await menus.ViewMenuPages(
                 PlainListPageSource(pages, per_page=1), delete_message_after=True
-            ).start(ctx, channel=destination)
+            ).start(ctx, ephemeral=True)  # This could be changed, maybe.
         )
 
 

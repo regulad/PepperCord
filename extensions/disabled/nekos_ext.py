@@ -100,15 +100,6 @@ async def send_samplers(
     await asyncio.wait(tasks)
 
 
-async def send_image(
-    channel: discord.abc.Messageable,
-    nekos_life_client: NekosLifeClient,
-    tag: Union[NSFWImageTags, SFWImageTags],
-) -> discord.Message:
-    image_response = await nekos_life_client.image(tag)
-    return await channel.send(image_response.url)
-
-
 async def send_images(
     ctx: CustomContext,
     nekos_life_client: NekosLifeClient,

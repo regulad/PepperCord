@@ -33,23 +33,21 @@ class Images(commands.Cog):
     def __init__(self, bot: BOT_TYPES):
         self.bot: BOT_TYPES = bot
 
-    @commands.command(
-        name="pinsleft",
-        description="Shows the amount of pins left in a channel, in a rather flashy way.",
-        usage="[Channel]",
-    )
+    @commands.command()
     @commands.cooldown(1, 40, commands.BucketType.channel)
-    async def pins_left(
+    async def pinsleft(
         self, ctx: CustomContext, *, channel: typing.Optional[discord.TextChannel]
     ) -> None:
-        async with ctx.typing():
-            channel = channel or ctx.channel
-            pins_left = 50 - len(await channel.pins())
-            buffer = await ctx.bot.loop.run_in_executor(
-                None, lambda: pins_left_executor(pins_left)
-            )
-            file = discord.File(buffer, "majora.png")
-            await ctx.send(file=file)
+        """Shows how many pins are left in a channel in a wonderfully flashy way."""
+        await ctx.defer()
+
+        channel = channel or ctx.channel
+        pins_left = 50 - len(await channel.pins())
+        buffer = await ctx.bot.loop.run_in_executor(
+            None, lambda: pins_left_executor(pins_left)
+        )
+        file = discord.File(buffer, "majora.png")
+        await ctx.send(file=file)
 
 
 def setup(bot: BOT_TYPES):

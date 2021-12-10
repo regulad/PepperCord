@@ -3,7 +3,6 @@ from typing import List, Dict, Optional
 
 from discord.ext import commands
 
-from utils.localization import Locale
 from utils.permissions import Permission
 
 
@@ -37,14 +36,6 @@ def duration_to_str(duration_strings: int) -> str:  # TODO: Make this take a tim
         duration_strings.append(f"{int(round(seconds))} seconds")
 
     return ", ".join(duration_strings)
-
-
-class LocaleConverter(commands.Converter):
-    async def convert(self, ctx: commands.Context, argument: str) -> Locale:
-        try:
-            return Locale[argument]
-        except KeyError:
-            raise commands.BadArgument("Invalid locale.")
 
 
 class PermissionConverter(commands.Converter):

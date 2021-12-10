@@ -48,46 +48,42 @@ class EditVideoBot(commands.Cog):
             return True
 
     @commands.command(
-        name="edit",
-        aliases=["evb"],
-        description="Edit supported media using EditVideoBot.",
         usage="<Commands>",
     )
     async def edit(self, ctx: CustomContext, *, evb_commands: str) -> None:
-        async with ctx.typing():
-            url, source = await find_url_recurse(ctx.message)
+        """Edit media with EditVideoBot."""
+        await ctx.defer()
 
-            async with self.client_session.get(url) as resp:
-                attachment_bytes = await resp.read()
+        url, source = await find_url_recurse(ctx.message)
 
-            if (
-                isinstance(source, discord.Embed) and source.type == "gifv"
-            ):  # deprecated!... kinda
-                extension: str = "mp4"
-            else:
-                extension: str = splitext(url)[1].strip(".")
+        async with self.client_session.get(url) as resp:
+            attachment_bytes = await resp.read()
 
-            response: evb.EditResponse = await self.evb_session.edit(
-                attachment_bytes, evb_commands, extension
-            )
+        if (
+            isinstance(source, discord.Embed) and source.type == "gifv"
+        ):  # deprecated!... kinda
+            extension: str = "mp4"
+        else:
+            extension: str = splitext(url)[1].strip(".")
 
-            file = discord.File(
-                BytesIO(await response.download()),
-                f"output{splitext(response.media_url)[1]}",
-            )
-            await ctx.reply(files=[file])
+        response: evb.EditResponse = await self.evb_session.edit(
+            attachment_bytes, evb_commands, extension
+        )
 
-    @commands.command(
-        name="editsleft",
-        aliases=["evbleft"],
-        description="Gets the amount of edits that can still be made today.\n"
-        "This number is global.",
-    )
-    async def left(self, ctx: CustomContext) -> None:
-        async with ctx.typing():
-            stats = await self.evb_session.stats()
+        file = discord.File(
+            BytesIO(await response.download()),
+            f"output{splitext(response.media_url)[1]}",
+        )
+        await ctx.send(files=[file])
 
-            await ctx.send(stats.remaining_daily_requests)
+    @commands.command()
+    async def editsleft(self, ctx: CustomContext) -> None:
+        """Shows the number of remaining EditVideoBot edits."""
+        await ctx.defer(ephemeral=True)
+
+        stats = await self.evb_session.stats()
+
+        await ctx.send(stats.remaining_daily_requests, ephemeral=True)
 
 
 def setup(bot: BOT_TYPES):

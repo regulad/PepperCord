@@ -58,7 +58,7 @@ if __name__ == "__main__":
         config=os.environ,
         shard_count=shards,
         slash_commands=True,
-        message_commands=False,
+        message_commands=bool(os.environ.get("PEPPERCORD_DEBUG")),
         slash_command_guilds=([int(testguild) for testguild in os.environ["PEPPERCORD_TESTGUILDS"].split(", ")] if os.environ.get("PEPPERCORD_TESTGUILDS") is not None else None)
     )
 
@@ -69,6 +69,8 @@ if __name__ == "__main__":
 
     for directory in directories:
         if (directory == "extensions/debug" or directory == "extensions\\debug") and not bool(os.environ.get("PEPPERCORD_DEBUG")):
+            continue
+        if directory == "extensions/disabled" or directory == "extensions\\disabled":
             continue
         for file in os.listdir(f"{directory}/"):
             if file.endswith(".py"):

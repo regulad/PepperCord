@@ -58,7 +58,7 @@ class AudioSourceMenu(menus.ViewMenu):
 
     async def send_initial_message(self, ctx, channel):
         if self.source is None:
-            await ctx.send("Nothing is playing.")
+            await ctx.send("There is no source.")
         else:
             if isinstance(self.source, sources.YTDLSource):
                 info = self.source.info
@@ -89,5 +89,5 @@ class AudioSourceMenu(menus.ViewMenu):
                 return await ctx.send(embed=embed)
             else:
                 return await ctx.send(
-                    "Information cannot be displayed for what is currently playing."
+                    "Information cannot be displayed for the currently selected source."
                 )

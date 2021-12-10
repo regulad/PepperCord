@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+      - chesmond
+      - develop
     tags:
       - v*
   pull_request:

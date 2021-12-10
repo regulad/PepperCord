@@ -58,7 +58,7 @@ if __name__ == "__main__":
         config=os.environ,
         shard_count=shards,
         slash_commands=True,
-        slash_command_guilds=[730908012851757078],
+        message_commands=False,
     )
 
     directories: List[str] = [entry[0] for entry in os.walk("extensions")]

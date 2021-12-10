@@ -14,10 +14,11 @@ class DocumentCog(commands.Cog):
 
     @commands.Cog.listener("on_context_creation")
     async def append_guild_document(self, ctx: commands.Context):
-        ctx: CustomContext = cast(CustomContext, ctx)
-        ctx["guild_document"] = await ctx.bot.get_guild_document(ctx.guild)
-        # May be split off into localization cog.
-        ctx["locale"] = Locale[ctx["guild_document"].get("locale", "en_US")]
+        if ctx.guild is not None:
+            ctx: CustomContext = cast(CustomContext, ctx)
+            ctx["guild_document"] = await ctx.bot.get_guild_document(ctx.guild)
+            # May be split off into localization cog.
+            ctx["locale"] = Locale[ctx["guild_document"].get("locale", "en_US")]
 
     @commands.Cog.listener("on_context_creation")
     async def append_user_document(self, ctx: commands.Context):

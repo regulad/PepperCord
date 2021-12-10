@@ -267,7 +267,7 @@ class CustomCommands(commands.Cog):
         commands_dict = ctx["guild_document"].get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
-        pages = menus.MenuPages(source=source)
+        pages = menus.ViewMenuPages(source=source)
         await pages.start(ctx)
 
     @customcommands.command(

@@ -130,19 +130,8 @@ class ErrorHandling(commands.Cog):
     def __init__(self, bot: bots.BOT_TYPES):
         self.bot = bot
 
-    @commands.Cog.listener("on_command_completion")
-    async def affirm_success(self, ctx: bots.CustomContext) -> None:
-        try:
-            await ctx.message.add_reaction("✅")
-        except discord.NotFound or discord.Forbidden:
-            pass
-
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        try:
-            await ctx.message.add_reaction("‼️")
-        except discord.NotFound or discord.Forbidden:
-            pass
         if ctx.command is not None:
             await ErrorMenu(error).start(ctx)
 
@@ -152,14 +141,10 @@ class ErrorHandling(commands.Cog):
     ) -> None:
         if ctx.command is not None:
             if await ctx.bot.is_owner(ctx.author):
-                await ctx.message.add_reaction("🔁")
-
                 if ctx.valid and isinstance(
                     error, (commands.CommandOnCooldown, commands.CheckFailure)
                 ):
                     await ctx.reinvoke()
-                else:
-                    await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener("on_command_error")
     async def determine_if_critical(

@@ -85,7 +85,7 @@ class CoinGecko(commands.Cog):
     async def coins(self, ctx) -> None:
         get: list = await self.coin_gecko_session.get_coins_list()
 
-        menu: menus.MenuPages = menus.MenuPages(source=CoinMenuSource(get, per_page=15))
+        menu: menus.ViewMenuPages = menus.ViewMenuPages(source=CoinMenuSource(get, per_page=15))
 
         await menu.start(ctx)
 
@@ -97,7 +97,7 @@ class CoinGecko(commands.Cog):
     async def currencies(self, ctx) -> None:
         get: list = await self.coin_gecko_session.get_supported_vs_currencies()
 
-        menu: menus.MenuPages = menus.MenuPages(
+        menu: menus.ViewMenuPages = menus.ViewMenuPages(
             source=CurrencyMenuSource(get, per_page=20)
         )
 

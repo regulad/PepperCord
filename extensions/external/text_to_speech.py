@@ -104,7 +104,7 @@ class TextToSpeech(commands.Cog):
     async def list_voices(self, ctx: bots.CustomContext) -> None:
         async with ctx.typing():
             voices: list = await self._async_gtts_session.get_voices("en-US")
-            await menus.MenuPages(source=LanguageSource(voices, per_page=6)).start(ctx)
+            await menus.ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(ctx)
 
 
 def setup(bot: bots.BOT_TYPES):

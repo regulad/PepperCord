@@ -85,7 +85,7 @@ class AudioQueue(commands.Cog):
             list(ctx["audio_player"]().queue.deque),
             f"Current tracks on queue:{' (Loop on)' if ctx['audio_player']().loop else ''}",
         )
-        await menus.MenuPages(source=source).start(ctx)
+        await menus.ViewMenuPages(source=source).start(ctx)
 
     @queuecommand.command(
         name="shuffle",

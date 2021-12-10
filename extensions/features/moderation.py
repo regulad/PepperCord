@@ -312,7 +312,7 @@ class Moderation(commands.Cog):
                 }
             }
         )
-        await ctx.message.add_reaction(emoji="⏰")
+        await ctx.send("Done.", ephemeral=True)
 
     @commands.command(
         name="timeban",
@@ -349,7 +349,7 @@ class Moderation(commands.Cog):
                 }
             }
         )
-        await ctx.message.add_reaction(emoji="⏰")
+        await ctx.send("Done.", ephemeral=True)
 
 
 def setup(bot):

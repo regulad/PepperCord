@@ -20,7 +20,7 @@ class BetterMenu(PrettyMenu):
         pages: List[discord.Embed],
     ) -> None:
         (
-            await menus.MenuPages(
+            await menus.ViewMenuPages(
                 PlainListPageSource(pages, per_page=1), delete_message_after=True
             ).start(ctx, channel=destination)
         )

@@ -27,7 +27,7 @@ class GuildsMenuList(menus.ListPageSource):
         return base_embed
 
 
-class ShardMenu(menus.Menu):
+class ShardMenu(menus.ViewMenu):
     def __init__(
         self,
         shard_info,
@@ -156,7 +156,7 @@ class Dev(commands.Cog):
         description="Lists all guilds that the bot is in. May contain sensitive information!",
     )
     async def guilds(self, ctx: bots.CustomContext) -> None:
-        await menus.MenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(ctx)
+        await menus.ViewMenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(ctx)
 
 
 def setup(bot: bots.BOT_TYPES):

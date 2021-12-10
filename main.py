@@ -59,6 +59,7 @@ if __name__ == "__main__":
         shard_count=shards,
         slash_commands=True,
         message_commands=False,
+        slash_command_guilds=([int(testguild) for testguild in os.environ["PEPPERCORD_TESTGUILDS"].split(", ")] if os.environ.get("PEPPERCORD_TESTGUILDS") is not None else None)
     )
 
     directories: List[str] = [entry[0] for entry in os.walk("extensions")]

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 
 import discord
 from discord.ext import commands, menus
@@ -116,12 +116,37 @@ class Music(commands.Cog):
             pages = menus.MenuPages(source=menu_source)
             await pages.start(ctx)
 
-    @play.command(
-        name="top",
-        aliases=["t"],
+
+    @commands.command(
+        name="search",
+        brief="Searches a song. Uses YouTube."
+    )
+    @commands.cooldown(3, 20, commands.BucketType.user)
+    async def search(self, ctx: CustomContext, *, query: str) -> None:
+        async with ctx.typing():
+            if validators.str_is_url(query):
+                url = query
+            else:
+                url = f"ytsearch:{query}"
+            source: List[sources.YTDLSource] = await sources.YTDLSource.from_url(
+                ctx["audio_player"]().file_downloader, url, ctx.author
+            )
+            if len(source) > 1:
+                menu_source = embed_menus.QueueMenuSource(source, "Results:")
+                pages = menus.MenuPages(source=menu_source)
+                await pages.start(ctx)
+            else:
+                await embed_menus.AudioSourceMenu(source[-1]).start(ctx)
+
+
+
+    @commands.command(
+        name="playtop",
+        aliases=["pt"],
         brief="Adds a song to the top of the queue.",
         description="Adds a supported song to the top of the current queue.",
     )
+    @commands.cooldown(3, 20, commands.BucketType.user)
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
     async def pt(self, ctx: CustomContext, *, query: str) -> None:
         if not len(list(ctx["audio_player"]().queue.deque)) > 0:

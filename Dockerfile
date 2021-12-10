@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.9.7-slim-buster
+FROM python:3.10.0-slim-buster
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y git ffmpeg
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y git ffmpeg gcc python3-dev
 
 WORKDIR /app
 

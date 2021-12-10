@@ -8,7 +8,7 @@ from utils.localization import Message
 from utils.permissions import Permission, get_permission
 
 
-class DeleteMenu(menus.Menu):
+class DeleteMenu(menus.ViewMenu):
     """Confirmation menu for deleting server information."""
 
     async def send_initial_message(

@@ -48,7 +48,7 @@ class QueueMenuSource(menus.ListPageSource):
         return base_embed
 
 
-class AudioSourceMenu(menus.Menu):
+class AudioSourceMenu(menus.ViewMenu):
     """An embed menu that makes displaying a source fancy."""
 
     def __init__(self, source: discord.AudioSource, **kwargs):

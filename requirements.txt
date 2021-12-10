@@ -1,5 +1,5 @@
 discord.py[voice]@git+https://github.com/iDevision/enhanced-discord.py
-discord-ext-menus@git+https://github.com/regulad/discord-ext-menus.git@views  # Stupid view... thing.
+discord-ext-menus@git+https://github.com/regulad/discord-ext-menus.git@slash  # Stupid view... thing.
 discord-pretty-help@git+https://github.com/regulad/discord-pretty-help.git@fix/support_edpy  # Makes the help command look nice. Better version.
 jishaku >= 2.3.2  # Useful development tools.
 aiohttp # For asynchronous HTTP requests

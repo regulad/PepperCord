@@ -18,7 +18,7 @@ def get_top_gg_link(bot_id: int) -> str:
     return f"https://top.gg/bot/{bot_id}"
 
 
-class VotesMenu(menus.Menu):
+class VotesMenu(menus.ViewMenu):
     def __init__(
         self,
         document: database.Document,

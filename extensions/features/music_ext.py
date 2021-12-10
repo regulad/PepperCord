@@ -111,7 +111,7 @@ class Music(commands.Cog):
             for track in source:
                 ctx["audio_player"]().queue.put_nowait(track)
             menu_source = embed_menus.QueueMenuSource(source, "Added:")
-            pages = menus.MenuPages(source=menu_source)
+            pages = menus.ViewMenuPages(source=menu_source)
             await pages.start(ctx)
 
     @commands.command(
@@ -136,7 +136,7 @@ class Music(commands.Cog):
                 for track in source:
                     ctx["audio_player"]().queue.deque.appendleft(track)
                 menu_source = embed_menus.QueueMenuSource(source, "Added to top:")
-                pages = menus.MenuPages(source=menu_source)
+                pages = menus.ViewMenuPages(source=menu_source)
                 await pages.start(ctx)
 
 

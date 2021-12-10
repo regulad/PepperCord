@@ -277,7 +277,7 @@ class Levels(commands.Cog):
                     "the leaderboard may be inaccurate."
                 )
 
-            await menus.MenuPages(source=source).start(ctx)
+            await menus.ViewMenuPages(source=source).start(ctx)
 
 
 def setup(bot: BOT_TYPES):

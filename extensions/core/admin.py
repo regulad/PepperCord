@@ -3,8 +3,6 @@ from discord.ext import commands, menus
 
 from utils.bots import CustomContext, BOT_TYPES
 from utils.checks import has_permission_level, LowPrivilege
-from utils.converters import LocaleConverter
-from utils.localization import Message
 from utils.permissions import Permission, get_permission
 
 
@@ -14,12 +12,15 @@ class DeleteMenu(menus.ViewMenu):
     async def send_initial_message(
         self, ctx, channel: discord.TextChannel
     ) -> discord.Message:
-        return await channel.send(ctx["locale"].get_message(Message.BOT_LEAVE))
+        return await ctx.send(ctx["locale"].get_message(
+            "Would you like the bot to leave the server and delete all information? "
+            "**Warning**: this process is not reversible."
+        ), ephemeral=True)
 
     @menus.button("✅")
     async def confirm(self, payload) -> None:
         await self.message.edit(
-            content=self.ctx["locale"].get_message(Message.CONFIRM_BOT_LEAVE)
+            content=self.ctx["locale"].get_message("Deleting...")
         )
         await self.ctx["guild_document"].delete_db()
         await self.ctx.guild.leave()
@@ -28,7 +29,7 @@ class DeleteMenu(menus.ViewMenu):
     @menus.button("❌")
     async def reject(self, payload) -> None:
         await self.message.edit(
-            content=self.ctx["locale"].get_message(Message.AVOID_BOT_LEAVE)
+            content=self.ctx["locale"].get_message("Action cancelled.")
         )
         self.stop()
 
@@ -50,51 +51,31 @@ class Administration(commands.Cog):
 
     @commands.command(
         name="message",
-        description="Send a message as the bots in any channel that you want.",
         usage="<Channel> <Message>",
     )
     async def do_message(
         self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
     ) -> None:
+        """Send a message as the bot in a channel of your choosing."""
         channel = ctx.guild.get_channel_or_thread(channel.id)
         await channel.send(text)
 
     @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
         name="configuration",
-        aliases=["config"],
-        description="Configures the bot in the scope of this server.",
     )
     async def config(self, ctx: CustomContext) -> None:
+        """Configure the bot for use in your server."""
         pass
 
-    @config.command(
-        name="mute",
-        description="Sets the role that is given to people who are muted.\n"
-        "The role must already be configured.",
-    )
+    @config.command()
     async def mute(self, ctx: CustomContext, *, role: discord.Role) -> None:
+        """Chooses a role to give to people when they are muted. This role must already have been created."""
         await ctx["guild_document"].update_db({"$set": {"mute_role": role.id}})
+        await ctx.send("Done", ephemeral=True)
 
-    @config.command(
-        name="locale",
-        description="Sets the server's locale.\n"
-        "Supported locales:\n\n"
-        "* en_US\n"
-        "* catspeak",
-    )
-    async def locale(self, ctx: CustomContext, *, locale: LocaleConverter) -> None:
-        await ctx["guild_document"].update_db({"$set": {"locale": locale.name}})
-        await ctx.send(ctx["locale"].get_message(Message.SELECT_LANGUAGE))
-        # TODO: Implement localization system wherever possible.
-
-    @commands.command(
-        name="delete",
-        aliases=["leave"],
-        description="Deletes all the data the bots has collected and stored on this server, then leaves. Be careful!",
-    )
+    @commands.command()
     async def delete(self, ctx: CustomContext) -> None:
+        """Deletes all the info about the bot in this server. This cannot be undone."""
         await DeleteMenu().start(ctx)
 
 

@@ -66,23 +66,13 @@ class CoinGecko(commands.Cog):
         else:
             return True
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="coingecko",
-        aliases=["cg"],
-        brief="Gets information from CoinGecko.",
-        description="Get information from many CoinGecko API Routes.",
-    )
+    @commands.group()
     async def coingecko(self, ctx) -> None:
         pass
 
-    @coingecko.command(
-        name="coins",
-        brief="List all coins.",
-        description="List all coins that CoinGecko has info on.",
-    )
+    @coingecko.command()
     async def coins(self, ctx) -> None:
+        """Sends you a list of all coins."""
         get: list = await self.coin_gecko_session.get_coins_list()
 
         menu: menus.ViewMenuPages = menus.ViewMenuPages(source=CoinMenuSource(get, per_page=15))
@@ -91,8 +81,6 @@ class CoinGecko(commands.Cog):
 
     @coingecko.command(
         name="currencies",
-        brief="List all currencies.",
-        description="List all currencies CoinGecko has info on.",
     )
     async def currencies(self, ctx) -> None:
         get: list = await self.coin_gecko_session.get_supported_vs_currencies()

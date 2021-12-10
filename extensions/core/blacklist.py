@@ -24,8 +24,7 @@ class Blacklist(commands.Cog):
         return await ctx.bot.is_owner(ctx.author)
 
     @commands.command(
-        name="blacklist",
-        description="Blacklists an entity from using the bot.",
+        name="blacklists",
     )
     async def blacklist(
         self,
@@ -33,29 +32,32 @@ class Blacklist(commands.Cog):
         *,
         entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ) -> None:
+        """Disallows a user, member, or a guild from using the bot."""
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
         if isinstance(entity, discord.Guild):
             document = await ctx.bot.get_guild_document(entity)
-        elif isinstance(entity, (discord.Member, discord.User)):
+        else:
             document = await ctx.bot.get_user_document(entity)
         await document.update_db({"$set": {"blacklisted": True}})
+        await ctx.send(f"Blacklisted {entity.name}.", ephemeral=True)
 
     @commands.command(
         name="unblacklist",
-        description="Unblacklists an entity from using the bot.",
     )
     async def unblacklist(
         self,
         ctx: CustomContext,
         *,
         entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
-    ):
+    ) -> None:
+        """Allows a user, member, or a guild to use the bot"""
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
         if isinstance(entity, discord.Guild):
             document = await ctx.bot.get_guild_document(entity)
         elif isinstance(entity, (discord.Member, discord.User)):
             document = await ctx.bot.get_user_document(entity)
         await document.update_db({"$set": {"blacklisted": False}})
+        await ctx.send(f"Unblacklisted {entity.name}.", ephemeral=True)
 
 
 def setup(bot: BOT_TYPES):

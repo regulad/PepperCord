@@ -27,108 +27,81 @@ class AudioQueue(commands.Cog):
         if ctx.voice_client is None:
             await ctx.author.voice.channel.connect()
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="audioplayer",
-        aliases=["ap", "mp"],
-        description="Commands for controlling the audio player.",
-    )
+    @commands.group()
     async def player(self, ctx: CustomContext) -> None:
+        """A suite of commands for controlling the audio player."""
         pass
 
-    @player.command(
-        name="stop",
-        aliases=["s"],
-        description="Stops playing audio.",
-    )
+    @player.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def pstop(self, ctx: CustomContext) -> None:
+    async def stop(self, ctx: CustomContext) -> None:
+        """Stops playing audio and leaves the voice channel."""
         await ctx["audio_player"]().voice_client.disconnect()
+        await ctx.send("Disconnected.", ephemeral=True)
 
-    @player.command(
-        name="pause",
-        aliases=["play", "p"],
-        description="Toggles the audio player between playing and paused.",
-    )
-    async def ppause(self, ctx: CustomContext) -> None:
+    @player.command()
+    async def pause(self, ctx: CustomContext) -> None:
+        """Pauses or plays the audio player."""
         if ctx["audio_player"]().paused:
             ctx["audio_player"]().voice_client.resume()
+            await ctx.send("Playing.", ephemeral=True)
         else:
             ctx["audio_player"]().voice_client.pause()
+            await ctx.send("Paused.", ephemeral=True)
 
-    @player.command(
-        name="skip",
-        aliases=["sk"],
-        description="Skips the audio player to the next song on the queue.",
-    )
+    @player.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def pskip(self, ctx: CustomContext) -> None:
+    async def skip(self, ctx: CustomContext) -> None:
+        """Skips foward to the next song on the track queue."""
         ctx["audio_player"]().voice_client.stop()
+        await ctx.send("Stopped.", ephemeral=True)
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="queue",
-        aliases=["q"],
-        description="Commands for the active queue currently being played.",
-    )
-    async def queuecommand(self, ctx: CustomContext) -> None:
+    @commands.group()
+    async def queue(self, ctx: CustomContext) -> None:
+        """Commands for controlling the queue of tracks that are about to be played."""
         pass
 
-    @queuecommand.command(
-        name="list",
-        description="Lists all songs in the queue currently."
-    )
-    async def queuelist(self, ctx: CustomContext) -> None:
+
+    @queue.command()
+    async def list(self, ctx: CustomContext) -> None:
+        """List all songs on the queue."""
         source = embed_menus.QueueMenuSource(
             list(ctx["audio_player"]().queue.deque),
             f"Current tracks on queue:{' (Loop on)' if ctx['audio_player']().loop else ''}",
         )
         await menus.ViewMenuPages(source=source).start(ctx)
 
-    @queuecommand.command(
-        name="shuffle",
-        description="Shuffles the current queue.\n"
-        "Note that this changes the queue, and cannot be undone.",
-    )
+    @queue.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def qshuffle(self, ctx: CustomContext) -> None:
+    async def shuffle(self, ctx: CustomContext) -> None:
+        """Shuffle all songs on the queue."""
         if len(list(ctx["audio_player"]().queue.deque)) > 0:
             random.shuffle(ctx["audio_player"]().queue.deque)
+        await ctx.send("Shuffled.")
 
-    @queuecommand.command(
-        name="loop",
-        description="Toggles loop function.",
-    )
+    @queue.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def qloop(self, ctx: CustomContext) -> None:
+    async def loop(self, ctx: CustomContext) -> None:
+        """Toggles the loop function. While the loop is on, the current song will keep repeating."""
         ctx["audio_player"]().loop = not ctx["audio_player"]().loop
+        await ctx.send(f"Loop is {'on' if ctx['audio_player']().loop else 'off'}.")
 
-    @queuecommand.command(
-        name="clear",
-        aliases=["delete"],
-        description="Deletes all items on the queue, leaving behind a blank slate.",
-    )
+    @queue.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def qclear(self, ctx: CustomContext) -> None:
+    async def clear(self, ctx: CustomContext) -> None:
+        """Clears all songs on the queue."""
         ctx["audio_player"]().queue.clear()
         ctx.voice_client.stop()
+        await ctx.send("Queue cleared.", ephemeral=True)
 
-    @queuecommand.command(
-        name="pop",
-        aliases=["remove"],
-        description="Pops a track of the queue. Index starts at 1.",
-    )
+    @queue.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def qpop(self, ctx: CustomContext, *, index: int) -> None:
+    async def pop(self, ctx: CustomContext, *, index: int) -> None:
+        """Removes a song from the queue at a position of your choice."""
         del ctx["audio_player"]().queue.deque[index - 1]
+        await ctx.send("Track removed.", ephemeral=True)
 
-    @commands.command(
-        name="nowplaying",
-        aliases=["np"],
-        description="Shows the currently playing track.",
-    )
+    @commands.command()
     async def nowplaying(self, ctx: CustomContext) -> None:
         playing_track = ctx["audio_player"]().voice_client.source
         if playing_track is None:

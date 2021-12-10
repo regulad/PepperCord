@@ -37,44 +37,31 @@ class Alerts(commands.Cog):
     async def on_member_remove(self, member) -> None:
         await member_message_processor(self.bot, member, "on_member_remove")
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="messages",
-        aliases=["events", "alerts"],
-        description="Commands that allow you to configure what is displayed when a certain event occurs.",
-    )
+    @commands.group()
     async def events(self, ctx: CustomContext) -> None:
         pass
 
-    @events.command(
-        name="disable",
-        aliases=["off", "delete"],
-        brief="Deletes messages.",
-        description="Deletes all messages.",
-    )
-    async def sdisable(self, ctx: CustomContext) -> None:
+    @events.command()
+    async def disable(self, ctx: CustomContext) -> None:
+        """Removes all event data from the bot."""
         if ctx["guild_document"].get("reactions") is None:
             raise bots.NotConfigured
         await ctx["guild_document"].update_db({"$unset": {"reactions": 1}})
+        await ctx.send("Done.", ephemeral=True)
 
-    @events.command(
-        name="add",
-        aliases=["set"],
-        brief="Sets message displayed when an action occurs.",
-        description="Sets message displayed when an action occursm. Message types include on_member_join and on_member_remove.",
-    )
-    async def setmessage(
+    @events.command()
+    async def add(
         self,
         ctx: CustomContext,
-        message_type: str,
+        messagetype: str,
         channel: discord.TextChannel,
         *,
         message: str,
     ) -> None:
         await ctx["guild_document"].update_db(
-            {"$set": {f"messages.{message_type}.{channel.id}": message}}
+            {"$set": {f"messages.{messagetype}.{channel.id}": message}}
         )
+        await ctx.send("Done.", ephemeral=True)
 
 
 def setup(bot: BOT_TYPES):

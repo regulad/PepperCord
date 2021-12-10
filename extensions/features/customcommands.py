@@ -7,7 +7,6 @@ from discord.ext import commands, menus
 from extensions.features.moderation import mute
 from utils import checks, bots
 from utils.attachments import find_url_recurse
-from utils.localization import Message
 
 KEYWORD_PREFIX: str = "$"
 
@@ -249,129 +248,96 @@ class CustomCommands(commands.Cog):
                 else:
                     ctx.bot.dispatch("custom_command_success", custom_command, ctx)
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="customcommands",
-        aliases=["commands", "cc"],
-        description="Tools for configuration of custom commands.",
-    )
+    @commands.group()
     async def customcommands(self, ctx: bots.CustomContext) -> None:
         pass
 
-    @customcommands.command(
-        name="list",
-        description="List custom commands.",
-    )
+    @customcommands.command()
     async def cclist(self, ctx: bots.CustomContext) -> None:
+        """Lists all custom commands currently on the server."""
         commands_dict = ctx["guild_document"].get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
         pages = menus.ViewMenuPages(source=source)
         await pages.start(ctx)
 
-    @customcommands.command(
-        name="invoke",
-        aliases=["run", "info"],
-        brief="Runs a custom command.",
-        description="Runs a custom command.",
-    )
+    @customcommands.command()
     @checks.check_is_admin
-    async def invoke(
+    async def find(
         self, ctx: bots.CustomContext, *, query: CustomCommandConverter
     ) -> None:
-        custom_command: CustomCommand = cast(CustomCommand, query)
-        await ctx.send(
-            ctx["locale"]
-            .get_message(Message.CUSTOM_COMMAND_GET)
-            .format(cmd=custom_command)
-        )
+        """Fetch a custom command using the name of one."""
+        cmd: CustomCommand = cast(CustomCommand, query)
+        await ctx.send(f"The custom command \"{cmd.command}\" has the message \"{cmd.message}\".", ephemeral=True)
 
-    @customcommands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="match",
-        aliases=["m"],
-        description="Sets options for matching invocation keywords in messages.",
-    )
+    @customcommands.group()
     @checks.check_is_admin
     async def match(self, ctx: bots.CustomContext) -> None:
         pass
 
-    @match.command(
-        name="case",
-        description="Sets case sensitivity.",
-    )
+    @match.command()
     async def case(
         self, ctx: bots.CustomContext, *, is_case_sensitive: bool = False
     ) -> None:
+        """Configures case sensitivity of the CustomCommand finder."""
         await ctx["guild_document"].update_db(
             {"$set": {"cc_is_case_insensitive": not is_case_sensitive}}
         )
+        await ctx.send("Settings updated.", ephemeral=True)
 
-    @match.command(
-        name="firstword",
-        aliases=["word"],
-        description="Sets if only the first word will be scanned for custom commands.",
-    )
-    async def word(self, ctx: bots.CustomContext, *, first_word_only: bool = True):
+    @match.command()
+    async def firstword(self, ctx: bots.CustomContext, *, first_word_only: bool = True):
+        """Configures if only the first word of a message should be checked for a custom command."""
         await ctx["guild_document"].update_db(
             {"$set": {"cc_first_word_only": first_word_only}}
         )
+        await ctx.send("Settings updated.", ephemeral=True)
 
-    @match.command(
-        name="startswith",
-        aliases=["start"],
-        description="Sets if the message must start with the custom command for it to register.",
-    )
+    @match.command()
     async def startswith(
         self, ctx: bots.CustomContext, *, must_start_with: bool = True
     ):
+        """Configures if only the start of a message should be checked for a custom command."""
         await ctx["guild_document"].update_db(
             {"$set": {"cc_starts_with": must_start_with}}
         )
+        await ctx.send("Settings updated.", ephemeral=True)
 
-    @match.command(
-        name="exact",
-        description="Sets if the message must be exactly the custom command.",
-    )
+    @match.command()
     async def exact(self, ctx: bots.CustomContext, *, must_be_exact: bool = True):
+        """Configures if only the start of a message should be checked for a custom command."""
         await ctx["guild_document"].update_db({"$set": {"cc_exact": must_be_exact}})
+        await ctx.send("Settings updated.", ephemeral=True)
 
-    @customcommands.command(
-        name="add",
-        aliases=["set"],
-        description="Adds a custom command to the guild.\n"
-        "Custom commands are case-sensitive (by default), "
-        "and both the invocation keyword and the message must be placed in quotes if they are multiple "
-        "words.\n"
-        "If a Message is not specified, the most recently sent media will be used.\n\n"
-        "If a ⏰ is added to the message, it means you are being rate-limited.\n\n"
-        "Commands can contain special keywords that perform certain actions:\n\n"
-        "* $del: Deletes the message that invoked the command.\n"
-        "* $mute: Mutes the sender.\n"
-        "* $kick: Kicks the sender.\n"
-        "* $ban: Bans the sender.",
-        usage="<Keyword> [Message]",
-    )
+    @customcommands.command()
     @checks.check_is_admin
-    async def ccadd(
+    async def add(
         self, ctx: bots.CustomContext, command: str, *, message: Optional[str] = None
     ) -> None:
+        """
+        Adds a custom command to the guild.
+        Custom commands are case-sensitive (by default) and both the invocation keyword and the message must be placed in quotes if they are multiple words.
+        If a Message is not specified, the most recently sent media will be used.
+        If a ⏰ is added to the message, it means you are being rate-limited.
+        Commands can contain special keywords that perform certain actions:
+        * $del: Deletes the message that invoked the command.
+        * $mute: Mutes the sender.
+        * $kick: Kicks the sender.
+        * $ban: Bans the sender.
+        """
         message: str = (
             message if message is not None else (await find_url_recurse(ctx.message))[0]
         )
         await ctx["guild_document"].update_db(
             {"$set": {f"commands.{command}": message}}
         )
+        await ctx.send("Custom command added.", ephemeral=True)
 
-    @customcommands.command(
-        name="delete",
-        aliases=["del", "remove"],
-        description="Deletes a custom command from the guild.",
-    )
+
+    @customcommands.command()
     @checks.check_is_admin
-    async def ccdel(self, ctx: bots.CustomContext, *, command: str) -> None:
+    async def delete(self, ctx: bots.CustomContext, *, command: str) -> None:
+        """Deletes a custom command from the guild."""
         if (
             ctx["guild_document"].get("commands") is not None
             and ctx["guild_document"]["commands"].get(command) is not None
@@ -379,6 +345,7 @@ class CustomCommands(commands.Cog):
             await ctx["guild_document"].update_db(
                 {"$unset": {f"commands.{command}": 1}}
             )
+            await ctx.send("Custom command removed.", ephemeral=True)
         else:
             raise commands.CommandNotFound(f"{command} is not registered.")
 

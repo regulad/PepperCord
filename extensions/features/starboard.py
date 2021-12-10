@@ -102,22 +102,16 @@ class Starboard(commands.Cog):
         else:
             return
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="starboard",
-        aliases=["sb", "sboard"],
-        description="Starboards are an alternative to pinning messsages.",
-        brief="Starboard setup.",
-    )
+    @commands.group()
     async def starboard(self, ctx: bots.CustomContext) -> None:
+        """
+        Starboards are an alternative to pinning messages to a channel.
+        """
         pass
 
-    @starboard.command(
-        name="settings",
-        description="Lists the settings of the starboard."
-    )
-    async def sbsettings(self, ctx: bots.CustomContext) -> None:
+    @starboard.command()
+    async def settings(self, ctx: bots.CustomContext) -> None:
+        """Shows all the settings of the currently configured starboard."""
         if ctx["guild_document"].get("starboard", {}).get("channel") is None:
             raise bots.NotConfigured
 
@@ -143,89 +137,77 @@ class Starboard(commands.Cog):
             )
         )
 
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
 
-    @starboard.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="config",
-        aliases=["setup"],
-        brief="Starboard setup.",
-        description="Configures Starboard",
-    )
+    @starboard.group()
     @commands.check(checks.check_is_admin)
-    async def sconfig(self, ctx: bots.CustomContext) -> None:
+    async def config(self, ctx: bots.CustomContext) -> None:
+        """
+        Commands for configuring the starboard.
+        """
         pass
 
-    @sconfig.command(
-        name="disable",
-        aliases=["off", "delete"],
-        brief="Deletes starboard data.",
-        description="Deletes all starboard data, including config and message cache.",
-    )
-    async def sdisable(self, ctx: bots.CustomContext) -> None:
+    @config.command()
+    async def disable(self, ctx: bots.CustomContext) -> None:
+        """
+        Disables and deletes all starboard data.
+        You'll need to reconfigure it before you use it again.
+        """
         if ctx["guild_document"].get("starboard") is None:
             raise bots.NotConfigured
         else:
             await ctx["guild_document"].update_db({"$unset": {"starboard": 1}})
+            await ctx.send("Starboard disabled.", ephemeral=True)
 
-    @sconfig.command(
-        name="channel",
-        aliases=["board"],
-        brief="Sets channel.",
-        description="Sets channel to be used as the starboard.",
-        usage="[Channel]",
-    )
-    async def schannel(
+    @config.command()
+    async def channel(
         self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
+        """
+        Sets the channel that will be used as a starboard.
+        To activate the starboard, change this setting.
+        """
         channel = channel or ctx.channel
         await ctx["guild_document"].update_db(
             {"$set": {"starboard.channel": channel.id}}
         )
+        await ctx.send(f"Channel set to {channel.mention}.", ephemeral=True)
 
-    @sconfig.command(
-        name="emoji",
-        brief="Sets emoji people can react with to star a message.",
-        description="Sets emoji people can react with to star a message. "
-        "Defaults to ⭐. If a manager placed the reaction, it will get pinned to the starboard instantly.",
-        usage="<Emoji>",
-    )
-    async def semoji(
+    @config.command()
+    async def emoji(
         self,
         ctx: bots.CustomContext,
         *,
         emoji: Union[discord.Emoji, discord.PartialEmoji, str],
     ) -> None:
+        """
+        Sets the emoji that people can react with to attempt to pin a message to the starboard.
+        This (rather intuitively) defaults to a star.
+        """
         if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
             emoji = emoji.name
         await ctx["guild_document"].update_db({"$set": {"starboard.emoji": emoji}})
+        await ctx.send(f"Emoji set to :{emoji}:.", ephemeral=True)
 
-    @sconfig.command(
-        name="threshold",
-        brief="Sets the reaction threshold for being pinned.",
-        description="Sets the reaction threshold for being pinned. Defaults to 3.",
-        usage="<Threshold>",
-    )
-    async def sthreshold(self, ctx: bots.CustomContext, *, threshold: int) -> None:
+    @config.command()
+    async def threshold(self, ctx: bots.CustomContext, *, threshold: int) -> None:
+        """
+        Sets the minimum amount of stars that must be placed on a message before it gets pinned.
+        Defaults to 3.
+        """
         await ctx["guild_document"].update_db(
             {"$set": {"starboard.threshold": threshold}}
         )
 
-    @starboard.command(
-        name="pin",
-        brief="Pins message to the starboard.",
-        description="Pins a message of your choice to the starboard. "
-        "You can also reply to a message with the command to pin it.",
-        usage="[Message]",
-    )
-    async def spin(
+    @starboard.command()
+    async def pin(
         self,
         ctx: bots.CustomContext,
         *,
         message: Optional[Union[discord.Message, discord.PartialMessage]],
     ) -> None:
+        """Pins a message to the starboard. You must link to the message."""
         if not isinstance(message, (discord.Message, discord.PartialMessage)):
             if ctx.message.reference:
                 message = ctx.message.reference.resolved
@@ -235,7 +217,7 @@ class Starboard(commands.Cog):
                 ).flatten()
                 message = messages[0]
         message: discord.Message = await send_star(ctx["guild_document"], message)
-        await ctx.send(message.jump_url)
+        await ctx.send(f"Your pinned message can now be found at {message.jump_url}", ephemeral=True)
 
     @starboard.command(
         name="convert",
@@ -245,10 +227,12 @@ class Starboard(commands.Cog):
     async def sconvert(
         self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
     ) -> None:
+        await ctx.defer(ephemeral=True)
         channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:
             await send_star(ctx["guild_document"], pin)
             await asyncio.sleep(1)  # Prevents rate-limiting
+        await ctx.send("Done moving pins!", ephemeral=True)
 
 
 def setup(bot: bots.BOT_TYPES):

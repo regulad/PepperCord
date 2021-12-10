@@ -50,57 +50,79 @@ class Music(commands.Cog):
         if ctx.voice_client is None:
             await ctx.author.voice.channel.connect()
 
-    @commands.group(
-        invoke_without_command=True,
-        case_insensitive=True,
-        name="playlist",
-        aliases=["pl"],
-        description="Commands for playlists.\n"
-        "Each user can have their own playlist, which persists between guilds.",
-    )
+    @commands.group()
     async def playlist(self, ctx: CustomContext) -> None:
+        """
+        The playlist system allows you to store a queue into your data and then recall it later.
+        """
         pass
 
-    @playlist.command(
-        name="save",
-        aliases=["set", "store"],
-        brief="Sets a playlist.",
-        description="Sets user's playlist to the current queue.",
-    )
-    async def plset(self, ctx: CustomContext) -> None:
+    @playlist.command()
+    async def store(self, ctx: CustomContext) -> None:
+        """
+        Saves the current queue into your personal playlist.
+        """
         playlist = TrackPlaylist.from_queue(ctx["audio_player"]().queue)
         await ctx["author_document"].update_db(
             {"$set": {"audio.playlist": playlist.sanitized}}
         )
+        await ctx.send("Saved.", ephemeral=True)
 
-    @playlist.command(
-        name="load",
-        aliases=["get", "put"],
-        description="Loads a playlist into the current queue.\n"
-        "Does not overwrite existing queue, it just appends to it.",
-    )
-    async def plget(self, ctx: CustomContext) -> None:
-        async with ctx.typing():
-            if ctx["author_document"].get("audio", {}).get("playlist") is None:
-                await ctx.send("You don't have a playlist saved.")
-                return
-            else:
-                user_track_playlist = await TrackPlaylist.from_sanitized(
-                    ctx["author_document"]["audio"]["playlist"],
-                    ctx.author,
-                    file_downloader=ctx["audio_player"]().file_downloader,
-                )
-                for track in user_track_playlist:
-                    ctx["audio_player"]().queue.put_nowait(track)
+    @playlist.command()
+    async def recall(self, ctx: CustomContext) -> None:
+        """
+        Recalls your playlist into the queue.
+        You must have already stored a playlist.
+        """
+        await ctx.defer(ephemeral=True)
 
-    @commands.command(
-        name="play",
-        aliases=["p", "a", "add"],
-        description="Adds a supported song to the current queue.",
-    )
+        if ctx["author_document"].get("audio", {}).get("playlist") is None:
+            await ctx.send("You don't have a playlist saved.", ephemeral=True)
+            return
+        else:
+            user_track_playlist = await TrackPlaylist.from_sanitized(
+                ctx["author_document"]["audio"]["playlist"],
+                ctx.author,
+                file_downloader=ctx["audio_player"]().file_downloader,
+            )
+            for track in user_track_playlist:
+                ctx["audio_player"]().queue.put_nowait(track)
+            await ctx.send("Playlist has been restored.", ephemeral=True)
+
+    @commands.command()
     @commands.cooldown(3, 20, commands.BucketType.user)
     async def play(self, ctx: CustomContext, *, query: str) -> None:
-        async with ctx.typing():
+        """
+        Adds a song to the queue.
+        This track will be downloaded using YouTubeDL and must be from one of the services that it supports
+        """
+        await ctx.defer()
+
+        if validators.str_is_url(query):
+            url = query
+        else:
+            url = f"ytsearch:{query}"
+        source = await sources.YTDLSource.from_url(
+            ctx["audio_player"]().file_downloader, url, ctx.author
+        )
+        for track in source:
+            ctx["audio_player"]().queue.put_nowait(track)
+        menu_source = embed_menus.QueueMenuSource(source, "Added:")
+        pages = menus.ViewMenuPages(source=menu_source)
+        await pages.start(ctx)
+
+    @commands.command()
+    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    async def playtop(self, ctx: CustomContext, *, query: str) -> None:
+        """
+        Plays a song from the top of the queue.
+        Every exception from play also applies here.
+        """
+        if not len(list(ctx["audio_player"]().queue.deque)) > 0:
+            await ctx.invoke(self.play, query=query)
+        else:
+            await ctx.defer()
+
             if validators.str_is_url(query):
                 url = query
             else:
@@ -109,35 +131,10 @@ class Music(commands.Cog):
                 ctx["audio_player"]().file_downloader, url, ctx.author
             )
             for track in source:
-                ctx["audio_player"]().queue.put_nowait(track)
-            menu_source = embed_menus.QueueMenuSource(source, "Added:")
+                ctx["audio_player"]().queue.deque.appendleft(track)
+            menu_source = embed_menus.QueueMenuSource(source, "Added to top:")
             pages = menus.ViewMenuPages(source=menu_source)
             await pages.start(ctx)
-
-    @commands.command(
-        name="playtop",
-        aliases=["t"],
-        brief="Adds a song to the top of the queue.",
-        description="Adds a supported song to the top of the current queue.",
-    )
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def pt(self, ctx: CustomContext, *, query: str) -> None:
-        if not len(list(ctx["audio_player"]().queue.deque)) > 0:
-            await ctx.invoke(self.play, query=query)
-        else:
-            async with ctx.typing():
-                if validators.str_is_url(query):
-                    url = query
-                else:
-                    url = f"ytsearch:{query}"
-                source = await sources.YTDLSource.from_url(
-                    ctx["audio_player"]().file_downloader, url, ctx.author
-                )
-                for track in source:
-                    ctx["audio_player"]().queue.deque.appendleft(track)
-                menu_source = embed_menus.QueueMenuSource(source, "Added to top:")
-                pages = menus.ViewMenuPages(source=menu_source)
-                await pages.start(ctx)
 
 
 def setup(bot: BOT_TYPES) -> None:

@@ -107,7 +107,7 @@ class Nekos(commands.Cog):
             description="Defines the number of images you want to see. Defaults to 1, max is 10.",
         ),
         *,
-        tag: Optional[SFWNekosTagConverter] = commands.Option(
+        tag: Optional[NSFWNekosTagConverter] = commands.Option(
             None,
             description="The tag you want to search. You can see all options if you leave this blank.",
         ),

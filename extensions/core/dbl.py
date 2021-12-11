@@ -23,22 +23,13 @@ class VotesMenu(menus.ViewMenu):
         self,
         document: database.Document,
         user: Union[discord.Member, discord.User],
-        *,
-        timeout=180.0,
-        delete_message_after=False,
-        clear_reactions_after=False,
-        check_embeds=False,
-        message=None,
+        **kwargs,
     ):
         self.document = document
         self.user = user
 
         super().__init__(
-            timeout=timeout,
-            delete_message_after=delete_message_after,
-            clear_reactions_after=clear_reactions_after,
-            check_embeds=check_embeds,
-            message=message,
+            **kwargs,
         )
 
     async def send_initial_message(self, ctx, channel):
@@ -55,9 +46,11 @@ class VotesMenu(menus.ViewMenu):
                 )
             )
 
-            return await ctx.send(embed=embed, ephemeral=True)
+            return await channel.send(embed=embed, **self._get_kwargs())
         else:
-            return await ctx.send(f"{self.user.display_name} hasn't voted yet.")
+            return await channel.send(
+                f"{self.user.display_name} hasn't voted yet.", **self._get_kwargs()
+            )
 
 
 class TopGGWebhook(commands.Cog, name="Voting"):
@@ -113,7 +106,7 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
             # If a user has not voted in the past 24 hours, there is only a 5% chance we make it here.
 
-            await ctx.send(
+            await ctx.author.send(
                 f"Psst... {choice(PESTERING_MESSAGES)} "
                 f"{get_top_gg_link(ctx.bot.user.id)}"
                 f" Tried of these messages? Try nopester."
@@ -128,9 +121,16 @@ class TopGGWebhook(commands.Cog, name="Voting"):
         pass
 
     @votesettings.command()
-    async def pester(self, ctx: bots.CustomContext, *, nopester: bool = False) -> None:
+    async def pester(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        pester: bool = commands.Option(
+            False, description="If the bot should be allowed to pester you to vote."
+        ),
+    ) -> None:
         """Adjust the pester status."""
-        await ctx["author_document"].update_db({"$set": {"nopester": nopester}})
+        await ctx["author_document"].update_db({"$set": {"nopester": not pester}})
         await ctx.send("Settings updated.", ephemeral=True)
 
     @commands.command()
@@ -138,14 +138,15 @@ class TopGGWebhook(commands.Cog, name="Voting"):
         self,
         ctx: bots.CustomContext,
         *,
-        user: Optional[Union[discord.Member, discord.User]],
+        user: discord.Member = commands.Option(
+            description="The user who will have their stats displayed."
+        ),
     ) -> None:
         """Shows you your voting stats."""
         await ctx.defer(ephemeral=True)
-        user: Union[discord.Member, discord.User] = user or ctx.author
         document: database.Document = await self.bot.get_user_document(user)
 
-        await VotesMenu(document, user).start(ctx)
+        await VotesMenu(document, user).start(ctx, ephemeral=True)
 
 
 class TopGG(commands.Cog):

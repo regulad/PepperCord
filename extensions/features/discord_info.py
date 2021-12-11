@@ -112,9 +112,7 @@ class DiscordInfo(commands.Cog):
                 value=f"<t:{guild.created_at.timestamp():.0f}:R>",
             )
             .add_field(name="Roles:", value=len(guild.roles))
-            .add_field(
-                name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}"
-            )
+            .add_field(name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}")
             .add_field(
                 name="Total channels:",
                 value=f"{len(guild.channels)} channels, {len(guild.categories)} categories.",

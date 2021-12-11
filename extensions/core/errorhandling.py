@@ -83,7 +83,7 @@ class ErrorMenu(menus.ViewMenu):
         if error_response is not None:
             embed.set_footer(text=f"Tip: {error_response}")
 
-        return await ctx.send(embed=embed, ephemeral=True)
+        return await channel.send(embed=embed, **self._get_kwargs())
 
 
 class ErrorLogging(commands.Cog):
@@ -128,7 +128,7 @@ class ErrorHandling(commands.Cog):
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
         if ctx.command is not None and ctx.interaction is not None:
-            await ErrorMenu(error).start(ctx)
+            await ErrorMenu(error).start(ctx, ephemeral=True)
 
     @commands.Cog.listener("on_command_error")
     async def attempt_to_reinvoke(

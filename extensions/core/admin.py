@@ -12,25 +12,22 @@ class DeleteMenu(menus.ViewMenu):
     async def send_initial_message(
         self, ctx, channel: discord.TextChannel
     ) -> discord.Message:
-        return await ctx.send(ctx["locale"].get_message(
+        return await channel.send(
             "Would you like the bot to leave the server and delete all information? "
-            "**Warning**: this process is not reversible."
-        ), ephemeral=True)
+            "**Warning**: this process is not reversible.",
+            **self._get_kwargs(),
+        )
 
     @menus.button("✅")
     async def confirm(self, payload) -> None:
-        await self.message.edit(
-            content=self.ctx["locale"].get_message("Deleting...")
-        )
+        await self.message.edit("Deleting...")
         await self.ctx["guild_document"].delete_db()
         await self.ctx.guild.leave()
         self.stop()
 
     @menus.button("❌")
     async def reject(self, payload) -> None:
-        await self.message.edit(
-            content=self.ctx["locale"].get_message("Action cancelled.")
-        )
+        await self.message.edit("Action cancelled.")
         self.stop()
 
     async def prompt(self, ctx):
@@ -49,26 +46,34 @@ class Administration(commands.Cog):
         else:
             return True
 
-    @commands.command(
-        name="message",
-        usage="<Channel> <Message>",
-    )
-    async def do_message(
-        self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
+    @commands.command()
+    async def message(
+        self,
+        ctx: CustomContext,
+        channel: discord.TextChannel = commands.Option(
+            description="The channel that the message will be sent in.",
+        ),
+        *,
+        text: str,
     ) -> None:
         """Send a message as the bot in a channel of your choosing."""
         channel = ctx.guild.get_channel_or_thread(channel.id)
         await channel.send(text)
 
-    @commands.group(
-        name="configuration",
-    )
-    async def config(self, ctx: CustomContext) -> None:
+    @commands.group()
+    async def configuration(self, ctx: CustomContext) -> None:
         """Configure the bot for use in your server."""
         pass
 
-    @config.command()
-    async def mute(self, ctx: CustomContext, *, role: discord.Role) -> None:
+    @configuration.command()
+    async def mute(
+        self,
+        ctx: CustomContext,
+        *,
+        role: discord.Role = commands.Option(
+            description="The role that people will get when they are muted."
+        ),
+    ) -> None:
         """Chooses a role to give to people when they are muted. This role must already have been created."""
         await ctx["guild_document"].update_db({"$set": {"mute_role": role.id}})
         await ctx.send("Done", ephemeral=True)
@@ -76,7 +81,7 @@ class Administration(commands.Cog):
     @commands.command()
     async def delete(self, ctx: CustomContext) -> None:
         """Deletes all the info about the bot in this server. This cannot be undone."""
-        await DeleteMenu().start(ctx)
+        await DeleteMenu().start(ctx, ephemeral=True)
 
 
 def setup(bot: BOT_TYPES) -> None:

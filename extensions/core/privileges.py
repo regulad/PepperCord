@@ -38,25 +38,36 @@ class Privileges(commands.Cog):
         await ctx.send("Disabled.", ephemeral=True)
 
     @permissions.command()
-    async def read(self, ctx: bots.CustomContext, *, entity: Optional[Union[discord.Member, discord.Role]]):
-        """Reads the permission level of a member or role"""
+    async def read(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        entity: Optional[Union[discord.Member, discord.Role]] = commands.Option(
+            description="The role or member that will have it's permissions read."
+        ),
+    ):
+        """Reads the permission level of a member or role."""
         entity = entity or ctx.author
         await ctx.send(
             f"{entity.name} has permission level `{permissions.get_permission(ctx, entity)}`",
-            ephemeral=True
+            ephemeral=True,
         )
 
     @permissions.command()
     async def write(
         self,
         ctx: bots.CustomContext,
-        value: PermissionConverter,
+        permission: PermissionConverter = commands.Option(
+            description="The permission that the role will inherit. Admin, Moderator, or Manager."
+        ),
         *,
-        entity: discord.Role,
+        role: discord.Role = commands.Option(
+            description="The role that will have it's permission changed."
+        ),
     ) -> None:
         """Writes a permission of Admin, Moderator, or Manager to a role."""
-        permission: permissions.Permission = cast(permissions.Permission, value)
-        await permissions.write_permission(ctx, entity, permission)
+        permission: permissions.Permission = cast(permissions.Permission, permission)
+        await permissions.write_permission(ctx, role, permission)
 
 
 def setup(bot: bots.BOT_TYPES):

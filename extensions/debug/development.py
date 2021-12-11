@@ -31,22 +31,11 @@ class ShardMenu(menus.ViewMenu):
     def __init__(
         self,
         shard_info,
-        *,
-        timeout=180.0,
-        delete_message_after=False,
-        clear_reactions_after=False,
-        check_embeds=False,
-        message=None,
+        **kwargs,
     ):
         self.shard_info = shard_info
 
-        super().__init__(
-            timeout=timeout,
-            delete_message_after=delete_message_after,
-            clear_reactions_after=clear_reactions_after,
-            check_embeds=check_embeds,
-            message=message,
-        )
+        super().__init__(**kwargs)
 
     async def send_initial_message(self, ctx, channel):
         embed = (
@@ -58,7 +47,7 @@ class ShardMenu(menus.ViewMenu):
                 name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms"
             )
         )
-        return await ctx.send(embed=embed)
+        return await channel.send(embed=embed, **self._get_kwargs())
 
     @menus.button("🔄")
     async def reconnect(self, payload):
@@ -83,10 +72,9 @@ class Dev(commands.Cog):
         await ctx.guild.me.edit(nick=name)
         await ctx.send("Changed nickname", ephemeral=True)
 
-
-    @commands.command(name="shardinfo")
+    @commands.command()
     @checks.check_bot_is_sharded
-    async def shard_info(
+    async def shardinfo(
         self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]
     ) -> None:
         """Get info on the bots current shard, if the bot is sharded."""
@@ -103,12 +91,14 @@ class Dev(commands.Cog):
         if shard_info is None:
             raise ShardNotFound
 
-        await ShardMenu(shard_info=shard_info).start(ctx)
+        await ShardMenu(shard_info=shard_info).start(ctx, ephemeral=True)
 
     @commands.command()
     async def guilds(self, ctx: bots.CustomContext) -> None:
         """List all the guilds the bot is in."""
-        await menus.ViewMenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(ctx)
+        await menus.ViewMenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(
+            ctx, ephemeral=True
+        )
 
 
 def setup(bot: bots.BOT_TYPES):

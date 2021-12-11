@@ -10,6 +10,7 @@ from utils.bots import CustomContext, BOT_TYPES
 
 class ShuffleNicks(commands.Cog):
     """A mini-game where you can shuffle the nicknames of people on a server."""
+
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
 
@@ -57,27 +58,21 @@ class ShuffleNicks(commands.Cog):
             for one, two in pairing.items():
                 db_pairings[str(one.id)] = two.id
 
-            await ctx["guild_document"].update_db(
-                {"$set": {"shuffled": db_pairings}}
-            )
+            await ctx["guild_document"].update_db({"$set": {"shuffled": db_pairings}})
         else:  # Previous paring exists, roll with it
-            db_pairings: Dict[str, int] = copy.copy(
-                ctx["guild_document"]["shuffled"]
-            )
-            await ctx["guild_document"].update_db(
-                {"$unset": {"shuffled": 1}}
-            )  # Reset
+            db_pairings: Dict[str, int] = copy.copy(ctx["guild_document"]["shuffled"])
+            await ctx["guild_document"].update_db({"$unset": {"shuffled": 1}})  # Reset
             member_pairings: Dict[
                 Union[discord.Member, discord.User],
                 Union[discord.Member, discord.User],
             ] = {}
             for one_id_as_str, two_id in db_pairings.items():
-                one: Optional[
-                    Union[discord.Member, discord.User]
-                ] = await get_any_id(ctx, int(one_id_as_str))
-                two: Optional[
-                    Union[discord.Member, discord.User]
-                ] = await get_any_id(ctx, two_id)
+                one: Optional[Union[discord.Member, discord.User]] = await get_any_id(
+                    ctx, int(one_id_as_str)
+                )
+                two: Optional[Union[discord.Member, discord.User]] = await get_any_id(
+                    ctx, two_id
+                )
 
                 assert one is not None, two is not None
 

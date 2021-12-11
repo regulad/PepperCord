@@ -59,7 +59,7 @@ class CustomCommand:
         if self.keyword is not None:
             await self.keyword.execute(ctx)
         else:
-            await ctx.send(self.message)
+            await ctx.reply(self.message, mention_author=False)
 
     @classmethod
     def from_tuple(cls, input_tuple: tuple):
@@ -195,6 +195,7 @@ class CustomCommands(commands.Cog):
             3, 10, commands.BucketType.channel
         )
 
+    """
     @commands.Cog.listener()
     async def on_custom_command_success(
         self, custom_command: CustomCommand, ctx: bots.CustomContext
@@ -213,6 +214,7 @@ class CustomCommands(commands.Cog):
             await ctx.message.add_reaction("⏰")
         else:
             await ctx.message.add_reaction("❌")
+    """
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:

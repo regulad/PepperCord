@@ -215,7 +215,7 @@ class Levels(commands.Cog):
         if user_level is None:
             await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
         else:
-            await UserLevelMenu(user_level).start(ctx)
+            await UserLevelMenu(user_level).start(ctx, ephemeral=True)
 
     @commands.command()
     async def leaderboard(self, ctx: CustomContext) -> None:

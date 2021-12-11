@@ -56,7 +56,7 @@ class AudioQueue(commands.Cog):
         ctx["audio_player"]().voice_client.stop()
         await ctx.send("Stopped.", ephemeral=True)
 
-    @commands.group()
+    @player.group()
     async def queue(self, ctx: CustomContext) -> None:
         """Commands for controlling the queue of tracks that are about to be played."""
         pass
@@ -68,7 +68,7 @@ class AudioQueue(commands.Cog):
             list(ctx["audio_player"]().queue.deque),
             f"Current tracks on queue:{' (Loop on)' if ctx['audio_player']().loop else ''}",
         )
-        await menus.ViewMenuPages(source=source).start(ctx)
+        await menus.ViewMenuPages(source=source).start(ctx, ephemeral=True)
 
     @queue.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
@@ -95,7 +95,14 @@ class AudioQueue(commands.Cog):
 
     @queue.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def pop(self, ctx: CustomContext, *, index: int) -> None:
+    async def pop(
+        self,
+        ctx: CustomContext,
+        *,
+        index: int = commands.Option(
+            description="The position of the track in the queue."
+        ),
+    ) -> None:
         """Removes a song from the queue at a position of your choice."""
         del ctx["audio_player"]().queue.deque[index - 1]
         await ctx.send("Track removed.", ephemeral=True)

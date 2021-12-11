@@ -15,10 +15,8 @@ PepperCord gives you all the features you need to enrich your server.
     * Mod Tools
     * Privilege System
 * Server personality
-    * Custom Prefix
     * Custom Commands
     * Custom Messages
-    * Proxy Messages
 * Fun
     * Levels
     * Reaction Roles

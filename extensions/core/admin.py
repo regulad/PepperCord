@@ -14,16 +14,17 @@ class DeleteMenu(menus.ViewMenu):
     async def send_initial_message(
         self, ctx, channel: discord.TextChannel
     ) -> discord.Message:
-        return await ctx.send(ctx["locale"].get_message(
-            "Would you like the bot to leave the server and delete all information? "
-            "**Warning**: this process is not reversible."
-        ), ephemeral=True)
+        return await ctx.send(
+            ctx["locale"].get_message(
+                "Would you like the bot to leave the server and delete all information? "
+                "**Warning**: this process is not reversible."
+            ),
+            ephemeral=True,
+        )
 
     @menus.button("✅")
     async def confirm(self, payload) -> None:
-        await self.message.edit(
-            content=self.ctx["locale"].get_message("Deleting...")
-        )
+        await self.message.edit(content=self.ctx["locale"].get_message("Deleting..."))
         await self.ctx["guild_document"].delete_db()
         await self.ctx.guild.leave()
         self.stop()

@@ -83,7 +83,6 @@ class Dev(commands.Cog):
         await ctx.guild.me.edit(nick=name)
         await ctx.send("Changed nickname", ephemeral=True)
 
-
     @commands.command(name="shardinfo")
     @checks.check_bot_is_sharded
     async def shard_info(
@@ -108,7 +107,9 @@ class Dev(commands.Cog):
     @commands.command()
     async def guilds(self, ctx: bots.CustomContext) -> None:
         """List all the guilds the bot is in."""
-        await menus.ViewMenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(ctx)
+        await menus.ViewMenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(
+            ctx
+        )
 
 
 def setup(bot: bots.BOT_TYPES):

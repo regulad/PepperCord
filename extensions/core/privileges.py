@@ -38,12 +38,17 @@ class Privileges(commands.Cog):
         await ctx.send("Disabled.", ephemeral=True)
 
     @permissions.command()
-    async def read(self, ctx: bots.CustomContext, *, entity: Optional[Union[discord.Member, discord.Role]]):
+    async def read(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        entity: Optional[Union[discord.Member, discord.Role]],
+    ):
         """Reads the permission level of a member or role"""
         entity = entity or ctx.author
         await ctx.send(
             f"{entity.name} has permission level `{permissions.get_permission(ctx, entity)}`",
-            ephemeral=True
+            ephemeral=True,
         )
 
     @permissions.command()

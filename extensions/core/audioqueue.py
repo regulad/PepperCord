@@ -61,7 +61,6 @@ class AudioQueue(commands.Cog):
         """Commands for controlling the queue of tracks that are about to be played."""
         pass
 
-
     @queue.command()
     async def list(self, ctx: CustomContext) -> None:
         """List all songs on the queue."""

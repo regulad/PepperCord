@@ -33,7 +33,7 @@ async def send_star(
     ).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
         url=message.jump_url,
-        icon_url=message.author.avatar.url,
+        icon_url=(message.author.guild_avatar or message.author.avatar).url,
     )
 
     try:
@@ -161,7 +161,12 @@ class Starboard(commands.Cog):
 
     @config.command()
     async def channel(
-        self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
+        self,
+        ctx: bots.CustomContext,
+        *,
+        channel: discord.TextChannel = commands.Option(
+            description="The channel to be used as a starboard."
+        ),
     ) -> None:
         """
         Sets the channel that will be used as a starboard.
@@ -178,7 +183,9 @@ class Starboard(commands.Cog):
         self,
         ctx: bots.CustomContext,
         *,
-        emoji: Union[discord.Emoji, discord.PartialEmoji, str],
+        emoji: Union[discord.Emoji, discord.PartialEmoji, str] = commands.Option(
+            description="The emoji that people can react to a message with to pin it."
+        ),
     ) -> None:
         """
         Sets the emoji that people can react with to attempt to pin a message to the starboard.
@@ -190,7 +197,14 @@ class Starboard(commands.Cog):
         await ctx.send(f"Emoji set to :{emoji}:.", ephemeral=True)
 
     @config.command()
-    async def threshold(self, ctx: bots.CustomContext, *, threshold: int) -> None:
+    async def threshold(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        threshold: int = commands.Option(
+            description="The amount of people that must react to the message in order for it to be pinned."
+        ),
+    ) -> None:
         """
         Sets the minimum amount of stars that must be placed on a message before it gets pinned.
         Defaults to 3.
@@ -204,7 +218,11 @@ class Starboard(commands.Cog):
         self,
         ctx: bots.CustomContext,
         *,
-        message: Optional[Union[discord.Message, discord.PartialMessage]],
+        message: Optional[
+            Union[discord.Message, discord.PartialMessage]
+        ] = commands.Option(
+            description="A link to a message that will be pinned to the starboard."
+        ),
     ) -> None:
         """Pins a message to the starboard. You must link to the message."""
         if not isinstance(message, (discord.Message, discord.PartialMessage)):
@@ -227,10 +245,14 @@ class Starboard(commands.Cog):
         description="Converts pins in channel to pins on starboard. Does not unpin channels.",
     )
     async def sconvert(
-        self, ctx: bots.CustomContext, *, channel: Optional[discord.TextChannel]
+        self,
+        ctx: bots.CustomContext,
+        *,
+        channel: discord.TextChannel = commands.Option(
+            description="The channel that will have it's pins converted."
+        ),
     ) -> None:
         await ctx.defer(ephemeral=True)
-        channel = channel or ctx.channel
         for pin in (await channel.pins())[::-1]:
             await send_star(ctx["guild_document"], pin)
             await asyncio.sleep(1)  # Prevents rate-limiting

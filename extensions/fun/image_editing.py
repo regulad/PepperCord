@@ -36,7 +36,12 @@ class Images(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 40, commands.BucketType.channel)
     async def pinsleft(
-        self, ctx: CustomContext, *, channel: typing.Optional[discord.TextChannel]
+        self,
+        ctx: CustomContext,
+        *,
+        channel: discord.TextChannel = commands.Option(
+            description="The channel that will have it's pins displayed. "
+        ),
     ) -> None:
         """Shows how many pins are left in a channel in a wonderfully flashy way."""
         await ctx.defer()

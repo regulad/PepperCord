@@ -51,7 +51,14 @@ class TextToSpeech(commands.Cog):
 
     @commands.command()
     @commands.cooldown(10, 2, commands.BucketType.user)
-    async def texttospeech(self, ctx: bots.CustomContext, *, text: str) -> None:
+    async def texttospeech(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        text: str = commands.Option(
+            description="The text that will be converted to speech."
+        ),
+    ) -> None:
         """Have the bot talk for you in a voice channel."""
         await ctx.defer(ephemeral=True)
 
@@ -78,7 +85,10 @@ class TextToSpeech(commands.Cog):
         self,
         ctx: bots.CustomContext,
         *,
-        desiredvoice: Optional[str] = "en-US-Wavenet-D",
+        desiredvoice: Optional[str] = commands.Option(
+            "en-US-Wavenet-D",
+            description="The voice that the bot will attempt to use when talking for you. See the command listvoices.",
+        ),
     ) -> None:
         """Allows you to select a voice that the bot will use to portray you in Text-To-Speech conversations."""
         await ctx.defer(ephemeral=True)
@@ -96,7 +106,7 @@ class TextToSpeech(commands.Cog):
         await ctx.send("Updated.", ephemeral=True)
 
     @ttssettings.command()
-    async def list_voices(self, ctx: bots.CustomContext) -> None:
+    async def listvoices(self, ctx: bots.CustomContext) -> None:
         """Lists all voices that the bot can use."""
         await ctx.defer(ephemeral=True)
         voices: list = await self._async_gtts_session.get_voices("en-US")

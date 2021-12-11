@@ -91,7 +91,14 @@ class Music(commands.Cog):
 
     @commands.command()
     @commands.cooldown(3, 20, commands.BucketType.user)
-    async def play(self, ctx: CustomContext, *, query: str) -> None:
+    async def play(
+        self,
+        ctx: CustomContext,
+        *,
+        query: str = commands.Option(
+            description="The song or URL to be searched. Will search using YouTube."
+        ),
+    ) -> None:
         """
         Adds a song to the queue.
         This track will be downloaded using YouTubeDL and must be from one of the services that it supports
@@ -113,7 +120,14 @@ class Music(commands.Cog):
 
     @commands.command()
     @commands.check_any(checks.check_is_man, checks.check_is_alone)
-    async def playtop(self, ctx: CustomContext, *, query: str) -> None:
+    async def playtop(
+        self,
+        ctx: CustomContext,
+        *,
+        query: str = commands.Option(
+            description="The song or URL to be searched. Will search using YouTube."
+        ),
+    ) -> None:
         """
         Plays a song from the top of the queue.
         Every exception from play also applies here.

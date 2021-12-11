@@ -67,15 +67,27 @@ class Dev(commands.Cog):
 
     @commands.command()
     @commands.guild_only()
-    async def nick(self, ctx: bots.CustomContext, *, name: Optional[str]) -> None:
+    async def nick(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        nickname: Optional[str] = commands.Option(
+            description="The nickname the bot will take."
+        ),
+    ) -> None:
         """Sets the bots nickname in this guild to a desired string."""
-        await ctx.guild.me.edit(nick=name)
+        await ctx.guild.me.edit(nick=nickname)
         await ctx.send("Changed nickname", ephemeral=True)
 
     @commands.command()
     @checks.check_bot_is_sharded
     async def shardinfo(
-        self, ctx: bots.CustomContext, *, shard_id: Optional[Union[discord.Guild, int]]
+        self,
+        ctx: bots.CustomContext,
+        *,
+        shard_id: Optional[Union[discord.Guild, int]] = commands.Option(
+            description="The guild or shard ID to be investigated."
+        ),
     ) -> None:
         """Get info on the bots current shard, if the bot is sharded."""
 

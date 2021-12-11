@@ -122,10 +122,12 @@ class UserLevelMenu(menus.Menu):
         )
         if self.level_up:
             return await channel.send(
-                f"Level up! {self.source.user.mention}", embed=embed
+                f"Level up! {self.source.user.mention}",
+                embed=embed,
+                **self._get_kwargs(),
             )
         else:
-            return await channel.send(embed=embed)
+            return await channel.send(embed=embed, **self._get_kwargs())
 
 
 class Levels(commands.Cog):
@@ -183,7 +185,12 @@ class Levels(commands.Cog):
     )
     @checks.check_is_admin
     async def redirect(
-        self, ctx: CustomContext, *, channel: Optional[discord.TextChannel]
+        self,
+        ctx: CustomContext,
+        *,
+        channel: discord.TextChannel = commands.Option(
+            description="The channel all level-up notofications will be redirected to."
+        ),
     ) -> None:
         """
         Sets the channel level-up alerts will go to.

@@ -53,11 +53,16 @@ class Alerts(commands.Cog):
     async def add(
         self,
         ctx: CustomContext,
-        messagetype: str,
-        channel: discord.TextChannel,
+        messagetype: str = commands.Option(
+            description="The event that must happen to dispatch this message. member_join or member_leave."
+        ),
+        channel: discord.TextChannel = commands.Option(
+            description="The channel the message will be sent in."
+        ),
         *,
-        message: str,
+        message: str = commands.Option(description="The contents of the message."),
     ) -> None:
+        """Registers a message."""
         await ctx["guild_document"].update_db(
             {"$set": {f"messages.{messagetype}.{channel.id}": message}}
         )

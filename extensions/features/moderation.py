@@ -125,14 +125,25 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @commands.bot_has_permissions(manage_messages=True)
-    async def purge(self, ctx: bots.CustomContext, messages: int) -> None:
+    async def purge(
+        self,
+        ctx: bots.CustomContext,
+        messages: int = commands.Option(
+            description="The amount of messages to be deleted."
+        ),
+    ) -> None:
         """Deletes a set amount of messages from a channel."""
         await ctx.channel.purge(limit=messages)
         await ctx.send("Deleted.", ephemeral=True)
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
-    async def mute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
+    async def mute(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        member: discord.Member = commands.Option(description="The member to be muted."),
+    ) -> None:
         """
         Mutes a member of the server.
         You must first configure this with the config command.
@@ -142,7 +153,14 @@ class Moderation(commands.Cog):
 
     @commands.command()
     @commands.bot_has_permissions(manage_roles=True)
-    async def unmute(self, ctx: bots.CustomContext, *, member: discord.Member) -> None:
+    async def unmute(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        member: discord.Member = commands.Option(
+            description="The member to be unmuted."
+        ),
+    ) -> None:
         """
         Unmutes a member of the server.
         You must first configure this with the config command, and you must also have muted this member previously.
@@ -155,8 +173,10 @@ class Moderation(commands.Cog):
     async def timemute(
         self,
         ctx: bots.CustomContext,
-        member: discord.Member,
-        time: converters.TimedeltaShorthand,
+        member: discord.Member = commands.Option(description="The member to be muted."),
+        time: converters.TimedeltaShorthand = commands.Option(
+            description="The amount of time to keep the member punished for. Example: 10d."
+        ),
     ) -> None:
         """Mutes a member, and then unmutes them later."""
         time: datetime.timedelta = cast(datetime.timedelta, time)
@@ -178,10 +198,16 @@ class Moderation(commands.Cog):
     async def timeban(
         self,
         ctx: bots.CustomContext,
-        member: discord.Member,
-        time: converters.TimedeltaShorthand,
+        member: discord.Member = commands.Option(
+            description="The member to be banned."
+        ),
+        time: converters.TimedeltaShorthand = commands.Option(
+            description="The amount of time to keep the member punished for. Example: 10d."
+        ),
         *,
-        reason: str = None,
+        reason: str = commands.Option(
+            None, description="The reason why this user was banned."
+        ),
     ) -> None:
         """Bans a member, and then unbans them later."""
         member: member if not isinstance(member, int) else discord.Object(id=member)

@@ -35,7 +35,14 @@ class DiscordInfo(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def status(self, ctx: bots.CustomContext, *, activity: Optional[str]) -> None:
+    async def status(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        activity: Optional[str] = commands.Option(
+            description="The status that the bot will change to."
+        ),
+    ) -> None:
         """Sets the bot's status. If no status is specified, it will go back to the default."""
         task_is_running = self.activity_update.is_running()
 
@@ -55,7 +62,9 @@ class DiscordInfo(commands.Cog):
         self,
         ctx: bots.CustomContext,
         *,
-        user: Optional[Union[discord.Member, discord.User]],
+        user: Optional[Union[discord.Member, discord.User]] = commands.Option(
+            description="The user that will have their info displayed. This can be any user, in or outside this server."
+        ),
     ) -> None:
         """Get information on you, a Member of this server, or any User of Discord."""
         if not user:
@@ -92,7 +101,12 @@ class DiscordInfo(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def serverinfo(
-        self, ctx: bots.CustomContext, *, guild: Optional[discord.Guild]
+        self,
+        ctx: bots.CustomContext,
+        *,
+        guild: Optional[discord.Guild] = commands.Option(
+            description="The server that will have it's data displayed. Defaults to the current server."
+        ),
     ) -> None:
         """Gets info on a server."""
         guild = guild or ctx.guild

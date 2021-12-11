@@ -315,7 +315,14 @@ class CustomCommands(commands.Cog):
     @customcommands.command()
     @checks.check_is_admin
     async def add(
-        self, ctx: bots.CustomContext, command: str, *, message: Optional[str] = None
+        self,
+        ctx: bots.CustomContext,
+        command: str = commands.Option(description="The command that must be sent."),
+        *,
+        message: Optional[str] = commands.Option(
+            None,
+            description="The message that the bot will respond with. Defaults to the most recently sent image.",
+        ),
     ) -> None:
         """
         Adds a custom command to the guild.
@@ -338,7 +345,12 @@ class CustomCommands(commands.Cog):
 
     @customcommands.command()
     @checks.check_is_admin
-    async def delete(self, ctx: bots.CustomContext, *, command: str) -> None:
+    async def delete(
+        self,
+        ctx: bots.CustomContext,
+        *,
+        command: str = commands.Option(description="The command to be removed."),
+    ) -> None:
         """Deletes a custom command from the guild."""
         if (
             ctx["guild_document"].get("commands") is not None

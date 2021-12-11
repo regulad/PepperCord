@@ -5,6 +5,8 @@ from aiocoingecko import AsyncCoinGeckoAPISession
 from aiohttp import ClientSession
 from discord.ext import commands, menus
 
+from utils.bots import CustomContext
+
 
 class CoinMenuSource(menus.ListPageSource):
     async def format_page(self, menu, page_entries):
@@ -62,7 +64,7 @@ class CoinGecko(commands.Cog):
         retry_after: float = cooldown.update_rate_limit()
 
         if retry_after:
-            raise commands.CommandOnCooldown(cooldown, retry_after)
+            raise commands.CommandOnCooldown(cooldown, retry_after, self.cooldown.type)
         else:
             return True
 
@@ -71,42 +73,53 @@ class CoinGecko(commands.Cog):
         pass
 
     @coingecko.command()
-    async def coins(self, ctx) -> None:
-        """Sends you a list of all coins."""
+    async def coins(self, ctx: CustomContext) -> None:
+        """Sends you a list of all cryptocurrencies that can be searched."""
+
+        await ctx.defer(ephemeral=True)
+
         get: list = await self.coin_gecko_session.get_coins_list()
 
-        menu: menus.ViewMenuPages = menus.ViewMenuPages(
-            source=CoinMenuSource(get, per_page=15)
+        await menus.ViewMenuPages(source=CoinMenuSource(get, per_page=15)).start(
+            ctx, ephemeral=True
         )
 
-        await menu.start(ctx)
+    @coingecko.command()
+    async def currencies(self, ctx: CustomContext) -> None:
+        """Lists all currencies that cryptocurrencies can be compared to."""
 
-    @coingecko.command(
-        name="currencies",
-    )
-    async def currencies(self, ctx) -> None:
+        await ctx.defer(ephemeral=True)
+
         get: list = await self.coin_gecko_session.get_supported_vs_currencies()
 
-        menu: menus.ViewMenuPages = menus.ViewMenuPages(
-            source=CurrencyMenuSource(get, per_page=20)
+        await menus.ViewMenuPages(source=CurrencyMenuSource(get, per_page=20)).start(
+            ctx, ephemeral=True
         )
 
-        await menu.start(ctx)
+    @coingecko.command()
+    async def price(
+        self,
+        ctx: CustomContext,
+        coin: str = commands.Option(
+            description="The name of a currency to search. Example: ethereum."
+        ),
+        currency: Optional[str] = commands.Option(
+            "usd",
+            description="The currency that the coin's value will be represented in. Defaults to usd.",
+        ),
+    ) -> None:
+        """Gets the price of a cryptocurrency."""
 
-    @coingecko.command(
-        name="price",
-        brief="Get the price of a coin.",
-        description="Get the price of a supported coin in a supported currency.",
-        usage="<Coin (see cg coins)> [Currency (see cg currencies) (default USD)]",
-    )
-    async def price(self, ctx, coin: str, currency: Optional[str] = "usd") -> None:
+        await ctx.defer(ephemeral=True)
+
         get: dict = await self.coin_gecko_session.get_price(coin, currency)
 
         if not get:
-            await ctx.send(f"Couldn't find anything on {coin} in {currency}.")
-            return
-
-        await ctx.send(f"{get[coin][currency]} {currency.upper()}")
+            await ctx.send(
+                f"Couldn't find anything on {coin} in {currency}.", ephemeral=True
+            )
+        else:
+            await ctx.send(f"{get[coin][currency]} {currency.upper()}", ephemeral=True)
 
 
 def setup(bot):

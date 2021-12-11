@@ -96,9 +96,17 @@ class ReactionRoles(commands.Cog):
     async def add(
         self,
         ctx: bots.CustomContext,
-        message: typing.Union[discord.Message, discord.PartialMessage],
-        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str],
-        role: discord.Role,
+        message: typing.Union[
+            discord.Message, discord.PartialMessage
+        ] = commands.Option(
+            description="A URL to the message that will be reacted to."
+        ),
+        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str] = commands.Option(
+            description="The emoji that will be used. Send the emoji, do not just send it's name."
+        ),
+        role: discord.Role = commands.Option(
+            description="The role that will be given/taken."
+        ),
     ) -> None:
         """
         Adds a reaction role to a message.

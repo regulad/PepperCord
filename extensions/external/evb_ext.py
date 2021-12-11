@@ -47,11 +47,18 @@ class EditVideoBot(commands.Cog):
         else:
             return True
 
-    @commands.command(
-        usage="<Commands>",
-    )
-    async def edit(self, ctx: CustomContext, *, evb_commands: str) -> None:
+    @commands.command()
+    async def edit(
+        self,
+        ctx: CustomContext,
+        *,
+        evb_commands: str = commands.Option(
+            name="commands",
+            description="The commands that will be applied to the video. You can find a list here: https://bit.ly/3GBkKqx.",
+        ),
+    ) -> None:
         """Edit media with EditVideoBot."""
+
         await ctx.defer()
 
         url, source = await find_url_recurse(ctx.message)

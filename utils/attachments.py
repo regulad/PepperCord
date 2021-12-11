@@ -40,6 +40,8 @@ async def find_url(
     Else, if a message has embeds from an extraneous source, return the first embed's URL and it's object instance.
     """
 
+    if not isinstance(message, discord.Message):  # Must be a _FakeSlashMessage
+        raise NoMedia
     if message.attachments:
         attachment: discord.Attachment = message.attachments[0]
 

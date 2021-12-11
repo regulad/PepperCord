@@ -268,7 +268,10 @@ class CustomCommands(commands.Cog):
     ) -> None:
         """Fetch a custom command using the name of one."""
         cmd: CustomCommand = cast(CustomCommand, query)
-        await ctx.send(f"The custom command \"{cmd.command}\" has the message \"{cmd.message}\".", ephemeral=True)
+        await ctx.send(
+            f'The custom command "{cmd.command}" has the message "{cmd.message}".',
+            ephemeral=True,
+        )
 
     @customcommands.group()
     @checks.check_is_admin
@@ -332,7 +335,6 @@ class CustomCommands(commands.Cog):
             {"$set": {f"commands.{command}": message}}
         )
         await ctx.send("Custom command added.", ephemeral=True)
-
 
     @customcommands.command()
     @checks.check_is_admin

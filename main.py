@@ -59,7 +59,14 @@ if __name__ == "__main__":
         shard_count=shards,
         slash_commands=True,
         message_commands=bool(os.environ.get("PEPPERCORD_DEBUG")),
-        slash_command_guilds=([int(testguild) for testguild in os.environ["PEPPERCORD_TESTGUILDS"].split(", ")] if os.environ.get("PEPPERCORD_TESTGUILDS") is not None else None)
+        slash_command_guilds=(
+            [
+                int(testguild)
+                for testguild in os.environ["PEPPERCORD_TESTGUILDS"].split(", ")
+            ]
+            if os.environ.get("PEPPERCORD_TESTGUILDS") is not None
+            else None
+        ),
     )
 
     directories: List[str] = [entry[0] for entry in os.walk("extensions")]
@@ -68,7 +75,9 @@ if __name__ == "__main__":
         directories: List[str] = [entry.replace("\\", "/") for entry in directories]
 
     for directory in directories:
-        if (directory == "extensions/debug" or directory == "extensions\\debug") and not bool(os.environ.get("PEPPERCORD_DEBUG")):
+        if (
+            directory == "extensions/debug" or directory == "extensions\\debug"
+        ) and not bool(os.environ.get("PEPPERCORD_DEBUG")):
             continue
         if directory == "extensions/disabled" or directory == "extensions\\disabled":
             continue

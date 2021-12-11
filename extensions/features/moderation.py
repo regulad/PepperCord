@@ -88,7 +88,11 @@ class Moderation(commands.Cog):
                             unpunish_time
                             if isinstance(unpunish_time, datetime.datetime)
                             else datetime.datetime(
-                                second=unpunish_time, day=0, month=0, year=0, tzinfo=datetime.timezone.utc
+                                second=unpunish_time,
+                                day=0,
+                                month=0,
+                                year=0,
+                                tzinfo=datetime.timezone.utc,
                             )
                         ) < datetime.datetime.utcnow():
                             try:  # Messy.
@@ -98,7 +102,9 @@ class Moderation(commands.Cog):
                                         guild_document=guild_doc,
                                     )
                                 elif punishment == "ban":
-                                    user: discord.User = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
+                                    user: discord.User = self.bot.get_user(
+                                        user_id
+                                    ) or await self.bot.fetch_user(user_id)
                                     await guild.unban(
                                         user=user, reason="Timeban expired."
                                     )
@@ -158,13 +164,14 @@ class Moderation(commands.Cog):
         await ctx["guild_document"].update_db(
             {
                 "$set": {
-                    f"punishments.{member.id}.mute": (
-                            datetime.datetime.utcnow() + time
-                    )
+                    f"punishments.{member.id}.mute": (datetime.datetime.utcnow() + time)
                 }
             }
         )
-        await ctx.send("This member has been muted, and their unpunishment has been scheduled.", ephemeral=True)
+        await ctx.send(
+            "This member has been muted, and their unpunishment has been scheduled.",
+            ephemeral=True,
+        )
 
     @commands.command()
     @commands.bot_has_permissions(ban_members=True)
@@ -182,23 +189,30 @@ class Moderation(commands.Cog):
             raise RuntimeError("You cannot ban this member.")
         time: datetime.timedelta = cast(datetime.timedelta, time)
         unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + time
-        localunpunishdatetime: datetime.datetime = datetime.datetime.now() + time  # Us "humans" have this "time" thing all wrong. ow.
+        localunpunishdatetime: datetime.datetime = (
+            datetime.datetime.now() + time
+        )  # Us "humans" have this "time" thing all wrong. ow.
         await member.send(
-            (await ctx.channel.create_invite(reason=f'Unban for {reason}', max_uses=1, max_age=int((time + datetime.timedelta(days=1)).total_seconds()))).url,
-            embed=discord.Embed(description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> ({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
-                                            f"use this link. It will not work until then.")
+            (
+                await ctx.channel.create_invite(
+                    reason=f"Unban for {reason}",
+                    max_uses=1,
+                    max_age=int((time + datetime.timedelta(days=1)).total_seconds()),
+                )
+            ).url,
+            embed=discord.Embed(
+                description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> ({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
+                f"use this link. It will not work until then."
+            ),
         )
         await member.ban(reason=reason, delete_message_days=0)
         await ctx["guild_document"].update_db(
-            {
-                "$set": {
-                    f"punishments.{member.id}.ban": (
-                        unpunishdatetime
-                    )
-                }
-            }
+            {"$set": {f"punishments.{member.id}.ban": (unpunishdatetime)}}
         )
-        await ctx.send("This member has been bans, and their unpunishment has been scheduled.", ephemeral=True)
+        await ctx.send(
+            "This member has been bans, and their unpunishment has been scheduled.",
+            ephemeral=True,
+        )
 
 
 def setup(bot):

@@ -23,14 +23,16 @@ class Blacklist(commands.Cog):
     async def cog_check(self, ctx: CustomContext) -> bool:
         return await ctx.bot.is_owner(ctx.author)
 
-    @commands.command(
-        name="blacklists",
-    )
+    @commands.command()
     async def blacklist(
         self,
         ctx: CustomContext,
         *,
-        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
+        entity: Optional[
+            Union[discord.User, discord.Member, discord.Guild]
+        ] = commands.Option(
+            description="A user, a member of a server, or a guild that will be disallowed from using the bot."
+        ),
     ) -> None:
         """Disallows a user, member, or a guild from using the bot."""
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
@@ -41,14 +43,16 @@ class Blacklist(commands.Cog):
         await document.update_db({"$set": {"blacklisted": True}})
         await ctx.send(f"Blacklisted {entity.name}.", ephemeral=True)
 
-    @commands.command(
-        name="unblacklist",
-    )
+    @commands.command()
     async def unblacklist(
         self,
         ctx: CustomContext,
         *,
-        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
+        entity: Optional[
+            Union[discord.User, discord.Member, discord.Guild]
+        ] = commands.Option(
+            description="A user, a member of a server, or a guild that will be allowed to use the bot."
+        ),
     ) -> None:
         """Allows a user, member, or a guild to use the bot"""
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild

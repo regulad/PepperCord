@@ -80,14 +80,15 @@ class AudioSourceMenu(menus.ViewMenu):
                 if uploader is not None and uploader_url is not None:
                     embed.set_author(name=uploader, url=uploader_url)
 
-                return await ctx.send(embed=embed)
+                return await channel.send(embed=embed, **self._get_kwargs())
             elif isinstance(self.source, sources.TTSSource):
                 embed = discord.Embed(
                     title="Text-To-Speech", description=f'"{self.source.text}"'
                 ).add_field(name="Added by:", value=self.source.invoker.display_name)
 
-                return await ctx.send(embed=embed)
+                return await channel.send(embed=embed, **self._get_kwargs())
             else:
                 return await ctx.send(
-                    "Information cannot be displayed for the currently selected source."
+                    "Information cannot be displayed for the currently selected source.",
+                    **self._get_kwargs(),
                 )

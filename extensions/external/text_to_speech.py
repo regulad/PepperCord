@@ -100,7 +100,9 @@ class TextToSpeech(commands.Cog):
         """Lists all voices that the bot can use."""
         await ctx.defer(ephemeral=True)
         voices: list = await self._async_gtts_session.get_voices("en-US")
-        await menus.ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(ctx, ephemeral=True)
+        await menus.ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(
+            ctx, ephemeral=True
+        )
 
 
 def setup(bot: bots.BOT_TYPES):

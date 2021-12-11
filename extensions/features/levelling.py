@@ -196,9 +196,13 @@ class Levels(commands.Cog):
 
     @levelsettings.command()
     @checks.check_is_admin
-    async def disablexp(self, ctx: CustomContext, *, enabled: Optional[bool] = False) -> None:
+    async def disablexp(
+        self, ctx: CustomContext, *, enabled: Optional[bool] = False
+    ) -> None:
         """Sets if levels are enabled or not."""
-        await ctx["guild_document"].update_db({"$set": {"levels.disabled": not enabled}})
+        await ctx["guild_document"].update_db(
+            {"$set": {"levels.disabled": not enabled}}
+        )
         await ctx.send("Settings updated.", ephemeral=True)
 
     @commands.command()

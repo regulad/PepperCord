@@ -139,7 +139,6 @@ class Starboard(commands.Cog):
 
         await ctx.send(embed=embed, ephemeral=True)
 
-
     @starboard.group()
     @commands.check(checks.check_is_admin)
     async def config(self, ctx: bots.CustomContext) -> None:
@@ -217,7 +216,10 @@ class Starboard(commands.Cog):
                 ).flatten()
                 message = messages[0]
         message: discord.Message = await send_star(ctx["guild_document"], message)
-        await ctx.send(f"Your pinned message can now be found at {message.jump_url}", ephemeral=True)
+        await ctx.send(
+            f"Your pinned message can now be found at {message.jump_url}",
+            ephemeral=True,
+        )
 
     @starboard.command(
         name="convert",

@@ -75,7 +75,9 @@ class CoinGecko(commands.Cog):
         """Sends you a list of all coins."""
         get: list = await self.coin_gecko_session.get_coins_list()
 
-        menu: menus.ViewMenuPages = menus.ViewMenuPages(source=CoinMenuSource(get, per_page=15))
+        menu: menus.ViewMenuPages = menus.ViewMenuPages(
+            source=CoinMenuSource(get, per_page=15)
+        )
 
         await menu.start(ctx)
 

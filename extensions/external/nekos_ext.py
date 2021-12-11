@@ -60,8 +60,12 @@ async def send_sampler(
     if add_author:
         await thread.add_user(ctx.author)
     for tag in tag_type.__members__.values():
-        image_response = await nekos_life_client.image(tag)  # ImageResponse class is not exposed.
-        await thread.send(f"**{tag.name.title().replace('_', ' ')}**: {image_response.url}")
+        image_response = await nekos_life_client.image(
+            tag
+        )  # ImageResponse class is not exposed.
+        await thread.send(
+            f"**{tag.name.title().replace('_', ' ')}**: {image_response.url}"
+        )
     await thread.edit(archived=True)
     return thread
 
@@ -111,8 +115,15 @@ class Nekos(commands.Cog):
             if quantity > 10:
                 raise RuntimeError("Too many images!")
             await ctx.send(
-                "\n".join([(await self.nekos_life_client.image(cast(NSFWImageTags, tag))).url for _ in range(1, quantity + 1)]),
-                ephemeral=True
+                "\n".join(
+                    [
+                        (
+                            await self.nekos_life_client.image(cast(NSFWImageTags, tag))
+                        ).url
+                        for _ in range(1, quantity + 1)
+                    ]
+                ),
+                ephemeral=True,
             )
         else:
             await ctx.send(
@@ -124,9 +135,10 @@ class Nekos(commands.Cog):
                             for tag in NSFWImageTags.__members__.keys()
                         ]
                     ),
-                ), ephemeral=True
+                ),
+                ephemeral=True,
             )
-            
+
     @nekosg.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
     async def sfw(
@@ -142,8 +154,15 @@ class Nekos(commands.Cog):
             if quantity > 10:
                 raise RuntimeError("Too many images!")
             await ctx.send(
-                "\n".join([(await self.nekos_life_client.image(cast(SFWImageTags, tag))).url for _ in range(1, quantity + 1)]),
-                ephemeral=True
+                "\n".join(
+                    [
+                        (
+                            await self.nekos_life_client.image(cast(SFWImageTags, tag))
+                        ).url
+                        for _ in range(1, quantity + 1)
+                    ]
+                ),
+                ephemeral=True,
             )
         else:
             await ctx.send(
@@ -155,32 +174,25 @@ class Nekos(commands.Cog):
                             for tag in SFWImageTags.__members__.keys()
                         ]
                     ),
-                ), ephemeral=True
+                ),
+                ephemeral=True,
             )
 
     @nekosg.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
     @check_is_allowed_nsfw
-    async def allnsfw(
-        self, ctx: CustomContext, add_author: bool = False
-    ) -> None:
+    async def allnsfw(self, ctx: CustomContext, add_author: bool = False) -> None:
         """Shows a sampler of all the NSFW image tags."""
         await ctx.defer(ephemeral=True)
-        await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.NSFW, add_author
-        )
+        await send_sampler(ctx, self.nekos_life_client, NSFWType.NSFW, add_author)
         await ctx.send(f"Thread created.", ephemeral=True)
 
     @nekosg.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
-    async def allsfw(
-        self, ctx: CustomContext, add_author: bool = False
-    ) -> None:
+    async def allsfw(self, ctx: CustomContext, add_author: bool = False) -> None:
         """Shows a sampler of all the SFW image tags."""
         await ctx.defer(ephemeral=True)
-        await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.SFW, add_author
-        )
+        await send_sampler(ctx, self.nekos_life_client, NSFWType.SFW, add_author)
         await ctx.send(f"Thread created.", ephemeral=True)
 
     @nekosg.command()

@@ -18,6 +18,7 @@ class APIs(commands.Cog):
     @commands.command()
     async def bored(self, ctx: bots.CustomContext) -> None:
         """Gives you something to do to stop you from being bored."""
+        await ctx.defer()
         async with self.aiohttp_cs.get(
             "https://www.boredapi.com/api/activity/"
         ) as request:

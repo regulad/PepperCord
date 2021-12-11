@@ -121,6 +121,5 @@ __all__ = [
     "duration_to_str",
     "TimedeltaShorthand",
     "shorthand_to_timedelta",
-    "LocaleConverter",
     "PermissionConverter",
 ]

@@ -4,14 +4,6 @@
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)
 
-# TODO
-
-## This project is not in a perfect state, here's some stuff that needs to be done.
-
-* Improve localization.
-* Improve running process via alternative processes.
-  * It's kinda there? See `main.py`. I don't quite think it's possible to compile and just run raw on windows.
-
 # About
 
 PepperCord was born out of necessity for a simpler alternative to other utility bots.

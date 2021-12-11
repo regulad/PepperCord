@@ -29,7 +29,7 @@ async def send_star(
         raise AlreadyPinned
 
     embed = discord.Embed(
-        colour=message.author.colour, description=message.content
+        colour=message.author.colour, description=message.clean_content
     ).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
         url=message.jump_url,

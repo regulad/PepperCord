@@ -1,3 +1,5 @@
+from typing import Optional
+
 import discord
 from discord.ext import commands, menus
 
@@ -49,29 +51,42 @@ class Administration(commands.Cog):
         else:
             return True
 
-    @commands.command(
-        name="message",
-        usage="<Channel> <Message>",
-    )
-    async def do_message(
+    @commands.command()
+    async def message(
         self, ctx: CustomContext, channel: discord.TextChannel, *, text: str
     ) -> None:
         """Send a message as the bot in a channel of your choosing."""
         channel = ctx.guild.get_channel_or_thread(channel.id)
         await channel.send(text)
 
-    @commands.group(
-        name="configuration",
-    )
-    async def config(self, ctx: CustomContext) -> None:
+    @commands.group()
+    async def configuration(self, ctx: CustomContext) -> None:
         """Configure the bot for use in your server."""
         pass
 
-    @config.command()
+    @configuration.command()
     async def mute(self, ctx: CustomContext, *, role: discord.Role) -> None:
         """Chooses a role to give to people when they are muted. This role must already have been created."""
         await ctx["guild_document"].update_db({"$set": {"mute_role": role.id}})
-        await ctx.send("Done", ephemeral=True)
+        await ctx.send("Done.", ephemeral=True)
+
+    @configuration.group()
+    async def customnsfw(self, ctx: CustomContext) -> None:
+        pass
+
+    @customnsfw.command()
+    async def add(self, ctx: CustomContext, *, channel: discord.TextChannel) -> None:
+        """Add a channel to the list of channels that can be used for NSFW content"""
+
+        await ctx["guild_document"].update_db({"$push": {"customnsfw": channel.id}})
+        await ctx.send("Added.", ephemeral=True)
+
+    @customnsfw.command()
+    async def remove(self, ctx: CustomContext, *, channel: discord.TextChannel) -> None:
+        """Remove a channel to the list of channels that can be used for NSFW content"""
+
+        await ctx["guild_document"].update_db({"$pull": {"customnsfw": channel.id}})
+        await ctx.send("Removed.", ephemeral=True)
 
     @commands.command()
     async def delete(self, ctx: CustomContext) -> None:

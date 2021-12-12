@@ -17,3 +17,4 @@ async-nekos.life-wrapper@git+https://github.com/regulad/Async-nekos.life-wrapper
 topggpy
 GitPython
 art
+python-dotenv

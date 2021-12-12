@@ -54,7 +54,7 @@ class ShardMenu(menus.ViewMenu):
         return await self.shard_info.reconnect()
 
 
-class Dev(commands.Cog):
+class OwnerUtils(commands.Cog):
     """Tools to be used by the bots developer to operate the bots."""
 
     def __init__(self, bot: bots.BOT_TYPES) -> None:
@@ -114,4 +114,4 @@ class Dev(commands.Cog):
 
 
 def setup(bot: bots.BOT_TYPES):
-    bot.add_cog(Dev(bot))
+    bot.add_cog(OwnerUtils(bot))

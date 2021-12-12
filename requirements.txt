@@ -13,7 +13,7 @@ youtube_dl
 async-gTTS
 evb.py >= 1.0.1
 aiocoingecko >= 1.0.0
-async-nekos.life-wrapper@git+https://github.com/regulad/Async-nekos.life-wrapper.git
+async-nekos.life-wrapper@git+https://github.com/regulad/Async-nekos.life-wrapper.git@dedegenerate
 topggpy
 GitPython
 art

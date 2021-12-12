@@ -173,7 +173,7 @@ class DiscordInfo(commands.Cog):
                     f"\nCPU: {platform.processor()} running at "
                     f"{round(psutil.cpu_freq().current) / 1000}GHz, "
                     f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
-                    f"{psutil.cpu_count(logical=False)} physcial cores",
+                    f"{psutil.cpu_count(logical=False)} physical cores",
                 )
                 .add_field(
                     name="Versions:",

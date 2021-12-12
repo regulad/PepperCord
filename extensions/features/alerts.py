@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import discord
 from discord.ext import commands
 
@@ -7,14 +9,16 @@ from utils.checks import LowPrivilege, has_permission_level
 from utils.permissions import Permission, get_permission
 
 
-async def member_message_processor(bot: BOT_TYPES, member: discord.Member, event: str):
+async def member_message_processor(bot: BOT_TYPES, member: discord.Member, event: str) -> Optional[List[discord.Message]]:
     guild_doc = await bot.get_guild_document(member.guild)
     messages_dict = guild_doc.get("messages", {}).get(event, {})
     if messages_dict:
+        messages: List[discord.Message] = []
         for channel, message in messages_dict.items():
             active_channel = member.guild.get_channel(int(channel))
             embed = discord.Embed(colour=member.colour, description=message)
-            await active_channel.send(member.mention, embed=embed)
+            messages.append(await active_channel.send(member.mention, embed=embed))
+        return messages
 
 
 class Alerts(commands.Cog):
@@ -34,7 +38,7 @@ class Alerts(commands.Cog):
         await member_message_processor(self.bot, member, "on_member_join")
 
     @commands.Cog.listener()
-    async def on_member_remove(self, member) -> None:
+    async def on_member_remove(self, member: discord.Member) -> None:
         await member_message_processor(self.bot, member, "on_member_remove")
 
     @commands.group()
@@ -54,7 +58,7 @@ class Alerts(commands.Cog):
         self,
         ctx: CustomContext,
         messagetype: str = commands.Option(
-            description="The event that must happen to dispatch this message. member_join or member_leave."
+            description="The event that must happen to dispatch this message. on_member_join or on_member_leave."
         ),
         channel: discord.TextChannel = commands.Option(
             description="The channel the message will be sent in."

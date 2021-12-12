@@ -2,10 +2,7 @@ name: Docker
 on:
   push:
     branches:
-      - main
-      - classic
-      - chesmond
-      - develop
+      - "**"
     tags:
       - v*
   pull_request:

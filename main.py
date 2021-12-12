@@ -3,11 +3,11 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 """
 
-import asyncio
 import logging
 import os
-from typing import Optional, List, Tuple, Type
+from typing import Optional, List, Type
 
+from dotenv import load_dotenv
 import discord
 import art
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -17,6 +17,9 @@ from utils import bots, help
 
 
 if __name__ == "__main__":
+    if os.path.exists(".env"):
+        load_dotenv()
+
     if not os.path.exists("config/"):
         os.mkdir("config/")
 

@@ -180,7 +180,7 @@ class DiscordInfo(commands.Cog):
                     value=f"OS: {platform.system()} (`{platform.release()}`)"
                     f"\nPython: `{version}`"
                     f"\ndiscord.py: `{discord.__version__}`"
-                    f"\nPepperCord: `{git.Repo().tags[-1].name if len(git.Repo().tags) > 0 else '?'}` (`{git.Repo().head.commit}`)",
+                    f"\nBot Version: `{git.Repo().active_branch.name}` (`{git.Repo().head.commit}`)",
                     inline=False,
                 )
             )

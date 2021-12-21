@@ -1,1 +1,1 @@
-from jishaku import *
+

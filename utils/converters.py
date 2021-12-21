@@ -3,8 +3,6 @@ from typing import List, Dict, Optional
 
 from discord.ext import commands
 
-from utils.permissions import Permission
-
 
 def duration_to_str(duration_strings: int) -> str:  # TODO: Make this take a timedelta.
     """Takes in a duration in seconds and returns a fancy string."""
@@ -36,16 +34,6 @@ def duration_to_str(duration_strings: int) -> str:  # TODO: Make this take a tim
         duration_strings.append(f"{int(round(seconds))} seconds")
 
     return ", ".join(duration_strings)
-
-
-class PermissionConverter(commands.Converter):
-    async def convert(self, ctx: commands.Context, argument: str) -> Permission:
-        if argument.lower().startswith("man") or argument == "1":
-            return Permission.MANAGER
-        elif argument.lower().startswith("mod") or argument == "2":
-            return Permission.MODERATOR
-        else:
-            return Permission.ADMINISTRATOR
 
 
 class TimedeltaShorthand(commands.Converter):
@@ -121,5 +109,4 @@ __all__ = [
     "duration_to_str",
     "TimedeltaShorthand",
     "shorthand_to_timedelta",
-    "PermissionConverter",
 ]

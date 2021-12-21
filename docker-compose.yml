@@ -5,7 +5,7 @@ services:
     environment:
       - PEPPERCORD_TOKEN=YOUR_TOKEN
     ports:
-      - 5000:5000/tcp
+      - "5000:5000/tcp"
     volumes:
       - config:/app/config
   mongo:

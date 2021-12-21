@@ -1,4 +1,3 @@
-import typing
 from io import BytesIO
 
 import discord

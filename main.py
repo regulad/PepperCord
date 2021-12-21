@@ -7,14 +7,13 @@ import logging
 import os
 from typing import Optional, List, Type
 
-from dotenv import load_dotenv
-import discord
 import art
+import discord
+from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pretty_help import PrettyHelp
 
 from utils import bots, help
-
 
 if __name__ == "__main__":
     if os.path.exists(".env"):

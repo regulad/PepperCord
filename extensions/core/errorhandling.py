@@ -18,8 +18,6 @@ known_errors = {
     "You can only use it in channels marked as NSFW.",
     commands.CommandOnCooldown: "You'll need to wait before you can execute this command again.",
     commands.NotOwner: "Only the bot's owner may execute this command.",
-    checks.LowPrivilege: "You are not authorized to run this command. Ask a server administrator if you believe "
-    "this is an error.",
     bots.NotConfigured: "This feature must be configured before use. Ask a server administrator.",
     commands.BotMissingPermissions: "The bot was unable to perform the action requested, "
     "since it is missing permissions required to do so. Try re-inviting the bot.",

@@ -4,9 +4,8 @@ from typing import Optional, Union
 import discord
 from discord.ext import commands
 
-from utils import checks, bots, database
+from utils import bots, database
 from utils.attachments import find_url, NoMedia
-from utils.permissions import Permission
 
 
 class AlreadyPinned(Exception):
@@ -73,7 +72,7 @@ class Starboard(commands.Cog):
             return
 
         guild = self.bot.get_guild(payload.guild_id)
-        ctx = await self.bot.get_context(
+        ctx: bots.CustomContext = await self.bot.get_context(
             await guild.get_channel_or_thread(payload.channel_id).fetch_message(
                 payload.message_id
             )
@@ -93,7 +92,7 @@ class Starboard(commands.Cog):
         else:
             react_count = None
 
-        manager: bool = await checks.has_permission_level(ctx, Permission.MANAGER)
+        manager: bool = ctx.author.permissions.moderate_members
 
         if react_count is None:
             return
@@ -140,7 +139,7 @@ class Starboard(commands.Cog):
         await ctx.send(embed=embed, ephemeral=True)
 
     @starboard.group()
-    @commands.check(checks.check_is_admin)
+    @commands.has_permissions(admin=True)
     async def config(self, ctx: bots.CustomContext) -> None:
         """
         Commands for configuring the starboard.

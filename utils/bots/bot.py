@@ -66,7 +66,6 @@ class CustomBotBase(commands.bot.BotBase):
             {
                 "name": command.name,
                 "cog": command.cog_name,
-                "parent": command.parent.name if command.parent is not None else None,
             },
         )
 

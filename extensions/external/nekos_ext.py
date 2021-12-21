@@ -1,16 +1,15 @@
-from typing import Optional, cast, Union, Type, List, Literal
+from typing import Optional, cast, Literal
 
 import discord
-from anekos import *
 from aiohttp import ClientSession
+from anekos import *
 from discord.ext import commands
 
 from utils.bots import BOT_TYPES, CustomContext
-from utils.checks import check_is_allowed_nsfw
 
 
 class TagConverter(commands.Converter):
-    async def convert(self, ctx: CustomContext, argument: str) -> SFWImageTags:
+    async def convert(self, ctx: commands.Context, argument: str) -> SFWImageTags:
         try:
             tag = RealSFWImageTags[argument.upper().replace(" ", "_")]
         except KeyError:
@@ -44,7 +43,6 @@ class Nekos(commands.Cog):
     async def nekos(self, ctx: CustomContext) -> None:
         pass
 
-
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
     async def image(
@@ -68,7 +66,9 @@ class Nekos(commands.Cog):
                 "\n".join(
                     [
                         (
-                            await self.nekos_life_client.image(cast(RealSFWImageTags, tag))
+                            await self.nekos_life_client.image(
+                                cast(RealSFWImageTags, tag)
+                            )
                         ).url
                         for _ in range(1, quantity + 1)
                     ]
@@ -86,7 +86,6 @@ class Nekos(commands.Cog):
                     ),
                 ),
             )
-
 
     @nekos.command()
     async def eightball(
@@ -117,12 +116,8 @@ class Nekos(commands.Cog):
     ) -> None:
         """Shows a sampler of all the images."""
         await ctx.defer(ephemeral=True)
-        message: discord.Message = await ctx.channel.send(
-            f"**Results**"
-        )
-        thread: discord.Thread = await message.create_thread(
-            name=f"Results"
-        )
+        message: discord.Message = await ctx.channel.send(f"**Results**")
+        thread: discord.Thread = await message.create_thread(name=f"Results")
         if add_author:
             await thread.add_user(ctx.author)
         for tag in RealSFWImageTags.__members__.values():

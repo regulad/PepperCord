@@ -183,7 +183,7 @@ class Levels(commands.Cog):
         name="redirect",
         usage="[Channel]",
     )
-    @checks.check_is_admin
+    @commands.has_permissions(admin=True)
     async def redirect(
         self,
         ctx: CustomContext,
@@ -202,7 +202,7 @@ class Levels(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @levelsettings.command()
-    @checks.check_is_admin
+    @commands.has_permissions(admin=True)
     async def disablexp(
         self, ctx: CustomContext, *, enabled: Optional[bool] = False
     ) -> None:
@@ -240,12 +240,6 @@ class Levels(commands.Cog):
             sorted(member_xps, key=operator.attrgetter("xp"), reverse=True),
             ctx.guild,
         )
-
-        if len(ctx.guild.members) > 500:
-            await ctx.send(
-                "Please note that in large guilds (Larger than 500 members), "
-                "the leaderboard may be inaccurate."
-            )
 
         await menus.ViewMenuPages(source=source).start(ctx)
 

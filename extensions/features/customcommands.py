@@ -1,11 +1,11 @@
+import datetime
 from enum import Enum
 from typing import Optional, List, cast
 
 import discord
 from discord.ext import commands, menus
 
-from extensions.features.moderation import mute
-from utils import checks, bots
+from utils import bots
 from utils.attachments import find_url_recurse
 
 KEYWORD_PREFIX: str = "$"
@@ -29,7 +29,9 @@ class Keyword(Enum):
         if self is self.__class__.DELETE_MESSAGE:
             await ctx.message.delete()
         elif self is self.__class__.MUTE_MEMBER:
-            await mute(ctx.author, guild_document=ctx["guild_document"])
+            await ctx.author.edit(
+                timeout_until=datetime.datetime.now() + datetime.timedelta(days=1)
+            )
         elif self is self.__class__.KICK_MEMBER:
             await ctx.author.kick()
         elif self is self.__class__.BAN_MEMBER:
@@ -264,7 +266,7 @@ class CustomCommands(commands.Cog):
         await pages.start(ctx)
 
     @customcommands.command()
-    @checks.check_is_admin
+    @commands.has_permissions(admin=True)
     async def find(
         self, ctx: bots.CustomContext, *, query: CustomCommandConverter
     ) -> None:
@@ -276,7 +278,7 @@ class CustomCommands(commands.Cog):
         )
 
     @customcommands.group()
-    @checks.check_is_admin
+    @commands.has_permissions(admin=True)
     async def match(self, ctx: bots.CustomContext) -> None:
         pass
 
@@ -315,7 +317,7 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @customcommands.command()
-    @checks.check_is_admin
+    @commands.has_permissions(admin=True)
     async def add(
         self,
         ctx: bots.CustomContext,
@@ -346,7 +348,7 @@ class CustomCommands(commands.Cog):
         await ctx.send("Custom command added.", ephemeral=True)
 
     @customcommands.command()
-    @checks.check_is_admin
+    @commands.has_permissions(admin=True)
     async def delete(
         self,
         ctx: bots.CustomContext,

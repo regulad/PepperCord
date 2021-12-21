@@ -5,8 +5,6 @@ import discord
 from discord.ext import commands
 
 from utils import bots
-from utils.checks import LowPrivilege, has_permission_level
-from utils.permissions import Permission, get_permission
 
 
 class ReactionRoles(commands.Cog):
@@ -16,8 +14,8 @@ class ReactionRoles(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx: bots.CustomContext):
-        if not await has_permission_level(ctx, Permission.ADMINISTRATOR):
-            raise LowPrivilege(Permission.ADMINISTRATOR, get_permission(ctx))
+        if not ctx.author.guild_permissions.admin:
+            raise commands.MissingPermissions(["admin"])
         else:
             return True
 

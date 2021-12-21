@@ -3,8 +3,8 @@ from sys import version
 from typing import Union, Optional
 
 import discord
-import psutil
 import git
+import psutil
 from discord.ext import commands, tasks
 
 from utils import bots

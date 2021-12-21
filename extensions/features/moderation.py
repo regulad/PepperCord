@@ -1,54 +1,11 @@
-import copy
 import datetime
 import math
-from typing import Optional, Union, cast, List, Dict
+from typing import Optional, Union, cast
 
 import discord
 from discord.ext import commands, tasks
 
 from utils import bots, database, converters
-from utils.checks import LowPrivilege, has_permission_level
-from utils.permissions import Permission, get_permission
-
-
-async def mute(
-    member: discord.Member,
-    *,
-    guild_document: Optional[database.Document] = None,
-    bot: Optional[bots.BOT_TYPES] = None,
-) -> None:
-    """Mutes a user. Requires a bot or a guild document."""
-
-    if guild_document is None and bot is None:
-        raise TypeError("Either a bot or a document is required to call this function.")
-    elif guild_document is None:
-        guild_document: database.Document = await bot.get_guild_document(member.guild)
-
-    if guild_document.get("mute_role") is None:
-        raise bots.NotConfigured("Mute must be configured.")
-    else:
-        mute_role: discord.Role = member.guild.get_role(guild_document["mute_role"])
-        await member.add_roles(mute_role, reason="Mute")
-
-
-async def unmute(
-    member: discord.Member,
-    *,
-    guild_document: Optional[database.Document] = None,
-    bot: Optional[bots.BOT_TYPES] = None,
-) -> None:
-    """Unmutes a user. Requires a bot or a guild document."""
-
-    if guild_document is None and bot is None:
-        raise TypeError("Either a bot or a document is required to call this function.")
-    elif guild_document is None:
-        guild_document: database.Document = await bot.get_guild_document(member.guild)
-
-    if guild_document.get("mute_role") is None:
-        raise bots.NotConfigured("Mute must be configured.")
-    else:
-        mute_role: discord.Role = member.guild.get_role(guild_document["mute_role"])
-        await member.remove_roles(mute_role, reason="Unmute")
 
 
 async def get_any_id(
@@ -96,12 +53,7 @@ class Moderation(commands.Cog):
                             )
                         ) < datetime.datetime.utcnow():
                             try:  # Messy.
-                                if punishment == "mute":
-                                    await unmute(
-                                        await guild.fetch_member(int(user_id)),
-                                        guild_document=guild_doc,
-                                    )
-                                elif punishment == "ban":
+                                if punishment == "ban":
                                     user: discord.User = self.bot.get_user(
                                         user_id
                                     ) or await self.bot.fetch_user(user_id)
@@ -117,13 +69,8 @@ class Moderation(commands.Cog):
                                     }
                                 )
 
-    async def cog_check(self, ctx: bots.CustomContext) -> bool:
-        if not await has_permission_level(ctx, Permission.MODERATOR):
-            raise LowPrivilege(Permission.MODERATOR, get_permission(ctx))
-        else:
-            return True
-
     @commands.command()
+    @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(manage_messages=True)
     async def purge(
         self,
@@ -137,63 +84,7 @@ class Moderation(commands.Cog):
         await ctx.send("Deleted.", ephemeral=True)
 
     @commands.command()
-    @commands.bot_has_permissions(manage_roles=True)
-    async def mute(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        member: discord.Member = commands.Option(description="The member to be muted."),
-    ) -> None:
-        """
-        Mutes a member of the server.
-        You must first configure this with the config command.
-        """
-        await mute(member, guild_document=ctx["guild_document"])
-        await ctx.send(f"<@{member.id}> has been muted.")
-
-    @commands.command()
-    @commands.bot_has_permissions(manage_roles=True)
-    async def unmute(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        member: discord.Member = commands.Option(
-            description="The member to be unmuted."
-        ),
-    ) -> None:
-        """
-        Unmutes a member of the server.
-        You must first configure this with the config command, and you must also have muted this member previously.
-        """
-        await unmute(member, guild_document=ctx["guild_document"])
-        await ctx.send(f"<@{member.id}> has been unmuted.")
-
-    @commands.command()
-    @commands.bot_has_permissions(manage_roles=True)
-    async def timemute(
-        self,
-        ctx: bots.CustomContext,
-        member: discord.Member = commands.Option(description="The member to be muted."),
-        time: converters.TimedeltaShorthand = commands.Option(
-            description="The amount of time to keep the member punished for. Example: 10d."
-        ),
-    ) -> None:
-        """Mutes a member, and then unmutes them later."""
-        time: datetime.timedelta = cast(datetime.timedelta, time)
-        await ctx.invoke(self.mute, member=member)
-        await ctx["guild_document"].update_db(
-            {
-                "$set": {
-                    f"punishments.{member.id}.mute": (datetime.datetime.utcnow() + time)
-                }
-            }
-        )
-        await ctx.send(
-            "This member has been muted, and their unpunishment has been scheduled.",
-            ephemeral=True,
-        )
-
-    @commands.command()
+    @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
         self,
@@ -211,7 +102,9 @@ class Moderation(commands.Cog):
     ) -> None:
         """Bans a member, and then unbans them later."""
         member: member if not isinstance(member, int) else discord.Object(id=member)
-        if get_permission(ctx, member) >= get_permission(ctx, ctx.author):
+        if ctx.guild.roles.index(ctx.author.roles[-1]) <= ctx.guild.roles.index(
+            member.roles[-1]
+        ):
             raise RuntimeError("You cannot ban this member.")
         time: datetime.timedelta = cast(datetime.timedelta, time)
         unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + time

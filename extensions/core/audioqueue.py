@@ -33,7 +33,9 @@ class AudioQueue(commands.Cog):
         pass
 
     @player.command()
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    @commands.check_any(
+        commands.has_permissions(moderate_members=True), checks.check_is_alone
+    )
     async def stop(self, ctx: CustomContext) -> None:
         """Stops playing audio and leaves the voice channel."""
         await ctx["audio_player"]().voice_client.disconnect()
@@ -50,7 +52,9 @@ class AudioQueue(commands.Cog):
             await ctx.send("Paused.", ephemeral=True)
 
     @player.command()
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    @commands.check_any(
+        commands.has_permissions(moderate_members=True), checks.check_is_alone
+    )
     async def skip(self, ctx: CustomContext) -> None:
         """Skips foward to the next song on the track queue."""
         ctx["audio_player"]().voice_client.stop()
@@ -71,7 +75,9 @@ class AudioQueue(commands.Cog):
         await menus.ViewMenuPages(source=source).start(ctx, ephemeral=True)
 
     @queue.command()
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    @commands.check_any(
+        commands.has_permissions(moderate_members=True), checks.check_is_alone
+    )
     async def shuffle(self, ctx: CustomContext) -> None:
         """Shuffle all songs on the queue."""
         if len(list(ctx["audio_player"]().queue.deque)) > 0:
@@ -79,14 +85,18 @@ class AudioQueue(commands.Cog):
         await ctx.send("Shuffled.")
 
     @queue.command()
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    @commands.check_any(
+        commands.has_permissions(moderate_members=True), checks.check_is_alone
+    )
     async def loop(self, ctx: CustomContext) -> None:
         """Toggles the loop function. While the loop is on, the current song will keep repeating."""
         ctx["audio_player"]().loop = not ctx["audio_player"]().loop
         await ctx.send(f"Loop is {'on' if ctx['audio_player']().loop else 'off'}.")
 
     @queue.command()
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    @commands.check_any(
+        commands.has_permissions(moderate_members=True), checks.check_is_alone
+    )
     async def clear(self, ctx: CustomContext) -> None:
         """Clears all songs on the queue."""
         ctx["audio_player"]().queue.clear()
@@ -94,7 +104,9 @@ class AudioQueue(commands.Cog):
         await ctx.send("Queue cleared.", ephemeral=True)
 
     @queue.command()
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    @commands.check_any(
+        commands.has_permissions(moderate_members=True), checks.check_is_alone
+    )
     async def pop(
         self,
         ctx: CustomContext,

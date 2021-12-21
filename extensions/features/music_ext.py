@@ -119,7 +119,9 @@ class Music(commands.Cog):
         await pages.start(ctx)
 
     @commands.command()
-    @commands.check_any(checks.check_is_man, checks.check_is_alone)
+    @commands.check_any(
+        commands.has_permissions(moderate_members=True), checks.check_is_alone
+    )
     async def playtop(
         self,
         ctx: CustomContext,

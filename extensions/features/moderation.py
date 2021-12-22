@@ -70,7 +70,7 @@ class Moderation(commands.Cog):
                                 )
 
     @commands.command()
-    @commands.has_permissions(moderate_members=True)
+    @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     async def purge(
         self,
@@ -84,7 +84,7 @@ class Moderation(commands.Cog):
         await ctx.send("Deleted.", ephemeral=True)
 
     @commands.command()
-    @commands.has_permissions(moderate_members=True)
+    @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
         self,

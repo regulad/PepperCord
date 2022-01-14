@@ -19,11 +19,11 @@ class TrackPlaylist(list):
 
     @classmethod
     async def from_sanitized(
-        cls,
-        sanitized: list,
-        user: Union[discord.Member, discord.User],
-        *,
-        file_downloader: YoutubeDL,
+            cls,
+            sanitized: list,
+            user: Union[discord.Member, discord.User],
+            *,
+            file_downloader: YoutubeDL,
     ):
         new_playlist = cls()
         for url in sanitized:
@@ -92,12 +92,12 @@ class Music(commands.Cog):
     @commands.command()
     @commands.cooldown(3, 20, commands.BucketType.user)
     async def play(
-        self,
-        ctx: CustomContext,
-        *,
-        query: str = commands.Option(
-            description="The song or URL to be searched. Will search using YouTube."
-        ),
+            self,
+            ctx: CustomContext,
+            *,
+            query: str = commands.Option(
+                description="The song or URL to be searched. Will search using YouTube."
+            ),
     ) -> None:
         """
         Adds a song to the queue.
@@ -123,12 +123,12 @@ class Music(commands.Cog):
         commands.has_permissions(moderate_members=True), checks.check_is_alone
     )
     async def playtop(
-        self,
-        ctx: CustomContext,
-        *,
-        query: str = commands.Option(
-            description="The song or URL to be searched. Will search using YouTube."
-        ),
+            self,
+            ctx: CustomContext,
+            *,
+            query: str = commands.Option(
+                description="The song or URL to be searched. Will search using YouTube."
+            ),
     ) -> None:
         """
         Plays a song from the top of the queue.

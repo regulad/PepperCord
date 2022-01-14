@@ -24,7 +24,7 @@ class LanguageSource(menus.ListPageSource):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value['name']}",
                 value=f"Gender: {value['ssmlGender'].title()}"
-                f"\nSample Rate: {round(value['naturalSampleRateHertz'] / 1000, 1)}kHz",
+                      f"\nSample Rate: {round(value['naturalSampleRateHertz'] / 1000, 1)}kHz",
                 inline=False,
             )
         return base_embed
@@ -34,7 +34,7 @@ class TextToSpeech(commands.Cog):
     """Sends Text-To-Speech in the voice chat."""
 
     def __init__(
-        self, bot: bots.BOT_TYPES, async_gtts_client_session: AsyncGTTSSession
+            self, bot: bots.BOT_TYPES, async_gtts_client_session: AsyncGTTSSession
     ) -> None:
         self._async_gtts_session: AsyncGTTSSession = async_gtts_client_session
         self.bot: bots.BOT_TYPES = bot
@@ -52,12 +52,12 @@ class TextToSpeech(commands.Cog):
     @commands.command()
     @commands.cooldown(10, 2, commands.BucketType.user)
     async def texttospeech(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        text: str = commands.Option(
-            description="The text that will be converted to speech."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            text: str = commands.Option(
+                description="The text that will be converted to speech."
+            ),
     ) -> None:
         """Have the bot talk for you in a voice channel."""
         await ctx.defer(ephemeral=True)
@@ -82,13 +82,13 @@ class TextToSpeech(commands.Cog):
 
     @ttssettings.command()
     async def setvoice(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        desiredvoice: Optional[str] = commands.Option(
-            "en-US-Wavenet-D",
-            description="The voice that the bot will attempt to use when talking for you. See the command listvoices.",
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            desiredvoice: Optional[str] = commands.Option(
+                "en-US-Wavenet-D",
+                description="The voice that the bot will attempt to use when talking for you. See the command listvoices.",
+            ),
     ) -> None:
         """Allows you to select a voice that the bot will use to portray you in Text-To-Speech conversations."""
         await ctx.defer(ephemeral=True)

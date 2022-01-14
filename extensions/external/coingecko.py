@@ -98,15 +98,15 @@ class CoinGecko(commands.Cog):
 
     @coingecko.command()
     async def price(
-        self,
-        ctx: CustomContext,
-        coin: str = commands.Option(
-            description="The name of a currency to search. Example: ethereum."
-        ),
-        currency: Optional[str] = commands.Option(
-            "usd",
-            description="The currency that the coin's value will be represented in. Defaults to usd.",
-        ),
+            self,
+            ctx: CustomContext,
+            coin: str = commands.Option(
+                description="The name of a currency to search. Example: ethereum."
+            ),
+            currency: Optional[str] = commands.Option(
+                "usd",
+                description="The currency that the coin's value will be represented in. Defaults to usd.",
+            ),
     ) -> None:
         """Gets the price of a cryptocurrency."""
 

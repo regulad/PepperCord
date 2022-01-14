@@ -32,7 +32,7 @@ class UserLevel:
     """An object that represents the level of a user via their user_doc."""
 
     def __init__(
-        self, user: Union[discord.Member, discord.User], document: database.Document
+            self, user: Union[discord.Member, discord.User], document: database.Document
     ):
         self.user = user
         self.document = document
@@ -112,13 +112,13 @@ class UserLevelMenu(menus.Menu):
                 colour=self.source.user.colour,
                 title=f"{self.source.user.display_name}'s level",
             )
-            .add_field(name="XP:", value=f"```{self.source.xp}```")
-            .add_field(name="Level:", value=f"```{self.source.level}```")
-            .add_field(
+                .add_field(name="XP:", value=f"```{self.source.xp}```")
+                .add_field(name="Level:", value=f"```{self.source.level}```")
+                .add_field(
                 name="To next:",
                 value=f"```{round(self.source.next - self.source.xp)}```",
             )
-            .set_thumbnail(url=self.source.user.avatar.url)
+                .set_thumbnail(url=self.source.user.avatar.url)
         )
         if self.level_up:
             return await channel.send(
@@ -162,7 +162,7 @@ class Levels(commands.Cog):
         user_level_up = await user_level.increment(gen_xp)
 
         if user_level_up["new"]["level"] > user_level_up["old"]["level"] and (
-            not ctx["guild_document"].get("levels", {}).get("disabled", True)
+                not ctx["guild_document"].get("levels", {}).get("disabled", True)
         ):
             redirect_channel_id: int = (
                 ctx["guild_document"].get("levels", {}).get("redirect")
@@ -185,12 +185,12 @@ class Levels(commands.Cog):
     )
     @commands.has_permissions(admin=True)
     async def redirect(
-        self,
-        ctx: CustomContext,
-        *,
-        channel: discord.TextChannel = commands.Option(
-            description="The channel all level-up notofications will be redirected to."
-        ),
+            self,
+            ctx: CustomContext,
+            *,
+            channel: discord.TextChannel = commands.Option(
+                description="The channel all level-up notofications will be redirected to."
+            ),
     ) -> None:
         """
         Sets the channel level-up alerts will go to.
@@ -204,7 +204,7 @@ class Levels(commands.Cog):
     @levelsettings.command()
     @commands.has_permissions(admin=True)
     async def disablexp(
-        self, ctx: CustomContext, *, enabled: Optional[bool] = False
+            self, ctx: CustomContext, *, enabled: Optional[bool] = False
     ) -> None:
         """Sets if levels are enabled or not."""
         await ctx["guild_document"].update_db(

@@ -13,13 +13,13 @@ class YTDLSource(QueueSource):
     """Represents a source from YoutubeDL that has the ability to have it's volume changed."""
 
     def __init__(
-        self,
-        source: discord.FFmpegPCMAudio,
-        volume=0.5,
-        *,
-        info: dict,
-        file_downloader: YoutubeDL,
-        invoker: Union[discord.Member, discord.User],
+            self,
+            source: discord.FFmpegPCMAudio,
+            volume=0.5,
+            *,
+            info: dict,
+            file_downloader: YoutubeDL,
+            invoker: Union[discord.Member, discord.User],
     ):
         self.file_downloader: YoutubeDL = file_downloader
         self.info: dict = info
@@ -42,12 +42,12 @@ class YTDLSource(QueueSource):
 
     @classmethod
     async def from_url_single(
-        cls,
-        file_downloader: YoutubeDL,
-        url: str,
-        invoker: Union[discord.Member, discord.User],
-        *,
-        loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
+            cls,
+            file_downloader: YoutubeDL,
+            url: str,
+            invoker: Union[discord.Member, discord.User],
+            *,
+            loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
     ):
         info: dict = await loop.run_in_executor(
             None, lambda: file_downloader.extract_info(url, download=False)
@@ -65,12 +65,12 @@ class YTDLSource(QueueSource):
 
     @classmethod
     async def from_url(
-        cls,
-        file_downloader: YoutubeDL,
-        url: str,
-        invoker: Union[discord.Member, discord.User],
-        *,
-        loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
+            cls,
+            file_downloader: YoutubeDL,
+            url: str,
+            invoker: Union[discord.Member, discord.User],
+            *,
+            loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
     ):
         """Returns a list of YTDLSources from a playlist or song."""
 

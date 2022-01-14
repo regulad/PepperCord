@@ -30,7 +30,7 @@ class ShuffleNicks(commands.Cog):
 
         if ctx["guild_document"].get("shuffled") is None:
             if (
-                divmod(len(ctx.guild.members), 2)[-1] != 0
+                    divmod(len(ctx.guild.members), 2)[-1] != 0
             ):  # If member count is not even
                 temp_member_list: Optional[List[discord.Member]] = copy.copy(
                     ctx.guild.members

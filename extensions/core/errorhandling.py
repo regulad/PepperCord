@@ -15,12 +15,12 @@ known_errors = {
     checks.NotInVoiceChannel: "You must be in a voice channel to execute this command.",
     commands.UserInputError: "You entered a bad argument.",
     commands.NSFWChannelRequired: "This command displays explicit content. "
-    "You can only use it in channels marked as NSFW.",
+                                  "You can only use it in channels marked as NSFW.",
     commands.CommandOnCooldown: "You'll need to wait before you can execute this command again.",
     commands.NotOwner: "Only the bot's owner may execute this command.",
     bots.NotConfigured: "This feature must be configured before use. Ask a server administrator.",
     commands.BotMissingPermissions: "The bot was unable to perform the action requested, "
-    "since it is missing permissions required to do so. Try re-inviting the bot.",
+                                    "since it is missing permissions required to do so. Try re-inviting the bot.",
     commands.CheckFailure: "A check failed.",
     attachments.WrongMedia: "The media that was found could not be used for the desired action.",
     attachments.NoMedia: "Could not find media to use.",
@@ -111,7 +111,7 @@ class ErrorLogging(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def log_command_error(
-        self, ctx: bots.CustomContext, error: Exception
+            self, ctx: bots.CustomContext, error: Exception
     ) -> None:
         if ctx.command is not None:
             await ctx["command_document"].update_db({"$inc": {"stats.errors": 1}})
@@ -130,18 +130,18 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def attempt_to_reinvoke(
-        self, ctx: bots.CustomContext, error: Exception
+            self, ctx: bots.CustomContext, error: Exception
     ) -> None:
         if ctx.command is not None:
             if await ctx.bot.is_owner(ctx.author):
                 if ctx.valid and isinstance(
-                    error, (commands.CommandOnCooldown, commands.CheckFailure)
+                        error, (commands.CommandOnCooldown, commands.CheckFailure)
                 ):
                     await ctx.reinvoke()
 
     @commands.Cog.listener("on_command_error")
     async def determine_if_critical(
-        self, ctx: bots.CustomContext, error: Exception
+            self, ctx: bots.CustomContext, error: Exception
     ) -> None:
         critical: bool = not isinstance(
             error,

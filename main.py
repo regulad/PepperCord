@@ -79,16 +79,13 @@ if __name__ == "__main__":
     if os.name == "nt":
         directories: List[str] = [entry.replace("\\", "/") for entry in directories]
     for directory in directories:
-        if (
-            directory == "extensions/debug" or directory == "extensions\\debug"
-        ) and not bool(os.environ.get("PEPPERCORD_DEBUG")):
-            continue
         if directory == "extensions/disabled" or directory == "extensions\\disabled":
             continue
         for file in os.listdir(f"{directory}/"):
             if file.endswith(".py"):
                 full_path: str = f"{directory}/" + file
                 bot.load_extension(os.path.splitext(full_path)[0].replace("/", "."))
+    bot.load_extension("jishaku")  # Special case.
     logging.info("Done.")
 
     logging.info("Ready.")

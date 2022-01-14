@@ -13,7 +13,7 @@ from .config import ytdl_format_options
 class AudioQueue(asyncio.Queue):
     @property
     def deque(
-        self,
+            self,
     ) -> collections.deque:  # Nasty, but its a weird property of how the Queue works. This may break!
         return self._queue
 
@@ -35,9 +35,9 @@ def _voice_client_play(voice_client: discord.VoiceClient, source) -> asyncio.Fut
 
 async def prepare_track(track):  # I would typehint this, but circular imports.
     if (
-        hasattr(track, "refresh")
-        and hasattr(track, "created")
-        and track.created + datetime.timedelta(seconds=10) <= datetime.datetime.now()
+            hasattr(track, "refresh")
+            and hasattr(track, "created")
+            and track.created + datetime.timedelta(seconds=10) <= datetime.datetime.now()
     ):  # Relatively arbitrary.
         return await track.refresh()  # For YouTube time restrictions
     else:

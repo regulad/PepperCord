@@ -23,10 +23,7 @@ class DiscordInfo(commands.Cog):
 
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:
-        watching_string = (
-            f"in {len(self.bot.guilds)} guild(s) "
-            f"| {self.bot.config.get('PEPPERCORD_WEB', 'https://www.regulad.xyz/PepperCord')}"
-        )
+        watching_string = (f"in {len(self.bot.guilds)} guild(s)")
         await self.bot.change_presence(activity=discord.Game(name=watching_string))
 
     @activity_update.before_loop
@@ -36,12 +33,12 @@ class DiscordInfo(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def status(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        activity: Optional[str] = commands.Option(
-            description="The status that the bot will change to."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            activity: Optional[str] = commands.Option(
+                description="The status that the bot will change to."
+            ),
     ) -> None:
         """Sets the bot's status. If no status is specified, it will go back to the default."""
         task_is_running = self.activity_update.is_running()
@@ -50,21 +47,18 @@ class DiscordInfo(commands.Cog):
             self.activity_update.start()
         else:
             self.activity_update.cancel()
-            watching_string = (
-                f"{activity} "
-                f"| {ctx.bot.config.get('PEPPERCORD_WEB', 'https://www.regulad.xyz/PepperCord')}"
-            )
+            watching_string = f"{activity}"
             await ctx.bot.change_presence(activity=discord.Game(name=watching_string))
         await ctx.send("Status updated.", ephemeral=True)
 
     @commands.command()
     async def whois(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        user: Optional[Union[discord.Member, discord.User]] = commands.Option(
-            description="The user that will have their info displayed. This can be any user, in or outside this server."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            user: Optional[Union[discord.Member, discord.User]] = commands.Option(
+                description="The user that will have their info displayed. This can be any user, in or outside this server."
+            ),
     ) -> None:
         """Get information on you, a Member of this server, or any User of Discord."""
         if not user:
@@ -74,9 +68,9 @@ class DiscordInfo(commands.Cog):
                 colour=user.colour,
                 title=f"All about {user.name}#{user.discriminator}\n({user.id})",
             )
-            .set_thumbnail(url=user.avatar.url)
-            .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-            .add_field(
+                .set_thumbnail(url=user.avatar.url)
+                .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
+                .add_field(
                 name="Account creation date:",
                 value=f"<t:{user.created_at.timestamp():.0f}:R>",
             )
@@ -101,12 +95,12 @@ class DiscordInfo(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def serverinfo(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        guild: Optional[discord.Guild] = commands.Option(
-            description="The server that will have it's data displayed. Defaults to the current server."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            guild: Optional[discord.Guild] = commands.Option(
+                description="The server that will have it's data displayed. Defaults to the current server."
+            ),
     ) -> None:
         """Gets info on a server."""
         guild = guild or ctx.guild
@@ -115,23 +109,23 @@ class DiscordInfo(commands.Cog):
                 colour=discord.Colour.random(),
                 title=f"Info for {guild.name}\n({guild.id})",
             )
-            .set_thumbnail(url=guild.icon.url)
-            .add_field(name="Icon URL:", value=f"[Click Here]({guild.icon.url})")
-            .add_field(
+                .set_thumbnail(url=guild.icon.url)
+                .add_field(name="Icon URL:", value=f"[Click Here]({guild.icon.url})")
+                .add_field(
                 name="Server Owner:",
                 value=f"{guild.owner.display_name}#{guild.owner.discriminator} ({guild.owner.id})",
             )
-            .add_field(
+                .add_field(
                 name="Created at:",
                 value=f"<t:{guild.created_at.timestamp():.0f}:R>",
             )
-            .add_field(name="Roles:", value=len(guild.roles))
-            .add_field(name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}")
-            .add_field(
+                .add_field(name="Roles:", value=len(guild.roles))
+                .add_field(name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}")
+                .add_field(
                 name="Total channels:",
                 value=f"{len(guild.channels)} channels, {len(guild.categories)} categories.",
             )
-            .add_field(name="Total members:", value=guild.member_count)
+                .add_field(name="Total members:", value=guild.member_count)
         )
         await ctx.send(embed=embed)
         await ctx.invoke(self.whois, user=guild.owner)
@@ -150,37 +144,37 @@ class DiscordInfo(commands.Cog):
                     colour=discord.Colour.orange(),
                     title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
                     description=f"**Important Links**: "
-                    f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
-                    f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
-                    f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
+                                f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
+                                f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
+                                f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
                 )
-                .set_thumbnail(url=ctx.bot.user.avatar.url)
-                .add_field(
+                    .set_thumbnail(url=ctx.bot.user.avatar.url)
+                    .add_field(
                     name="Invite:",
                     value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
                     inline=False,
                 )
-                .add_field(
+                    .add_field(
                     name="Bot status:",
                     value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
                 )
-                .add_field(
+                    .add_field(
                     name="System resources:",
                     value=f"Memory: "
-                    f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
-                    f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
-                    f"({psutil.virtual_memory().percent}%)"
-                    f"\nCPU: {platform.processor()} running at "
-                    f"{round(psutil.cpu_freq().current) / 1000}GHz, "
-                    f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
-                    f"{psutil.cpu_count(logical=False)} physical cores",
+                          f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
+                          f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
+                          f"({psutil.virtual_memory().percent}%)"
+                          f"\nCPU: {platform.processor()} running at "
+                          f"{round(psutil.cpu_freq().current) / 1000}GHz, "
+                          f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
+                          f"{psutil.cpu_count(logical=False)} physical cores",
                 )
-                .add_field(
+                    .add_field(
                     name="Versions:",
                     value=f"OS: {platform.system()} (`{platform.release()}`)"
-                    f"\nPython: `{version}`"
-                    f"\ndiscord.py: `{discord.__version__}`"
-                    f"\nBot Version: `{git.Repo().head.name}` (`{git.Repo().head.commit}`)",
+                          f"\nPython: `{version}`"
+                          f"\ndiscord.py: `{discord.__version__}`"
+                          f"\nBot Version: `{git.Repo().head.name}` (`{git.Repo().head.commit}`)",
                     inline=False,
                 )
             )

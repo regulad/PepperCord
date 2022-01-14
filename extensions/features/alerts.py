@@ -8,7 +8,7 @@ from utils.bots import CustomContext, BOT_TYPES
 
 
 async def member_message_processor(
-    bot: BOT_TYPES, member: discord.Member, event: str
+        bot: BOT_TYPES, member: discord.Member, event: str
 ) -> Optional[List[discord.Message]]:
     guild_doc = await bot.get_guild_document(member.guild)
     messages_dict = guild_doc.get("messages", {}).get(event, {})
@@ -50,16 +50,16 @@ class Alerts(commands.Cog):
 
     @events.command()
     async def add(
-        self,
-        ctx: CustomContext,
-        messagetype: str = commands.Option(
-            description="The event that must happen to dispatch this message. on_member_join or on_member_leave."
-        ),
-        channel: discord.TextChannel = commands.Option(
-            description="The channel the message will be sent in."
-        ),
-        *,
-        message: str = commands.Option(description="The contents of the message."),
+            self,
+            ctx: CustomContext,
+            messagetype: str = commands.Option(
+                description="The event that must happen to dispatch this message. on_member_join or on_member_leave."
+            ),
+            channel: discord.TextChannel = commands.Option(
+                description="The channel the message will be sent in."
+            ),
+            *,
+            message: str = commands.Option(description="The contents of the message."),
     ) -> None:
         """Registers a message."""
         await ctx["guild_document"].update_db(

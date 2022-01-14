@@ -49,13 +49,13 @@ class EditVideoBot(commands.Cog):
 
     @commands.command()
     async def edit(
-        self,
-        ctx: CustomContext,
-        *,
-        evb_commands: str = commands.Option(
-            name="commands",
-            description="The commands that will be applied to the video. You can find a list here: https://bit.ly/3GBkKqx.",
-        ),
+            self,
+            ctx: CustomContext,
+            *,
+            evb_commands: str = commands.Option(
+                name="commands",
+                description="The commands that will be applied to the video. You can find a list here: https://bit.ly/3GBkKqx.",
+            ),
     ) -> None:
         """Edit media with EditVideoBot."""
 
@@ -67,7 +67,7 @@ class EditVideoBot(commands.Cog):
             attachment_bytes = await resp.read()
 
         if (
-            isinstance(source, discord.Embed) and source.type == "gifv"
+                isinstance(source, discord.Embed) and source.type == "gifv"
         ):  # deprecated!... kinda
             extension: str = "mp4"
         else:

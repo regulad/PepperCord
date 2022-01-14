@@ -108,12 +108,12 @@ class AudioQueue(commands.Cog):
         commands.has_permissions(moderate_members=True), checks.check_is_alone
     )
     async def pop(
-        self,
-        ctx: CustomContext,
-        *,
-        index: int = commands.Option(
-            description="The position of the track in the queue."
-        ),
+            self,
+            ctx: CustomContext,
+            *,
+            index: int = commands.Option(
+                description="The position of the track in the queue."
+            ),
     ) -> None:
         """Removes a song from the queue at a position of your choice."""
         del ctx["audio_player"]().queue.deque[index - 1]

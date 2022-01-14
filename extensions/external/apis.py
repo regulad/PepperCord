@@ -20,7 +20,7 @@ class APIs(commands.Cog):
         """Gives you something to do to stop you from being bored."""
         await ctx.defer()
         async with self.aiohttp_cs.get(
-            "https://www.boredapi.com/api/activity/"
+                "https://www.boredapi.com/api/activity/"
         ) as request:
             result = await request.json()
         embed = discord.Embed(

@@ -15,8 +15,8 @@ async def is_blacklisted(ctx: CustomContext) -> bool:
     """Checks if a context is blacklisted from executing commands."""
 
     return (
-        ctx.guild is not None and ctx["guild_document"].get("blacklisted", False)
-    ) or ctx["author_document"].get("blacklisted", False)
+                   ctx.guild is not None and ctx["guild_document"].get("blacklisted", False)
+           ) or ctx["author_document"].get("blacklisted", False)
 
 
 @commands.check

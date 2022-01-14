@@ -46,17 +46,17 @@ class Nekos(commands.Cog):
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
     async def image(
-        self,
-        ctx: CustomContext,
-        quantity: Literal[tuple(range(1, 11))] = commands.Option(
-            1,
-            description="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        ),
-        *,
-        tag: Optional[TagConverter] = commands.Option(
-            None,
-            description="The tag you want to search. You can see all options if you leave this blank.",
-        ),
+            self,
+            ctx: CustomContext,
+            quantity: Literal[tuple(range(1, 11))] = commands.Option(
+                1,
+                description="Defines the number of images you want to see. Defaults to 1, max is 10.",
+            ),
+            *,
+            tag: Optional[TagConverter] = commands.Option(
+                None,
+                description="The tag you want to search. You can see all options if you leave this blank.",
+            ),
     ) -> None:
         """Pull an image from nekos.life."""
         if tag is not None:
@@ -89,12 +89,12 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     async def eightball(
-        self,
-        ctx: CustomContext,
-        *,
-        question: Optional[str] = commands.Option(
-            "question", description="The question that will be asked."
-        ),
+            self,
+            ctx: CustomContext,
+            *,
+            question: Optional[str] = commands.Option(
+                "question", description="The question that will be asked."
+            ),
     ) -> None:
         """Use the magic 8 ball!"""
         await ctx.defer()
@@ -107,12 +107,12 @@ class Nekos(commands.Cog):
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
     async def images(
-        self,
-        ctx: CustomContext,
-        add_author: bool = commands.Option(
-            False,
-            description="If the author should be added to the thread where all the tags will be displayed.",
-        ),
+            self,
+            ctx: CustomContext,
+            add_author: bool = commands.Option(
+                False,
+                description="If the author should be added to the thread where all the tags will be displayed.",
+            ),
     ) -> None:
         """Shows a sampler of all the images."""
         await ctx.defer(ephemeral=True)
@@ -132,10 +132,10 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     async def owoify(
-        self,
-        ctx: CustomContext,
-        *,
-        text: str = commands.Option(description="The text to be owoifyed."),
+            self,
+            ctx: CustomContext,
+            *,
+            text: str = commands.Option(description="The text to be owoifyed."),
     ) -> None:
         """Owoify your text!"""
         await ctx.defer()

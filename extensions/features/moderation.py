@@ -9,7 +9,7 @@ from utils import bots, database, converters
 
 
 async def get_any_id(
-    ctx: commands.Context, uid: int
+        ctx: commands.Context, uid: int
 ) -> Optional[Union[discord.Member, discord.User]]:
     possible_object: Optional[
         Union[discord.Member, discord.User]
@@ -42,15 +42,15 @@ class Moderation(commands.Cog):
                 for user_id, user_dict in guild_doc["punishments"].items():
                     for punishment, unpunish_time in user_dict.items():
                         if (
-                            unpunish_time
-                            if isinstance(unpunish_time, datetime.datetime)
-                            else datetime.datetime(
-                                second=unpunish_time,
-                                day=0,
-                                month=0,
-                                year=0,
-                                tzinfo=datetime.timezone.utc,
-                            )
+                                unpunish_time
+                                if isinstance(unpunish_time, datetime.datetime)
+                                else datetime.datetime(
+                                    second=unpunish_time,
+                                    day=0,
+                                    month=0,
+                                    year=0,
+                                    tzinfo=datetime.timezone.utc,
+                                )
                         ) < datetime.datetime.utcnow():
                             try:  # Messy.
                                 if punishment == "ban":
@@ -73,11 +73,11 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     async def purge(
-        self,
-        ctx: bots.CustomContext,
-        messages: int = commands.Option(
-            description="The amount of messages to be deleted."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            messages: int = commands.Option(
+                description="The amount of messages to be deleted."
+            ),
     ) -> None:
         """Deletes a set amount of messages from a channel."""
         await ctx.channel.purge(limit=messages)
@@ -87,29 +87,27 @@ class Moderation(commands.Cog):
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
     async def timeban(
-        self,
-        ctx: bots.CustomContext,
-        member: discord.Member = commands.Option(
-            description="The member to be banned."
-        ),
-        time: converters.TimedeltaShorthand = commands.Option(
-            description="The amount of time to keep the member punished for. Example: 10d."
-        ),
-        *,
-        reason: str = commands.Option(
-            None, description="The reason why this user was banned."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            member: discord.Member = commands.Option(
+                description="The member to be banned."
+            ),
+            time: converters.TimedeltaShorthand = commands.Option(
+                description="The amount of time to keep the member punished for. Example: 10d."
+            ),
+            *,
+            reason: str = commands.Option(
+                None, description="The reason why this user was banned."
+            ),
     ) -> None:
         """Bans a member, and then unbans them later."""
         member: member if not isinstance(member, int) else discord.Object(id=member)
-        if ctx.guild.roles.index(ctx.author.roles[-1]) <= ctx.guild.roles.index(
-            member.roles[-1]
-        ):
+        if ctx.guild.roles.index(ctx.author.roles[-1]) <= ctx.guild.roles.index(member.roles[-1]):
             raise RuntimeError("You cannot ban this member.")
         time: datetime.timedelta = cast(datetime.timedelta, time)
         unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + time
         localunpunishdatetime: datetime.datetime = (
-            datetime.datetime.now() + time
+                datetime.datetime.now() + time
         )  # Us "humans" have this "time" thing all wrong. ow.
         await member.send(
             (
@@ -120,8 +118,9 @@ class Moderation(commands.Cog):
                 )
             ).url,
             embed=discord.Embed(
-                description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> ({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
-                f"use this link. It will not work until then."
+                description=f"To rejoin <t:{math.floor(localunpunishdatetime.timestamp())}:R> "
+                            f"({unpunishdatetime.astimezone().tzinfo.tzname(unpunishdatetime).upper()}), "
+                            f"use this link. It will not work until then."
             ),
         )
         await member.ban(reason=reason, delete_message_days=0)

@@ -16,6 +16,8 @@ from pretty_help import PrettyHelp
 
 from utils import bots, help
 
+default_log_level: int = logging.INFO
+
 if __name__ == "__main__":
     if os.path.exists(".env"):
         load_dotenv()
@@ -25,13 +27,13 @@ if __name__ == "__main__":
     debug: bool = config_source.get("PEPPERCORD_DEBUG") is not None
 
     logging.basicConfig(
-        level=logging.DEBUG if debug else logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s"
+        level=logging.DEBUG if debug else default_log_level, format="%(asctime)s:%(levelname)s:%(name)s: %(message)s"
     )
 
     maybe_webhook: Optional[str] = config_source.get("PEPPERCORD_WEBHOOK")
 
     if maybe_webhook is not None:
-        logging.root.addHandler(DiscordWebhookHandler(maybe_webhook))
+        logging.root.addHandler(DiscordWebhookHandler(maybe_webhook, level=default_log_level))
 
     if not os.path.exists("config/"):
         os.mkdir("config/")

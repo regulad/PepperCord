@@ -100,6 +100,7 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
 * `PEPPERCORD_DB_NAME`: Name of the primary database. Default is `peppercord`.
 * `PEPPERCORD_PREFIX`: Command prefix. Default is `?`.
 * `PEPPERCORD_WEB`: Website used in some commands. Default is `https://www.regulad.xyz/PepperCord`.
+* `PEPPERCORD_WEBHOOK`: Optional. A link to a Discord webhook for logging.
 
 # Extending
 

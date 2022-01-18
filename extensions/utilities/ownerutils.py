@@ -27,9 +27,9 @@ class GuildsMenuList(menus.ListPageSource):
 
 class ShardMenu(menus.ViewMenu):
     def __init__(
-        self,
-        shard_info,
-        **kwargs,
+            self,
+            shard_info,
+            **kwargs,
     ):
         self.shard_info = shard_info
 
@@ -40,8 +40,8 @@ class ShardMenu(menus.ViewMenu):
             discord.Embed(
                 title=f"Info for shard {self.shard_info.id + 1}/{self.shard_info.shard_count}",
             )
-            .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
-            .add_field(
+                .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
+                .add_field(
                 name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms"
             )
         )
@@ -66,12 +66,12 @@ class OwnerUtils(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def nick(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        nickname: Optional[str] = commands.Option(
-            description="The nickname the bot will take."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            nickname: Optional[str] = commands.Option(
+                description="The nickname the bot will take."
+            ),
     ) -> None:
         """Sets the bots nickname in this guild to a desired string."""
         await ctx.guild.me.edit(nick=nickname)
@@ -80,12 +80,12 @@ class OwnerUtils(commands.Cog):
     @commands.command()
     @checks.check_bot_is_sharded
     async def shardinfo(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        shard_id: Optional[Union[discord.Guild, int]] = commands.Option(
-            description="The guild or shard ID to be investigated."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            shard_id: Optional[Union[discord.Guild, int]] = commands.Option(
+                description="The guild or shard ID to be investigated."
+            ),
     ) -> None:
         """Get info on the bots current shard, if the bot is sharded."""
 

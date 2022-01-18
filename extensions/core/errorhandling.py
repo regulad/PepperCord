@@ -123,10 +123,20 @@ class ErrorHandling(commands.Cog):
     def __init__(self, bot: bots.BOT_TYPES):
         self.bot = bot
 
+    @commands.Cog.listener("on_command_completion")
+    async def affirm_working(self, ctx: bots.CustomContext) -> None:
+        if isinstance(ctx.message, discord.Message):
+            await ctx.message.add_reaction("✅")
+
+    @commands.Cog.listener("on_command_error")
+    async def soft_affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
+        if isinstance(ctx.message, discord.Message):
+            await ctx.message.add_reaction("❌")
+
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        if ctx.command is not None and ctx.interaction is not None:
-            await ErrorMenu(error).start(ctx, ephemeral=True)
+        if ctx.command is not None:
+            await ErrorMenu(error).start(ctx, ephemeral=ctx.interaction is not None)
 
     @commands.Cog.listener("on_command_error")
     async def attempt_to_reinvoke(

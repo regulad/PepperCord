@@ -1,5 +1,5 @@
 import logging
-from typing import Union, List, Any, Type, Optional, MutableMapping
+from typing import Union, List, Type, Optional, MutableMapping
 
 import discord
 from discord.ext import commands

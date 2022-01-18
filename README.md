@@ -101,14 +101,20 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
 * `PEPPERCORD_PREFIX`: Command prefix. Default is `?`.
 * `PEPPERCORD_WEB`: Website used in some commands. Default is `https://www.regulad.xyz/PepperCord`.
 * `PEPPERCORD_WEBHOOK`: Optional. A link to a Discord webhook for logging.
+* `PEPPERCORD_DEBUG`: Optional. Enables debugging features like jishaku.
+* `PEPPERCORD_TESTGUILDS`: Optional. A comma seperated list of Discord guild ids. The bot will only be enabled in these
+  servers. If these are present, global slash commands will not be uploaded.
+* `PEPPERCORD_MESSAGE_COMMANDS`: Optional. If message commands should be enabled.
+* `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled
 
 # Extending
 
-If you want to extend PepperCord as a contribution to the main project or to make it your own, there are a couple things
-you should know.
+If you want to extend PepperCord as a contribution to the main project or to make it your own, there are a couple of
+things you should know.
 
 1. Extensions are split into different folders.
     1. Each subfolder is fairly self-explanatory.
         1. `core` is for extensions that are critical to the bot's functioning.
         2. `external` is for interactions with external APIs
         3. `features` is for self-contained features added to the bot.
+        4. You can make a new folder if you do not fit into any of the categories

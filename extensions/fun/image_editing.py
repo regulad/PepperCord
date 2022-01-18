@@ -1,4 +1,5 @@
 from io import BytesIO
+from typing import Optional
 
 import discord
 from PIL import Image, ImageDraw, ImageFont
@@ -38,14 +39,14 @@ class Images(commands.Cog):
             self,
             ctx: CustomContext,
             *,
-            channel: discord.TextChannel = commands.Option(
+            channel: Optional[discord.TextChannel] = commands.Option(
                 description="The channel that will have it's pins displayed. "
             ),
     ) -> None:
         """Shows how many pins are left in a channel in a wonderfully flashy way."""
+        channel = channel or ctx.channel
         await ctx.defer()
 
-        channel = channel or ctx.channel
         pins_left = 50 - len(await channel.pins())
         buffer = await ctx.bot.loop.run_in_executor(
             None, lambda: pins_left_executor(pins_left)

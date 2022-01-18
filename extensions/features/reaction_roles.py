@@ -20,7 +20,7 @@ class ReactionRoles(commands.Cog):
             return True
 
     async def _assemble_reaction(
-        self, payload: discord.RawReactionActionEvent
+            self, payload: discord.RawReactionActionEvent
     ) -> Tuple[discord.Message, discord.Member]:
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
 
@@ -30,7 +30,7 @@ class ReactionRoles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(
-        self, payload: discord.RawReactionActionEvent
+            self, payload: discord.RawReactionActionEvent
     ) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
@@ -53,7 +53,7 @@ class ReactionRoles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(
-        self, payload: discord.RawReactionActionEvent
+            self, payload: discord.RawReactionActionEvent
     ) -> None:
         if payload.guild_id is None or payload.user_id == self.bot.user.id:
             return
@@ -92,19 +92,19 @@ class ReactionRoles(commands.Cog):
 
     @reactionrole.command()
     async def add(
-        self,
-        ctx: bots.CustomContext,
-        message: typing.Union[
-            discord.Message, discord.PartialMessage
-        ] = commands.Option(
-            description="A URL to the message that will be reacted to."
-        ),
-        emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str] = commands.Option(
-            description="The emoji that will be used. Send the emoji, do not just send it's name."
-        ),
-        role: discord.Role = commands.Option(
-            description="The role that will be given/taken."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            message: typing.Union[
+                discord.Message, discord.PartialMessage
+            ] = commands.Option(
+                description="A URL to the message that will be reacted to."
+            ),
+            emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str] = commands.Option(
+                description="The emoji that will be used. Send the emoji, do not just send it's name."
+            ),
+            role: discord.Role = commands.Option(
+                description="The role that will be given/taken."
+            ),
     ) -> None:
         """
         Adds a reaction role to a message.

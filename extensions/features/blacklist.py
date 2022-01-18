@@ -15,7 +15,11 @@ class Blacklist(commands.Cog):
         self.bot: BOT_TYPES = bot
 
     async def bot_check(self, ctx: CustomContext) -> bool:
-        if await checks.is_blacklisted(ctx):
+        if await checks.is_blacklisted(ctx) \
+                or (ctx.bot.config.get("PEPPERCORD_TESTGUILDS") is not None
+                    and ctx.guild.id not in [
+                        int(guild) for guild in ctx.bot.config.get("PEPPERCORD_TESTGUILDS").split(",")
+                    ]):
             raise checks.Blacklisted()
         else:
             return True

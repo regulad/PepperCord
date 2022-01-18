@@ -73,12 +73,12 @@ if __name__ == "__main__":
         database=db,
         config=os.environ,
         shard_count=shards,
-        slash_commands=True,
-        message_commands=debug,
+        slash_commands=os.environ.get("PEPPERCORD_SLASH_COMMANDS") is None,
+        message_commands=os.environ.get("PEPPERCORD_MESSAGE_COMMANDS") is not None or debug,
         slash_command_guilds=(
             [
                 int(testguild)
-                for testguild in config_source["PEPPERCORD_TESTGUILDS"].split(", ")
+                for testguild in config_source["PEPPERCORD_TESTGUILDS"].split(",")
             ]
             if config_source.get("PEPPERCORD_TESTGUILDS") is not None
             else None
@@ -105,4 +105,4 @@ if __name__ == "__main__":
     logging.info("Ready.")
     logging.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")
 
-    bot.run(config_source.get("PEPPERCORD_TOKEN"))
+    bot.run(config_source["PEPPERCORD_TOKEN"])

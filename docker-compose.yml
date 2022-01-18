@@ -4,6 +4,7 @@ services:
     image: ghcr.io/regulad/peppercord:latest
     environment:
       - PEPPERCORD_TOKEN=YOUR_TOKEN
+      - PEPPERCORD_MESSAGE_COMMANDS=True
     ports:
       - "5000:5000/tcp"
     volumes:

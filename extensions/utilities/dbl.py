@@ -20,10 +20,10 @@ def get_top_gg_link(bot_id: int) -> str:
 
 class VotesMenu(menus.ViewMenu):
     def __init__(
-        self,
-        document: database.Document,
-        user: Union[discord.Member, discord.User],
-        **kwargs,
+            self,
+            document: database.Document,
+            user: Union[discord.Member, discord.User],
+            **kwargs,
     ):
         self.document = document
         self.user = user
@@ -38,10 +38,10 @@ class VotesMenu(menus.ViewMenu):
         if len(votes) > 0:
             embed = (
                 discord.Embed(title=f"{self.user.display_name}'s Votes")
-                .set_thumbnail(url=self.user.avatar.url)
-                .add_field(name="Times voted:", value=len(votes))
-                .add_field(name="First voted:", value=f"<t:{votes[0].timestamp():.0f}>")
-                .add_field(
+                    .set_thumbnail(url=self.user.avatar.url)
+                    .add_field(name="Times voted:", value=len(votes))
+                    .add_field(name="First voted:", value=f"<t:{votes[0].timestamp():.0f}>")
+                    .add_field(
                     name="Last voted:", value=f"<t:{votes[-1].timestamp():.0f}:R>"
                 )
             )
@@ -91,13 +91,13 @@ class TopGGWebhook(commands.Cog, name="Voting"):
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: bots.CustomContext) -> None:
         if not (
-            ctx["author_document"].get("nopester", False)
-            or await ctx.bot.is_owner(ctx.author)
+                ctx["author_document"].get("nopester", False)
+                or await ctx.bot.is_owner(ctx.author)
         ):
             if len(ctx["author_document"].get("votes", [])) > 0:
                 if (
-                    ctx["author_document"]["votes"][-1] + datetime.timedelta(days=1)
-                    > datetime.datetime.utcnow()
+                        ctx["author_document"]["votes"][-1] + datetime.timedelta(days=1)
+                        > datetime.datetime.utcnow()
                 ):
                     return  # We don't want to pester a user who just voted.
 
@@ -122,12 +122,12 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
     @votesettings.command()
     async def pester(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        pester: bool = commands.Option(
-            False, description="If the bot should be allowed to pester you to vote."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            pester: bool = commands.Option(
+                False, description="If the bot should be allowed to pester you to vote."
+            ),
     ) -> None:
         """Adjust the pester status."""
         await ctx["author_document"].update_db({"$set": {"nopester": not pester}})
@@ -135,12 +135,12 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
     @commands.command()
     async def votes(
-        self,
-        ctx: bots.CustomContext,
-        *,
-        user: discord.Member = commands.Option(
-            description="The user who will have their stats displayed."
-        ),
+            self,
+            ctx: bots.CustomContext,
+            *,
+            user: discord.Member = commands.Option(
+                description="The user who will have their stats displayed."
+            ),
     ) -> None:
         """Shows you your voting stats."""
         await ctx.defer(ephemeral=True)

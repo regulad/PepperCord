@@ -39,7 +39,7 @@ class CustomBotBase(commands.bot.BotBase):
         )
 
     @property
-    def config(self) -> dict:
+    def config(self) -> CONFIGURATION_PROVIDERS:
         return self._config
 
     def get_audio_player(
@@ -55,6 +55,8 @@ class CustomBotBase(commands.bot.BotBase):
                 music_player = AudioPlayer(voice_client)
                 self._audio_players.append(music_player)
                 return music_player
+            else:
+                return None
 
     async def get_command_document(self, command: commands.Command):
         """Gets a command's document from the database."""

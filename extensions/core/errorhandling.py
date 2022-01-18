@@ -130,12 +130,12 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def soft_affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        if isinstance(ctx.message, discord.Message):
+        if isinstance(ctx.message, discord.Message) and not isinstance(error, commands.DisabledCommand):
             await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        if ctx.command is not None:
+        if ctx.command is not None and not isinstance(error, commands.DisabledCommand):
             await ErrorMenu(error).start(ctx, ephemeral=ctx.interaction is not None)
 
     @commands.Cog.listener("on_command_error")
@@ -161,6 +161,7 @@ class ErrorHandling(commands.Cog):
                 commands.CheckFailure,
                 commands.CommandInvokeError,
                 commands.CommandNotFound,
+                commands.DisabledCommand
             ),
         )
 

@@ -92,7 +92,7 @@ class Starboard(commands.Cog):
         else:
             react_count = None
 
-        manager: bool = ctx.author.permissions.moderate_members
+        manager: bool = ctx.channel.permissions_for(ctx.author).moderate_members
 
         if react_count is None:
             return

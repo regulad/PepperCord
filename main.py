@@ -88,11 +88,9 @@ if __name__ == "__main__":
 
     logging.info("Loading extensions...")
     directories: List[str] = [entry[0] for entry in os.walk("extensions")]
-    if os.name == "nt":
+    if os.name == "nt":  # I hate this.
         directories: List[str] = [entry.replace("\\", "/") for entry in directories]
     for directory in directories:
-        if directory == "extensions/disabled" or directory == "extensions\\disabled":
-            continue
         for file in os.listdir(f"{directory}/"):
             if file.endswith(".py"):
                 full_path: str = f"{directory}/" + file

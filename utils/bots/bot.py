@@ -1,5 +1,5 @@
 import logging
-from typing import Union, List, Any, Type, Optional
+from typing import Union, List, Any, Type, Optional, MutableMapping
 
 import discord
 from discord.ext import commands
@@ -8,9 +8,7 @@ from utils.audio import AudioPlayer
 from utils.database import Document
 from .context import CustomContext
 
-CONFIGURATION_PROVIDERS = Union[
-    dict, Any
-]  # Added the any type for now. I hate this mess.
+CONFIGURATION_PROVIDERS = Union[dict, MutableMapping]
 
 
 class CustomBotBase(commands.bot.BotBase):

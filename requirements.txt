@@ -18,7 +18,7 @@ python-dotenv >=0.19.2, <0.20
 psutil >=5.9, <6 # System status
 mcstatus >=6.4.0, <7 # Minecraft Server
 asyncio-dgram >2, <3 # mcstatus fsr
-Pillow >=8.4.0, <9 # Image editing
+Pillow >=8.4.0, <10 # Image editing
 youtube_dl >=2021.6
 async-gTTS >= 0.2.0, <1
 evb.py >= 1.1.1, <2

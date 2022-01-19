@@ -41,17 +41,7 @@ class Moderation(commands.Cog):
             if guild_doc.get("punishments") is not None:
                 for user_id, user_dict in guild_doc["punishments"].items():
                     for punishment, unpunish_time in user_dict.items():
-                        if (
-                                unpunish_time
-                                if isinstance(unpunish_time, datetime.datetime)
-                                else datetime.datetime(
-                                    second=unpunish_time,
-                                    day=0,
-                                    month=0,
-                                    year=0,
-                                    tzinfo=datetime.timezone.utc,
-                                )
-                        ) < datetime.datetime.utcnow():
+                        if unpunish_time < datetime.datetime.utcnow():
                             try:  # Messy.
                                 if punishment == "ban":
                                     user: discord.User = self.bot.get_user(
@@ -68,6 +58,15 @@ class Moderation(commands.Cog):
                                         }
                                     }
                                 )
+
+    @commands.command()
+    @commands.is_owner()
+    async def nopunish(self, ctx: bots.CustomContext):
+        """Clears all previous punishments."""
+        await ctx.defer(ephemeral=True)
+        for guild in ctx.bot.guilds:
+            await (await ctx.bot.get_guild_document(guild)).update_db({"$unset": {"punishments": 1}})
+        await ctx.send("Done.")
 
     @commands.command()
     @commands.has_permissions(manage_messages=True)
@@ -125,7 +124,7 @@ class Moderation(commands.Cog):
         )
         await member.ban(reason=reason, delete_message_days=0)
         await ctx["guild_document"].update_db(
-            {"$set": {f"punishments.{member.id}.ban": (unpunishdatetime)}}
+            {"$set": {f"punishments.{member.id}.ban": unpunishdatetime}}
         )
         await ctx.send(
             "This member has been bans, and their unpunishment has been scheduled.",

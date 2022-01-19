@@ -5,7 +5,8 @@ https://github.com/regulad/PepperCord
 
 import logging
 import os
-from typing import Optional, List, Type, MutableMapping
+import traceback
+from typing import Optional, List, Type, MutableMapping, Any
 
 import art
 import discord
@@ -84,6 +85,17 @@ if __name__ == "__main__":
             else None
         ),
     )
+
+    client_logger: logging.Logger = logging.getLogger(discord.client.__name__)
+
+    async def on_error(event_method: str, *args: Any, **kwargs: Any) -> None:
+        client_logger.critical(f"Ignoring exception in {event_method}")
+        client_logger.critical(traceback.format_exc())
+
+    logging.info("Replacing error handler...")
+
+    bot.on_error = on_error
+
     logging.info("Done.")
 
     logging.info("Loading extensions...")

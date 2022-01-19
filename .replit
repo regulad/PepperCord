@@ -1,1 +1,2 @@
 run = "python3.10 -m pip install -r requirements.txt && clear && python3.10 main.py"
+language = "python"

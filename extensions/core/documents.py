@@ -13,9 +13,8 @@ class DocumentCog(commands.Cog):
 
     @commands.Cog.listener("on_context_creation")
     async def append_guild_document(self, ctx: commands.Context):
-        if ctx.guild is not None:
-            ctx: CustomContext = cast(CustomContext, ctx)
-            ctx["guild_document"] = await ctx.bot.get_guild_document(ctx.guild)
+        ctx: CustomContext = cast(CustomContext, ctx)
+        ctx["guild_document"] = await ctx.bot.get_guild_document(ctx.guild) if ctx.guild is not None else {}
 
     @commands.Cog.listener("on_context_creation")
     async def append_user_document(self, ctx: commands.Context):

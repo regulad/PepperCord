@@ -1,4 +1,3 @@
-from io import BytesIO
 from typing import Optional, cast, Literal
 
 import discord
@@ -6,7 +5,7 @@ from aiohttp import ClientSession
 from anekos import *
 from discord.ext import commands
 
-from utils import bots
+from utils import bots, webhook
 from utils.bots import BOT_TYPES, CustomContext
 
 
@@ -40,23 +39,9 @@ class Nekos(commands.Cog):
     async def cog_before_invoke(self, ctx: CustomContext) -> None:
         await self.secure_session()
 
-    async def get_or_create_owo_webhook(self, ctx: bots.CustomContext, channel: discord.TextChannel) -> discord.Webhook:
-        existing_webhook: Optional[int] = ctx["guild_document"].get("owo_webhooks", {}).get(str(channel.id))
-        try:
-            maybe_webhook: Optional[discord.Webhook] = await ctx.bot.fetch_webhook(existing_webhook) \
-                if existing_webhook is not None \
-                else None
-        except discord.HTTPException:
-            await ctx["guild_document"].update_db({"$unset": {f"owo_webhooks.{channel.id}": 1}})
-            maybe_webhook: Optional[discord.Webhook] = None
-        except Exception:
-            raise
-        if maybe_webhook is None:
-            webhook: discord.Webhook = await channel.create_webhook(name="Catboy Translator", reason=f"OwO")
-            await ctx["guild_document"].update_db({"$set": {f"owo_webhooks.{channel.id}": webhook.id}})
-            return webhook
-        else:
-            return maybe_webhook
+    async def owo_filter(self, owoify: str) -> str:
+        await self.secure_session()
+        return (await self.nekos_life_client.owoify(owoify)).text
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -64,33 +49,7 @@ class Nekos(commands.Cog):
         if message.channel.id in ctx["guild_document"].get("owo_channels", []) \
                 or message.author.id in ctx["guild_document"].get("owo_members", []) \
                 and ctx.command is None:
-            await self.secure_session()
-            owo_webhook: discord.Webhook = await self.get_or_create_owo_webhook(ctx, message.channel)
-
-            await owo_webhook.send(
-                content=(await self.nekos_life_client.owoify(message.clean_content)).text
-                if len(message.clean_content) > 0
-                else discord.utils.MISSING,
-                username=message.author.display_name,
-                avatar_url=message.author.guild_avatar.url
-                if message.author.guild_avatar is not None
-                else message.author.avatar.url,
-                allowed_mentions=discord.AllowedMentions(
-                    everyone=False,
-                    users=True,
-                    roles=[role for role in ctx.guild.roles if role.mentionable]
-                ),
-                embeds=message.embeds if len(message.embeds) > 0 else discord.utils.MISSING,
-                files=[
-                    discord.File(BytesIO(await attachment.read()), filename=attachment.filename)
-                    for attachment
-                    in message.attachments
-                ]
-                if len(message.attachments) > 0
-                else discord.utils.MISSING,
-            )
-
-            await message.delete()  # We don't see this now.
+            await webhook.filter_message(ctx, self.owo_filter, namespace="owo", bot=self.bot)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:

@@ -87,7 +87,9 @@ class CustomCommandSource(menus.ListPageSource):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(
             title=f"{self.guild.name}'s Custom Commands"
-        ).set_thumbnail(url=self.guild.icon.url)
+        )
+        if self.guild.icon is not None:
+            base_embed.set_thumbnail(url=self.guild.icon.url)
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value.command}",
@@ -252,7 +254,7 @@ class CustomCommands(commands.Cog):
                 else:
                     ctx.bot.dispatch("custom_command_success", custom_command, ctx)
 
-    @commands.group()
+    @commands.group(aliases=["cc"])
     async def customcommands(self, ctx: bots.CustomContext) -> None:
         pass
 

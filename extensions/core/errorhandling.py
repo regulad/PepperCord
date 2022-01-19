@@ -154,6 +154,9 @@ class ErrorHandling(commands.Cog):
     async def determine_if_critical(
             self, ctx: bots.CustomContext, error: Exception
     ) -> None:
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+
         critical: bool = not isinstance(
             error,
             (
@@ -167,9 +170,14 @@ class ErrorHandling(commands.Cog):
         )
 
         if critical:
-            ctx.bot.dispatch(
-                "critical_error", ctx, error
-            )  # I'll do something with this later, maybe a support system?
+            ctx.bot.dispatch("critical_error", ctx, error)
+
+    @commands.Cog.listener("on_critical_error")
+    async def log_critical_error(self, ctx: bots.CustomContext, error: Exception):
+        try:
+            raise error  # CBT
+        except Exception:
+            await ctx.bot.on_error("on_critical_error", error)  # Expects a traceback
 
 
 def setup(bot: bots.BOT_TYPES):

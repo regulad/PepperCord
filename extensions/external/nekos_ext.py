@@ -75,7 +75,7 @@ class Nekos(commands.Cog):
         if self.nekos_http_client is not None:
             self.bot.loop.create_task(self.nekos_http_client.close())
 
-    @commands.group()
+    @commands.group(aliases=["n"])
     async def nekos(self, ctx: CustomContext) -> None:
         pass
 

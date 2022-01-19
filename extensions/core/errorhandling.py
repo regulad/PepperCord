@@ -130,7 +130,8 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def soft_affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        if isinstance(ctx.message, discord.Message) and not isinstance(error, commands.DisabledCommand):
+        if isinstance(ctx.message, discord.Message) \
+                and not isinstance(error, (commands.DisabledCommand, commands.CommandNotFound)):
             await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener("on_command_error")

@@ -101,7 +101,7 @@ class Starboard(commands.Cog):
         else:
             return
 
-    @commands.group()
+    @commands.group(aliases=["sb"])
     async def starboard(self, ctx: bots.CustomContext) -> None:
         """
         Starboards are an alternative to pinning messages to a channel.

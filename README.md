@@ -104,8 +104,8 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
 * `PEPPERCORD_DEBUG`: Optional. Enables debugging features like jishaku.
 * `PEPPERCORD_TESTGUILDS`: Optional. A comma seperated list of Discord guild ids. The bot will only be enabled in these
   servers. If these are present, global slash commands will not be uploaded.
-* `PEPPERCORD_MESSAGE_COMMANDS`: Optional. If message commands should be enabled.
-* `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled
+* `PEPPERCORD_MESSAGE_COMMANDS`: Optional. If message commands should be disabled.
+* `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled.
 
 # Extending
 

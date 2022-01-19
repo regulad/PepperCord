@@ -75,7 +75,7 @@ if __name__ == "__main__":
         config=os.environ,
         shard_count=shards,
         slash_commands=os.environ.get("PEPPERCORD_SLASH_COMMANDS") is None,
-        message_commands=os.environ.get("PEPPERCORD_MESSAGE_COMMANDS") is not None or debug,
+        message_commands=os.environ.get("PEPPERCORD_MESSAGE_COMMANDS") is None or debug,
         slash_command_guilds=(
             [
                 int(testguild)

@@ -88,9 +88,11 @@ if __name__ == "__main__":
 
     client_logger: logging.Logger = logging.getLogger(discord.client.__name__)
 
+
     async def on_error(event_method: str, *args: Any, **kwargs: Any) -> None:
         client_logger.critical(f"Ignoring exception in {event_method}")
         client_logger.critical(traceback.format_exc())
+
 
     logging.info("Replacing error handler...")
 

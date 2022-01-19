@@ -5,6 +5,7 @@ import discord
 
 from utils import bots
 from utils.database import Document
+from utils.misc import split_string_chunks
 
 
 async def get_or_create_namespaced_webhook(namespace: str, bot: Union[bots.BOT_TYPES, bots.CustomContext],
@@ -29,6 +30,40 @@ async def get_or_create_namespaced_webhook(namespace: str, bot: Union[bots.BOT_T
         return maybe_webhook
 
 
+async def send_as_webhook(
+        webhook: discord.Webhook,
+        message: discord.Message,
+        *,
+        content: Optional[str] = None,
+        clean: bool = True,
+) -> Optional[discord.WebhookMessage]:
+    content: str = content or (message.clean_content if clean else message.content)
+    return await webhook.send(
+        content=content
+        if len(message.clean_content) > 0
+        else discord.utils.MISSING,
+        username=message.author.display_name,
+        avatar_url=(message.author.guild_avatar.url
+                    if message.author.guild_avatar is not None
+                    else message.author.avatar.url)
+        if hasattr(message.author, "guild_avatar")
+        else message.author.avatar,
+        allowed_mentions=discord.AllowedMentions(
+            everyone=False,
+            users=True,
+            roles=[role for role in message.guild.roles if role.mentionable]
+        ),
+        embeds=message.embeds if len(message.embeds) > 0 else discord.utils.MISSING,
+        files=[
+            discord.File(BytesIO(await attachment.read()), filename=attachment.filename)
+            for attachment
+            in message.attachments
+        ]
+        if len(message.attachments) > 0
+        else discord.utils.MISSING,
+    )
+
+
 async def filter_message(
         message: Union[discord.Message, bots.CustomContext],
         filter_callable: Callable[[str], Union[str, Coroutine[Any, Any, str]]],
@@ -45,28 +80,18 @@ async def filter_message(
                                    message.channel
                                )
     message: discord.Message = message if isinstance(message, discord.Message) else message.message
-    webhook_message: Optional[discord.WebhookMessage] = await webhook.send(
-        content=await discord.utils.maybe_coroutine(filter_callable, message.clean_content)
-        if len(message.clean_content) > 0
-        else discord.utils.MISSING,
-        username=message.author.display_name,
-        avatar_url=message.author.guild_avatar.url
-        if message.author.guild_avatar is not None
-        else message.author.avatar.url,
-        allowed_mentions=discord.AllowedMentions(
-            everyone=False,
-            users=True,
-            roles=[role for role in message.guild.roles if role.mentionable]
-        ),
-        embeds=message.embeds if len(message.embeds) > 0 else discord.utils.MISSING,
-        files=[
-            discord.File(BytesIO(await attachment.read()), filename=attachment.filename)
-            for attachment
-            in message.attachments
-        ]
-        if len(message.attachments) > 0
-        else discord.utils.MISSING,
-    )
+    filtered_message: str = await discord.utils.maybe_coroutine(filter_callable, message.clean_content)
+
+    if len(filtered_message) > 2000:
+        webhook_message: Optional[discord.WebhookMessage] = None
+        for message_fragment in split_string_chunks(filtered_message, chunk_size=2000):
+            await send_as_webhook(webhook, message, content=message_fragment)
+    else:
+        webhook_message: Optional[discord.WebhookMessage] = await send_as_webhook(
+            webhook,
+            message,
+            content=filtered_message
+        )
 
     if delete_message:
         await message.delete()  # We don't see this now.
@@ -76,5 +101,6 @@ async def filter_message(
 
 __all__: List[str] = [
     "get_or_create_namespaced_webhook",
-    "filter_message"
+    "send_as_webhook",
+    "filter_message",
 ]

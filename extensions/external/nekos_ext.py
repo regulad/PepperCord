@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from utils import bots, webhook
 from utils.bots import BOT_TYPES, CustomContext
+from utils.misc import split_string_chunks
 
 
 class TagConverter(commands.Converter):
@@ -41,14 +42,22 @@ class Nekos(commands.Cog):
 
     async def owo_filter(self, owoify: str) -> str:
         await self.secure_session()
-        return (await self.nekos_life_client.owoify(owoify)).text
+        return "".join(
+            [
+                (await self.nekos_life_client.owoify(fragment)).text
+                for fragment
+                in split_string_chunks(owoify, chunk_size=199)
+            ]
+        )
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
         ctx: bots.CustomContext = cast(bots.CustomContext, await self.bot.get_context(message))
-        if message.channel.id in ctx["guild_document"].get("owo_channels", []) \
-                or message.author.id in ctx["guild_document"].get("owo_members", []) \
-                and ctx.command is None:
+        if (message.channel.id in ctx["guild_document"].get("owo_channels", [])
+            or message.author.id in ctx["guild_document"].get("owo_members", [])) \
+                and ctx.command is None \
+                and not ctx.author.bot \
+                and ctx.message.webhook_id is None:
             await webhook.filter_message(ctx, self.owo_filter, namespace="owo", bot=self.bot)
 
     @commands.Cog.listener()

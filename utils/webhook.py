@@ -8,8 +8,11 @@ from utils.database import Document
 from utils.misc import split_string_chunks
 
 
-async def get_or_create_namespaced_webhook(namespace: str, bot: bots.BOT_TYPES,
-                                           channel: discord.TextChannel) -> discord.Webhook:
+async def get_or_create_namespaced_webhook(
+        namespace: str, bot: bots.BOT_TYPES,
+        channel: discord.TextChannel,
+        **kwargs: Any,
+) -> discord.Webhook:
     guild_doc: Document = await bot.get_guild_document(channel.guild)
     existing_webhook: Optional[int] = guild_doc.get(f"{namespace}_webhooks", {}).get(str(channel.id))
     try:
@@ -22,7 +25,9 @@ async def get_or_create_namespaced_webhook(namespace: str, bot: bots.BOT_TYPES,
     except Exception:
         raise
     if maybe_webhook is None:
-        webhook: discord.Webhook = await channel.create_webhook(name=namespace.upper())
+        if kwargs.get("name") is None:
+            kwargs["name"] = namespace.upper()
+        webhook: discord.Webhook = await channel.create_webhook(**kwargs)
         await guild_doc.update_db({"$set": {f"{namespace}_webhooks.{channel.id}": webhook.id}})
         return webhook
     else:
@@ -31,7 +36,7 @@ async def get_or_create_namespaced_webhook(namespace: str, bot: bots.BOT_TYPES,
 
 async def impersonate(
         webhook: discord.Webhook,
-        victim: discord.Member,
+        victim: discord.abc.User,
         *args: Any,
         **kwargs: Any,
 ) -> Optional[discord.WebhookMessage]:

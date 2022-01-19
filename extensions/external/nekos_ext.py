@@ -58,7 +58,12 @@ class Nekos(commands.Cog):
                 and ctx.command is None \
                 and not ctx.author.bot \
                 and ctx.message.webhook_id is None:
-            await webhook.filter_message(ctx, self.owo_filter, namespace="owo", bot=self.bot)
+            owo_webhook: discord.Webhook = await webhook.get_or_create_namespaced_webhook(
+                "owo",
+                ctx.bot,
+                message.channel
+            )
+            await webhook.filter_message(message, self.owo_filter, owo_webhook)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:

@@ -114,9 +114,40 @@ async def filter_message(
     return webhook_message
 
 
+class WebhookSendHandler(bots.SendHandler):
+    def __init__(self, webhook: discord.Webhook) -> None:
+        self.webhook: discord.Webhook = webhook
+
+    async def send(self, *args, **kwargs) -> discord.Message:
+        if kwargs.get("ephemeral") is not None:
+            del kwargs["ephemeral"]
+        if kwargs.get("return_message") is not None:
+            del kwargs["return_message"]
+        if kwargs.get("reference") is not None:
+            del kwargs["reference"]
+        return await self.webhook.send(*args, **kwargs)
+
+
+class ImpersonateSendHandler(WebhookSendHandler):
+    def __init__(self, webhook: discord.Webhook, victim: discord.abc.User) -> None:
+        super().__init__(webhook)
+        self.victim: discord.abc.User = victim
+
+    async def send(self, *args, **kwargs) -> discord.Message:
+        if kwargs.get("ephemeral") is not None:
+            del kwargs["ephemeral"]
+        if kwargs.get("return_message") is not None:
+            del kwargs["return_message"]
+        if kwargs.get("reference") is not None:
+            del kwargs["reference"]
+        return await impersonate(self.webhook, self.victim, *args, **kwargs)
+
+
 __all__: List[str] = [
     "get_or_create_namespaced_webhook",
     "resend_as_webhook",
     "impersonate",
     "filter_message",
+    "WebhookSendHandler",
+    "ImpersonateSendHandler"
 ]

@@ -61,7 +61,9 @@ class Nekos(commands.Cog):
             owo_webhook: discord.Webhook = await webhook.get_or_create_namespaced_webhook(
                 "owo",
                 ctx.bot,
-                message.channel
+                message.channel,
+                name="Catboy Translator",
+                avatar=await self.bot.user.avatar.read(),
             )
             await webhook.filter_message(message, self.owo_filter, owo_webhook)
 

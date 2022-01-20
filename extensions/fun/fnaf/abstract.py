@@ -1,13 +1,8 @@
 import random
 from enum import Enum, auto
-from typing import Optional, ValuesView, Mapping
+from typing import ValuesView, Optional, Mapping
 
-from discord.ext import commands
-
-from utils import bots, misc
-
-# Abstract start --- No discord!
-
+from utils import misc
 
 """
 Some notes on implementation:
@@ -313,6 +308,10 @@ class Room(Enum):
             case _:
                 return False
 
+    @classmethod
+    def cameras(cls) -> list["Room"]:
+        return [room for room in cls.rooms() if room.has_camera]
+
     @property
     def name(self) -> Optional[str]:
         match self:
@@ -373,8 +372,9 @@ class CameraState:
     """Represents the current state of the cameras."""
 
     def __init__(self, camera: Optional[Room] = None, camera_up: bool = False) -> None:
-        assert camera.has_camera
-        self._camera: Room = camera
+        if camera is not None:
+            assert camera.has_camera
+        self._camera: Optional[Room] = camera
         self._camera_up: bool = camera_up
 
     @classmethod
@@ -599,38 +599,14 @@ class GameState:
         )
 
 
-# Abstract end --- Discord below
-
-
-class FiveNightsAtFreddys(commands.Cog):
-    """Play Five Night's At Freddys in Discord"""
-
-    def __init__(self, bot: bots.BOT_TYPES) -> None:
-        self.bot: bots.BOT_TYPES = bot
-
-    @commands.command()
-    async def fnaf(
-            self,
-            ctx: bots.CustomContext,
-            freddy: Optional[int] = commands.Option(
-                description="The difficulty for Freddy.",
-                default=Animatronic.FREDDY.default_diff
-            ),
-            bonnie: Optional[int] = commands.Option(
-                description="The difficulty for Bonnie.",
-                default=Animatronic.BONNIE.default_diff
-            ),
-            chica: Optional[int] = commands.Option(
-                description="The difficulty for Chica.",
-                default=Animatronic.CHICA.default_diff
-            ),
-            foxy: Optional[int] = commands.Option(
-                description="The difficulty for Foxy.",
-                default=Animatronic.FOXY.default_diff
-            ),
-    ) -> None:
-        pass
-
-
-def setup(bot: bots.BOT_TYPES) -> None:
-    bot.add_cog(FiveNightsAtFreddys(bot))
+__all__: list[str] = [
+    "DisplayTime",
+    "DoorState",
+    "GameTime",
+    "Animatronic",
+    "Room",
+    "CameraState",
+    "AnimatronicDifficulty",
+    "LightState",
+    "GameState",
+]

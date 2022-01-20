@@ -1,11 +1,45 @@
-import collections
+import os
+from typing import Mapping
 
 
 def split_string_chunks(string: str, chunk_size: int = 2000) -> list[str]:
     return [string[i:i + chunk_size] for i in range(0, len(string), chunk_size)]
 
 
-class FrozenDict(collections.Mapping):
+def get_list_of_files_in_base(basedir: str) -> list[str]:
+    list_of_files: list[str] = os.listdir(basedir)
+    all_files: list[str] = []
+    # Iterate over all the entries
+    for entry in list_of_files:
+        # Create full path
+        full_path = os.path.join(basedir, entry)
+        # If entry is a directory then get the list of files in this directory
+        if os.path.isdir(full_path):
+            all_files += get_list_of_files_in_base(full_path)
+        all_files.append(full_path)
+
+    return all_files
+
+
+def is_module(file_or_directory: str) -> bool:
+    if os.path.isdir(file_or_directory):
+        return "__init__.py" in os.listdir(file_or_directory)
+    else:
+        return (
+                file_or_directory.endswith(".py")
+                and not ("__init__.py" in os.listdir(os.path.join(file_or_directory, os.pardir)))
+        )
+
+
+def get_python_modules(basedir: str) -> list[str]:
+    return [
+        os.path.splitext(module)[0].replace("/", ".").replace("\\", ".")
+        for module in get_list_of_files_in_base(basedir)
+        if is_module(module)
+    ]
+
+
+class FrozenDict(Mapping):
     def __init__(self, *args, **kwargs):
         self._d = dict(*args, **kwargs)
         self._hash = None
@@ -35,5 +69,8 @@ class FrozenDict(collections.Mapping):
 
 __all__: list[str] = [
     "split_string_chunks",
-    "FrozenDict"
+    "FrozenDict",
+    "is_module",
+    "get_list_of_files_in_base",
+    "get_python_modules",
 ]

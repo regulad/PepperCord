@@ -6,7 +6,7 @@ from .abstract import *
 
 
 def canvas() -> Image:
-    return Image.new("RGB", (1300, 1000), (10, 10, 10))
+    return Image.new("RGB", (1300, 1000), (128, 128, 128))
 
 
 def overlay_canvas() -> Image:

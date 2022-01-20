@@ -21,6 +21,8 @@ class GameStateHolder:
     def __init__(
             self,
             message: discord.Message,
+            scratch_channel: discord.TextChannel,
+            bot: bots.BOT_TYPES,
             view: Optional[discord.ui.View] = None,
             game_state: GameState = GameState.initialize(),
             *,
@@ -28,6 +30,8 @@ class GameStateHolder:
     ) -> None:
         self._current_view: Optional[discord.ui.View] = view
         self._message: discord.Message = message
+        self._bot: bots.BOT_TYPES = bot
+        self._scratch_channel: discord.TextChannel = scratch_channel
         self._game_state: GameState = game_state
         self.loop: AbstractEventLoop = loop or get_event_loop()
 
@@ -43,7 +47,8 @@ class GameStateHolder:
         return message or self._message
 
     def stop(self) -> None:
-        self._current_view.stop()
+        if self._current_view is not None:
+            self._current_view.stop()
 
     async def new_view(self, interaction: Optional[discord.Interaction] = None) -> Optional[discord.ui.View]:
         target_view_type: Type = CameraSelectionView if self.game_state.camera_state.camera_up else OfficeGUI
@@ -68,19 +73,35 @@ class GameStateHolder:
         elif self.game_state.lost:
             await message.edit(
                 content=f"You lose! You were killed by "
-                        f"{', '.join([animatronic.name.title() for animatronic in self.game_state.animatronics_in(Room.OFFICE)])}!",
+                        f"{', '.join([animatronic.friendly_name for animatronic in self.game_state.animatronics_in(Room.OFFICE)])}!",
                 view=None,
             )
             self.stop()
         else:
             possible_view: discord.ui.View = await self.new_view(interaction)
+            content: str = "__**Five Nights At Freddy's**__"
+            if len(self.game_state.summary) > 0:
+                content += f"\n============="
+                content += f"\n{self.game_state.summary}"
+            """
             with await self.render() as fp:
-                content: str = "__**Five Nights At Freddy's**__"
-                await message.edit(
-                    content=content,
-                    view=possible_view if possible_view is not None else discord.utils.MISSING,
-                    files=[discord.File(fp, filename="FNAF.png")],
+                # Behaves very weirdly when this isn't sent via a webhook.
+                scratch_webhook: discord.Webhook = await webhook.get_or_create_namespaced_webhook(
+                    "fnaf",
+                    self._bot,
+                    self._scratch_channel
                 )
+                webhook_message: Optional[discord.WebhookMessage] = await scratch_webhook.send(
+                    file=discord.File(fp, filename="FNAF.png"),
+                    wait=True
+                )
+                assert webhook_message is not None
+                content += f"\n{webhook_message.attachments[-1].url}"
+            """
+            await message.edit(
+                content=content,
+                view=possible_view if possible_view is not None else discord.utils.MISSING,
+            )
 
 
 class OfficeGUI(discord.ui.View):
@@ -105,7 +126,7 @@ class OfficeGUI(discord.ui.View):
         )
         await self._game_state_holder.on_update(interaction)
 
-    @discord.ui.button(emoji="⏬")
+    @discord.ui.button(emoji="⏬", label="Open Cameras")
     async def open_cams(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         self._game_state_holder.game_state = self._game_state_holder.game_state.process_input_changes(
             camera_state=self._game_state_holder.game_state.camera_state.change_position(True)
@@ -113,17 +134,17 @@ class OfficeGUI(discord.ui.View):
         await self._game_state_holder.on_update(interaction)
         self.stop()
 
-    @discord.ui.button(emoji="🟥")
-    async def right_door_close(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
-        self._game_state_holder.game_state = self._game_state_holder.game_state.process_input_changes(
-            door_state=self._game_state_holder.game_state.door_state.change_right()
-        )
-        await self._game_state_holder.on_update(interaction)
-
     @discord.ui.button(emoji="⬜")
     async def right_door_light(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
         self._game_state_holder.game_state = self._game_state_holder.game_state.process_input_changes(
             light_state=self._game_state_holder.game_state.light_state.change_right()
+        )
+        await self._game_state_holder.on_update(interaction)
+
+    @discord.ui.button(emoji="🟥")
+    async def right_door_close(self, button: discord.ui.Button, interaction: discord.Interaction) -> None:
+        self._game_state_holder.game_state = self._game_state_holder.game_state.process_input_changes(
+            door_state=self._game_state_holder.game_state.door_state.change_right()
         )
         await self._game_state_holder.on_update(interaction)
 
@@ -165,7 +186,7 @@ class CameraSelectionView(discord.ui.View):
 
         self.add_item(CameraSelectionMenu(game_state_holder))
 
-    @discord.ui.button(label="Exit", style=discord.ButtonStyle.grey)
+    @discord.ui.button(emoji="⏬", label="Exit", style=discord.ButtonStyle.grey)
     async def on_exit(self, button: discord.ui.Button, interaction: discord.Interaction):
         self._game_state_holder.game_state = self._game_state_holder.game_state.process_input_changes(
             camera_state=self._game_state_holder.game_state.camera_state.change_position(False)
@@ -180,21 +201,28 @@ class FiveNightsAtFreddys(commands.Cog):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot: bots.BOT_TYPES = bot
         self.games: dict[discord.Message, GameStateHolder] = {}
+        self.update_games.start()
 
     async def get_game(self, model: discord.abc.User | discord.Message) \
             -> Optional[tuple[discord.Message, GameStateHolder]]:
         if isinstance(model, discord.Message):
-            return self.games.get(model)
+            return model, self.games.get(model)
         else:
             for message, game in self.games.items():
-                if message.author == model:
+                if message.author.id == model.id:
                     return message, game
 
-    @tasks.loop(seconds=4)  # Determines how many minutes the game will last
+    @tasks.loop(seconds=4.5)  # Determines how many minutes the game will last
     async def update_games(self):
         for message, game in self.games.items():
             game.game_state = game.game_state.full_tick()
             await game.on_update()
+            if game.game_state.done:
+                game.stop()
+                del self.games[message]
+
+    def cog_unload(self) -> None:
+        self.update_games.stop()
 
     @commands.command()
     async def fnaf(
@@ -217,7 +245,11 @@ class FiveNightsAtFreddys(commands.Cog):
                 default=Animatronic.FOXY.default_diff
             ),
     ) -> None:
+        """Play a game of Five Nights at Freddy's!"""
         result = await self.get_game(ctx.author)
+        if freddy == 1 and bonnie == 9 and chica == 8 and foxy == 7:
+            await ctx.send("https://media.discordapp.net/attachments/824789288574779393/933822496933814292/unknown.png")
+            return
         if result is not None:
             message, holder = result
             if holder.game_state.done:
@@ -237,8 +269,19 @@ class FiveNightsAtFreddys(commands.Cog):
             )
         )
         initial_state: GameState = GameState.initialize(difficulty)
-        response_message: discord.abc.Message = await ctx.send("Staring...")
-        holder: GameStateHolder = GameStateHolder(response_message, game_state=initial_state, loop=ctx.bot.loop)
+        response_message: discord.abc.Message = await ctx.send(
+            f"Freddy: {freddy}"
+            f"\nBonnie: {bonnie}"
+            f"\nChica: {chica}"
+            f"\nFoxy: {foxy}"
+        )
+        holder: GameStateHolder = GameStateHolder(
+            response_message,
+            ctx.bot.scratch_channel,
+            ctx.bot,
+            game_state=initial_state,
+            loop=ctx.bot.loop
+        )
         self.games[response_message] = holder
         await holder.on_update()
 

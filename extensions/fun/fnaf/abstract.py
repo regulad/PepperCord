@@ -11,6 +11,9 @@ Some notes on implementation:
 3. The game should be played as similar to FNAF as intricacies  of views allow.
 """
 
+MAX_TIME: int = 60  # MUST BE EVENLY DIVISIBLE BY 6
+MAX_STEP: int = int(MAX_TIME / 6)
+
 
 class DisplayTime(Enum):
     """Represents a time displayed to the player."""
@@ -25,13 +28,11 @@ class DisplayTime(Enum):
     @property
     def offset(self) -> int:
         match self:
-            case DisplayTime.TWO_AM:
-                pass
-            case DisplayTime.THREE_AM:
+            case DisplayTime.TWO_AM \
+                 | DisplayTime.THREE_AM:
                 return 1
-            case DisplayTime.FOUR_AM:
-                pass
-            case DisplayTime.FIVE_AM:
+            case DisplayTime.FOUR_AM \
+                 | DisplayTime.FIVE_AM:
                 return 2
             case _:
                 return 0
@@ -43,6 +44,20 @@ class DoorState:
     def __init__(self, left_door: bool, right_door: bool) -> None:
         self._ld: bool = left_door
         self._rd: bool = right_door
+
+    def change_left(self, state: Optional[bool] = None) -> "DoorState":
+        state: bool = state or not self.left_door_closed
+        return self.__class__(
+            state,
+            self.right_door_closed,
+        )
+
+    def change_right(self, state: Optional[bool] = None) -> "DoorState":
+        state: bool = state or not self.right_door_closed
+        return self.__class__(
+            self.left_door_closed,
+            state,
+        )
 
     @classmethod
     def empty(cls) -> "DoorState":
@@ -59,7 +74,7 @@ class DoorState:
 
 class GameTime:
     """
-    Time in this version of the game is expressed as a millisecond counter from 1-6000.
+    Time in this version of the game is expressed as a millisecond counter from 1-MAX_TIME.
     Time scale can be changed by changing how fast this is ticked.
     """
 
@@ -80,17 +95,17 @@ class GameTime:
 
     @property
     def display_time(self) -> DisplayTime:
-        if self.millis > 6000:
+        if self.millis > MAX_TIME:
             return DisplayTime.SIX_AM
-        elif self.millis > 5000:
+        elif self.millis > (MAX_STEP * 5):
             return DisplayTime.FIVE_AM
-        elif self.millis > 4000:
+        elif self.millis > (MAX_STEP * 4):
             return DisplayTime.FOUR_AM
-        elif self.millis > 3000:
+        elif self.millis > (MAX_STEP * 3):
             return DisplayTime.THREE_AM
-        elif self.millis > 2000:
+        elif self.millis > (MAX_STEP * 2):
             return DisplayTime.TWO_AM
-        elif self.millis > 1000:
+        elif self.millis > (MAX_STEP * 1):
             return DisplayTime.ONE_AM
         else:
             return DisplayTime.TWELVE_AM
@@ -140,7 +155,7 @@ class Room(Enum):
 
     @classmethod
     def rooms(cls) -> ValuesView["Room"]:
-        return dict(Room).values()
+        return Room.__members__.values()
 
     @classmethod
     def possible_rooms(cls, animatronic: Animatronic) -> list["Room"]:
@@ -148,33 +163,26 @@ class Room(Enum):
 
     def possible(self, animatronic: Animatronic) -> bool:
         match self:
-            case Room.CAM_1_A:
-                pass
-            case Room.CAM_1_B:
+            case Room.CAM_1_A \
+                 | Room.CAM_1_B:
                 return animatronic is not Animatronic.FOXY
             case Room.CAM_1_C:
                 return animatronic is Animatronic.FOXY
             case Room.CAM_2_A:
                 return animatronic is Animatronic.FOXY or animatronic is Animatronic.BONNIE
 
-            case Room.CAM_4_A:
-                pass
-            case Room.CAM_4_B:
-                pass
-            case Room.CAM_6:
-                pass
-            case Room.CAM_7:
+            case Room.CAM_6 \
+                 | Room.CAM_4_B \
+                 | Room.CAM_4_A \
+                 | Room.CAM_7:
                 return animatronic is Animatronic.FREDDY or animatronic is Animatronic.CHICA
 
             # Below has had logic implemented
 
-            case Room.CAM_5:
-                pass
-            case Room.CAM_3:
-                pass
-            case Room.CAM_2_B:
-                pass
-            case Room.LEFT_DOOR:
+            case Room.CAM_2_B \
+                 | Room.CAM_3 \
+                 | Room.CAM_5 \
+                 | Room.LEFT_DOOR:
                 return animatronic is Animatronic.BONNIE
 
             case Room.RIGHT_DOOR:
@@ -183,13 +191,10 @@ class Room(Enum):
             case Room.OFFICE:
                 return True
 
-            case Room.FOXY_1:
-                pass
-            case Room.FOXY_2:
-                pass
-            case Room.FOXY_3:
-                pass
-            case Room.FOXY_SAFE:
+            case Room.FOXY_3 \
+                 | Room.FOXY_2 \
+                 | Room.FOXY_1 \
+                 | Room.FOXY_SAFE:
                 return animatronic is Animatronic.FOXY
 
     def can_move(self, other: "Room", animatronic: Animatronic, door_state: DoorState) -> bool:
@@ -283,27 +288,17 @@ class Room(Enum):
     @property
     def has_camera(self) -> bool:
         match self:
-            case Room.CAM_1_A:
-                pass
-            case Room.CAM_1_B:
-                pass
-            case Room.CAM_1_C:
-                pass
-            case Room.CAM_2_A:
-                pass
-            case Room.CAM_2_B:
-                pass
-            case Room.CAM_3:
-                pass
-            case Room.CAM_4_A:
-                pass
-            case Room.CAM_4_B:
-                pass
-            case Room.CAM_5:
-                pass
-            case Room.CAM_6:
-                pass
-            case Room.CAM_7:
+            case Room.CAM_6 \
+                 | Room.CAM_5 \
+                 | Room.CAM_4_B \
+                 | Room.CAM_4_A \
+                 | Room.CAM_3 \
+                 | Room.CAM_2_B \
+                 | Room.CAM_2_A \
+                 | Room.CAM_1_C \
+                 | Room.CAM_1_A \
+                 | Room.CAM_1_B \
+                 | Room.CAM_7:
                 return True
             case _:
                 return False
@@ -313,7 +308,15 @@ class Room(Enum):
         return [room for room in cls.rooms() if room.has_camera]
 
     @property
-    def name(self) -> Optional[str]:
+    def simple_name(self) -> str:
+        return self.name.replace("_", " ").upper()
+
+    @classmethod
+    def from_simple_name(cls, simple_name: str) -> "Room":
+        return cls[simple_name.upper().replace(" ", "_")]
+
+    @property
+    def room_name(self) -> Optional[str]:
         match self:
             case Room.CAM_1_A:
                 return "Show Stage"
@@ -345,19 +348,16 @@ class Room(Enum):
         match self:
             case Room.CAM_1_A:
                 return "🎤"
-            case Room.CAM_2_A:
-                pass
-            case Room.CAM_2_B:
-                pass
-            case Room.CAM_4_A:
-                pass
-            case Room.CAM_4_B:
+            case Room.CAM_4_A \
+                 | Room.CAM_2_B \
+                 | Room.CAM_2_A \
+                 | Room.CAM_4_B:
                 return "🚪"
-            case Room.CAM_3:
+            case Room.CAM_3 \
+                 | Room.CAM_5:
                 return "🧹"
-            case Room.CAM_1_B:
-                pass
-            case Room.CAM_6:
+            case Room.CAM_1_B \
+                 | Room.CAM_6:
                 return "🍕"
             case Room.CAM_1_C:
                 return "🪝"
@@ -365,7 +365,7 @@ class Room(Enum):
                 return "🚽"
 
     def __str__(self):
-        return self.name
+        return self.room_name
 
 
 class CameraState:
@@ -380,6 +380,18 @@ class CameraState:
     @classmethod
     def empty(cls) -> "CameraState":
         return cls(None, False)
+
+    def change_camera(self, camera: Optional[Room] = None):
+        return self.__class__(
+            camera,
+            self.camera_up
+        )
+
+    def change_position(self, camera_up: bool = False):
+        return self.__class__(
+            self.looking_at,
+            camera_up
+        )
 
     @property
     def camera_up(self) -> bool:
@@ -437,6 +449,20 @@ class LightState:
         self._ll: bool = left_light
         self._rl: bool = right_light
 
+    def change_left(self, state: Optional[bool] = None) -> "LightState":
+        state: bool = state or not self.left_light_on
+        return self.__class__(
+            state,
+            self.right_light_on,
+        )
+
+    def change_right(self, state: Optional[bool] = None) -> "LightState":
+        state: bool = state or not self.right_light_on
+        return self.__class__(
+            self.left_light_on,
+            state,
+        )
+
     @classmethod
     def empty(cls) -> "LightState":
         return cls(False, False)
@@ -474,6 +500,16 @@ class GameState:
         self._power_left: int = power_left
         self._game_time: GameTime = game_time
 
+    def room_of(self, animatronic: Animatronic) -> Room:
+        return self.animatronic_positions[animatronic]
+
+    def animatronics_in(self, search_room: Room) -> list[Animatronic]:
+        animatronics: list[Animatronic] = []
+        for animatronic, room in self.animatronic_positions.items():
+            if search_room is room:
+                animatronics.append(animatronic)
+        return animatronics
+
     @classmethod
     def empty(cls) -> "GameState":
         return cls()
@@ -490,6 +526,10 @@ class GameState:
     def lost(self) -> bool:
         # fixme: possible exploit, just never lower your camera! gotta fix foxy
         return (not self.camera_state.camera_up) and (Room.OFFICE in self.animatronic_positions.values())
+
+    @property
+    def done(self) -> bool:
+        return self.won or self.lost
 
     @classmethod
     def initialize(cls, difficulty: Optional[AnimatronicDifficulty] = None) -> "GameState":
@@ -609,4 +649,6 @@ __all__: list[str] = [
     "AnimatronicDifficulty",
     "LightState",
     "GameState",
+    "MAX_STEP",
+    "MAX_TIME"
 ]

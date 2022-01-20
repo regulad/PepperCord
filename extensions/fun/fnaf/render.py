@@ -6,19 +6,19 @@ from .abstract import *
 
 
 def canvas() -> Image:
-    return Image.new("RGB", (500, 500))
+    return Image.new("RGB", (1300, 1000), (10, 10, 10))
 
 
 def overlay_canvas() -> Image:
-    return Image.new("RGBA", (500, 500), (0, 0, 0, 0))
+    return Image.new("RGBA", (1300, 1000), (0, 0, 0, 0))
 
 
 def render_overlay(game_state: GameState) -> Image:
-    pass
+    return overlay_canvas()
 
 
-def render_camera_underlay(game_state: GameState, camera: Room) -> Image:
-    drawing_canvas: Image = canvas()
+def render_underlay(game_state: GameState) -> Image:
+    return canvas()
 
 
 def composite(underlay: Image, overlay: Image) -> Image:
@@ -27,7 +27,7 @@ def composite(underlay: Image, overlay: Image) -> Image:
 
 
 def render(game_state: GameState) -> Image:
-    pass
+    return composite(render_underlay(game_state), render_overlay(game_state))
 
 
 def save_buffer(im: Image, image_format: str = "PNG") -> BytesIO:
@@ -45,5 +45,5 @@ def load_bytes(im: Image, image_format: str = "PNG") -> bytes:
 __all__: list[str] = [
     "render",
     "save_buffer",
-    "load_bytes"
+    "load_bytes",
 ]

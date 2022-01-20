@@ -27,7 +27,7 @@ def is_module(file_or_directory: str) -> bool:
     else:
         return (
                 file_or_directory.endswith(".py")
-                and not ("__init__.py" in os.listdir(os.path.join(file_or_directory, os.pardir)))
+                and not ("__init__.py" in os.listdir(os.path.split(file_or_directory)[0]))
         )
 
 

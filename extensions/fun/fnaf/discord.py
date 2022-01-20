@@ -214,7 +214,7 @@ class FiveNightsAtFreddys(commands.Cog):
 
     @tasks.loop(seconds=4.5)  # Determines how many minutes the game will last
     async def update_games(self):
-        for message, game in self.games.items():
+        for message, game in misc.FrozenDict(self.games).items():
             game.game_state = game.game_state.full_tick()
             await game.on_update()
             if game.game_state.done:

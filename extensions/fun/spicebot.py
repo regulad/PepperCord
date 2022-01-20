@@ -25,7 +25,7 @@ class SpiceBot(commands.Cog):
 
     def cog_unload(self) -> None:
         if self.client is not None:
-            self.bot.loop.run_until_complete(self.client.close())
+            self.bot.loop.create_task(self.client.close())
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:

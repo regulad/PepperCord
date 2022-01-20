@@ -106,6 +106,8 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
   servers. If these are present, global slash commands will not be uploaded.
 * `PEPPERCORD_MESSAGE_COMMANDS`: Optional. If message commands should be disabled.
 * `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled.
+* `PEPPERCORD_HOME_GUILD`: Optional. Used as the main guild.
+* `PEPPERCORD_SCRATCH_CHANNEL`: Optional. Used as a channel for images.
 
 # Extending
 

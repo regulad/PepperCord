@@ -6,7 +6,7 @@ https://github.com/regulad/PepperCord
 import logging
 import os
 import traceback
-from typing import Optional, List, Type, MutableMapping, Any
+from typing import Optional, Type, MutableMapping, Any
 
 import art
 import discord
@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pretty_help import PrettyHelp
 
-from utils import bots, help
+from utils import bots, help, misc
 
 default_log_level: int = logging.INFO
 
@@ -101,14 +101,8 @@ if __name__ == "__main__":
     logging.info("Done.")
 
     logging.info("Loading extensions...")
-    directories: List[str] = [entry[0] for entry in os.walk("extensions")]
-    if os.name == "nt":  # I hate this.
-        directories: List[str] = [entry.replace("\\", "/") for entry in directories]
-    for directory in directories:
-        for file in os.listdir(f"{directory}/"):
-            if file.endswith(".py"):
-                full_path: str = f"{directory}/" + file
-                bot.load_extension(os.path.splitext(full_path)[0].replace("/", "."))
+    for extension in misc.get_python_modules("extensions"):
+        bot.load_extension(extension)
     if debug:
         bot.load_extension("jishaku")
 

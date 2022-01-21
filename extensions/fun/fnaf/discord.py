@@ -241,6 +241,10 @@ class FiveNightsAtFreddys(commands.Cog):
     async def fnaf(
             self,
             ctx: bots.CustomContext,
+            night: Optional[int] = commands.Option(
+                description="The night to simulate. Overrides all other options. The default is 7, for custom night.",
+                default=7,
+            ),
             freddy: Optional[int] = commands.Option(
                 description="The difficulty for Freddy.",
                 default=Animatronic.FREDDY.default_diff
@@ -271,7 +275,13 @@ class FiveNightsAtFreddys(commands.Cog):
                 await ctx.send("You have a game ongoing!", ephemeral=True)
                 return
         await ctx.defer()
+        if night != 7:
+            freddy = Animatronic.FREDDY.difficulty(night)
+            bonnie = Animatronic.BONNIE.difficulty(night)
+            chica = Animatronic.CHICA.difficulty(night)
+            foxy = Animatronic.FOXY.difficulty(night)
         difficulty: AnimatronicDifficulty = AnimatronicDifficulty(
+            night,
             misc.FrozenDict(
                 {
                     Animatronic.FREDDY: freddy,
@@ -279,7 +289,8 @@ class FiveNightsAtFreddys(commands.Cog):
                     Animatronic.CHICA: chica,
                     Animatronic.FOXY: foxy
                 }
-            )
+            ),
+            night != 7,
         )
         initial_state: GameState = GameState.initialize(difficulty)
         response_message: discord.abc.Message = await ctx.send(

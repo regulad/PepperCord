@@ -217,7 +217,7 @@ def render(game_state: GameState) -> ImageType:
         # Time
         image_draw.text(
             xy=(MAX_WIDTH - 15, 15),
-            text=f"{game_state.game_time.display_time.friendly_name}",
+            text=game_state.game_time.display_time.friendly_name,
             stroke_fill="#FFFFFF",
             font=font(98),
             anchor="ra",
@@ -226,11 +226,7 @@ def render(game_state: GameState) -> ImageType:
         # Night text
         image_draw.text(
             xy=(MAX_WIDTH - 15, 80),
-            text=f"Night 7"
-                 f"\n{game_state.difficulty.freddy} "
-                 f"{game_state.difficulty.bonnie} "
-                 f"{game_state.difficulty.chica} "
-                 f"{game_state.difficulty.foxy} ",
+            text=f"Night {game_state.difficulty.night}",
             stroke_fill="#FFFFFF",
             font=font(48),
             anchor="ra",

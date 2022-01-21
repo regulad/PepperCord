@@ -494,7 +494,7 @@ class AnimatronicDifficulty:
     def __getitem__(self, item: Animatronic) -> int:
         return self._diffs[item]
 
-    def calculate_for_hour(self, item: Animatronic, display_time: DisplayTime) -> int:
+    def fixed_or_calc(self, item: Animatronic, display_time: DisplayTime) -> int:
         return item.difficulty(self.night, display_time) if self._offset else self[item]
 
     @property
@@ -578,6 +578,15 @@ class GameState:
 
     def room_of(self, animatronic: Animatronic) -> Room:
         return self.animatronic_positions[animatronic]
+
+    @property
+    def fazpoints(self) -> int:
+        return (
+                       self.difficulty.freddy
+                       + self.difficulty.bonnie
+                       + self.difficulty.chica
+                       + self.difficulty.foxy
+               ) * 10
 
     @staticmethod
     def _build_summary(add: str, existing: Optional[str] = None) -> str:
@@ -746,13 +755,11 @@ class GameState:
         mutable_pos: dict[Animatronic, Room] = dict(self.animatronic_positions)
 
         if self.power_left <= 0:
-            if self.game_time.millis % 2 == 0:
-                mutable_pos[Animatronic.FREDDY] = mutable_pos[Animatronic.FREDDY] \
-                    .get_room(Animatronic.FREDDY, DoorState.empty(), CameraState.empty())
-        elif self.game_time.millis % 2 == 0:  # every other
+            mutable_pos[Animatronic.FREDDY] = mutable_pos[Animatronic.FREDDY] \
+                .get_room(Animatronic.FREDDY, DoorState.empty(), CameraState.empty())
+        else:
             for animatronic, room in self.animatronic_positions.items():
-                if AnimatronicDifficulty.roll(
-                        self.difficulty.calculate_for_hour(animatronic, self.game_time.display_time)):
+                if AnimatronicDifficulty.roll(self.difficulty.fixed_or_calc(animatronic, self.game_time.display_time)):
                     mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state)
 
         return self.__class__(

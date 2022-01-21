@@ -1,13 +1,15 @@
 import functools
+import operator
 from asyncio import get_event_loop, AbstractEventLoop
 from io import BytesIO
 from typing import Optional, Type
 
 import discord
 from PIL.Image import Image as ImageType
-from discord.ext import commands, tasks
+from discord.ext import commands, tasks, menus
 
 from utils import bots, misc
+from utils.database import Document
 from .abstract import *
 from .render import *
 
@@ -15,6 +17,36 @@ from .render import *
 def fully_render(game_state: GameState) -> BytesIO:
     image: ImageType = render(game_state)
     return save_buffer(image, "PNG")
+
+
+async def get_fazpoints(bot: bots.BOT_TYPES, user: discord.abc.User) -> int:
+    return (await bot.get_user_document(user)).get("fazpoints", 0)
+
+
+async def set_fazpoints(bot: bots.BOT_TYPES, user: discord.abc.User, fazpoints: int) -> None:
+    doc: Document = await bot.get_user_document(user)
+    await doc.update_db({"$set": {"fazpoints": fazpoints}})
+
+
+class LevelSource(menus.ListPageSource):
+    def __init__(self, data: list[tuple[discord.Member, int]], guild: discord.Guild) -> None:
+        self.guild = guild
+        super().__init__(data, per_page=10)
+
+    async def format_page(self, menu, page_entries):
+        offset = menu.current_page * self.per_page
+        base_embed: discord.Embed = discord.Embed(
+            title=f"{self.guild.name}'s Leaderboard"
+        )
+        if self.guild.icon is not None:
+            base_embed.set_thumbnail(url=self.guild.icon.url)
+        for iteration, value in enumerate(page_entries, start=offset):
+            base_embed.add_field(
+                name=f"{iteration + 1}: {value[0].display_name}",
+                value=f"{value[-1]} fazpoints",
+                inline=False,
+            )
+        return base_embed
 
 
 class GameStateHolder:
@@ -83,11 +115,17 @@ class GameStateHolder:
         message: discord.Message = self.message_of(interaction.message if interaction is not None else None)
         if self.game_state.won or self._debug_win:
             await message.edit(
-                content="You win! It is 6AM!",
+                content=f"You win! It is 6AM! You earned {self.game_state.fazpoints} fazpoints!",
                 view=None,
                 file=discord.File("resources/images/fnaf/end/Clock_6AM.gif")
             )
             await self.stop(delete_view=False)
+            if self._invoker is not None:
+                await set_fazpoints(
+                    self._bot,
+                    self._invoker,
+                    (await get_fazpoints(self._bot, self._invoker)) + self.game_state.fazpoints
+                )
         elif self.game_state.lost:
             animatronics: list[Animatronic] = self.game_state.animatronics_in(Room.OFFICE)
             killer: Animatronic = animatronics[-1]
@@ -96,8 +134,8 @@ class GameStateHolder:
                     file_name: str = "resources/images/fnaf/end/foxy.gif"
                 case Animatronic.FREDDY:
                     file_name: str = "resources/images/fnaf/end/freddy.gif" \
-                                     if self.game_state.power_left <= 0 \
-                                     else "resources/images/fnaf/end/freddy1.gif"
+                        if self.game_state.power_left <= 0 \
+                        else "resources/images/fnaf/end/freddy1.gif"
                 case Animatronic.CHICA:
                     file_name: str = "resources/images/fnaf/end/chica.gif"
                 case Animatronic.BONNIE:
@@ -243,6 +281,43 @@ class FiveNightsAtFreddys(commands.Cog):
         self.update_games.stop()
 
     @commands.command()
+    async def fazpoints(
+            self,
+            ctx: bots.CustomContext,
+            *,
+            user: Optional[discord.Member] = commands.Option(
+                description="The user to get the fazpoints of. Defaults to you!"
+            )
+    ) -> None:
+        """Get the fazpoints of a member."""
+        await ctx.defer()
+        user: discord.Member = user or ctx.author
+        embed: discord.Embed = discord.Embed(
+            title=f"{user.display_name}'s Fazpoints",
+            description=f"```{await get_fazpoints(ctx.bot, user)}```",
+            color=user.color
+        )
+        embed.set_thumbnail(url=(user.guild_avatar.url if user.guild_avatar is not None else user.avatar.url))
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def fpleaderboard(self, ctx: bots.CustomContext) -> None:
+        """Displays the fazpoints all members of the server relative to each other."""
+        await ctx.defer()
+
+        member_fazpoints: list[tuple[discord.Member, int]] = []
+
+        for member in ctx.guild.members[:500]:  # To prevent DB from exploding
+            member_fazpoints.append((member, await get_fazpoints(ctx.bot, member)))
+
+        source = LevelSource(
+            sorted(member_fazpoints, key=operator.itemgetter(-1), reverse=True),
+            ctx.guild,
+        )
+
+        await menus.ViewMenuPages(source=source).start(ctx)
+
+    @commands.command()
     @commands.cooldown(1, 60, commands.BucketType.channel)
     async def fnaf(
             self,
@@ -300,15 +375,13 @@ class FiveNightsAtFreddys(commands.Cog):
         )
         initial_state: GameState = GameState.initialize(difficulty)
         response_message: discord.abc.Message = await ctx.send(
-            f"Freddy: {freddy}"
-            f"\nBonnie: {bonnie}"
-            f"\nChica: {chica}"
-            f"\nFoxy: {foxy}"
+            f"You will earn at least {initial_state.fazpoints} fazpoints for this game."
         )
         holder: GameStateHolder = GameStateHolder(
             response_message,
             ctx.bot.scratch_channel,
             ctx.bot,
+            invoker=ctx.author,
             game_state=initial_state,
             loop=ctx.bot.loop
         )
@@ -322,5 +395,7 @@ def setup(bot: bots.BOT_TYPES) -> None:
 
 __all__: list[str] = [
     "FiveNightsAtFreddys",
-    "setup"
+    "setup",
+    "get_fazpoints",
+    "set_fazpoints"
 ]

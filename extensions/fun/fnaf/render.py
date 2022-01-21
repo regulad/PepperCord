@@ -194,27 +194,27 @@ def camera_xy(room: Room) -> tuple[int, int, int, int]:
     assert room.has_camera
     match room:
         case Room.CAM_1_A:
-            return 0, 0, 30, 30
+            return 141, 2, 198, 37
         case Room.CAM_1_B:
-            return 0, 0, 30, 30
+            return 119, 63, 176, 99
         case Room.CAM_1_C:
-            return 0, 0, 30, 30
+            return 83, 149, 141, 184
         case Room.CAM_2_A:
-            return 0, 0, 30, 30
+            return 141, 277, 198, 311
         case Room.CAM_2_B:
-            return 0, 0, 30, 30
+            return 141, 321, 198, 355
         case Room.CAM_3:
-            return 0, 0, 30, 30
+            return 49, 257, 106, 292
         case Room.CAM_4_A:
-            return 0, 0, 30, 30
+            return 257, 277, 315, 311
         case Room.CAM_4_B:
-            return 0, 0, 30, 30
+            return 257, 321, 315, 355
         case Room.CAM_5:
-            return 0, 0, 30, 30
+            return 2, 93, 59, 128
         case Room.CAM_6:
-            return 0, 0, 30, 30
+            return 364, 238, 422, 273
         case Room.CAM_7:
-            return 0, 0, 30, 30
+            return 374, 94, 431, 129
         case _:
             return 0, 0, 30, 30
 
@@ -222,7 +222,7 @@ def camera_xy(room: Room) -> tuple[int, int, int, int]:
 def render(game_state: GameState) -> ImageType:
     power_on: bool = game_state.power_left > 0
     even_frame: bool = game_state.game_time.millis % 2 == 0
-    drawing_canvas: ImageType = canvas(color=(52, 52, 52, 255) if not power_on else "grey")
+    drawing_canvas: ImageType = canvas(color=(52, 52, 52, 255) if not power_on else (75, 75, 75, 255))
     image_draw: ImageDrawType = ImageDraw.Draw(drawing_canvas)
     if power_on:
         # Background processing (static)
@@ -246,6 +246,7 @@ def render(game_state: GameState) -> ImageType:
                 map_image_draw.rectangle(
                     xy=camera_xy(target_cam),
                     fill=(114, 191, 63, 137),
+                    # There is no way to mask this. We will have to settle with this.
                 )
             left_offset: int = int((MAX_WIDTH / 3) * 2)
             down_offset: int = int((MAX_HEIGHT / 6) * 3.2)
@@ -283,11 +284,11 @@ def render(game_state: GameState) -> ImageType:
         # Start HUD (time and power)
         if can_draw_summary:
             image_draw.text(
-                xy=(MAX_WIDTH / 2, MAX_HEIGHT / 2),
+                xy=(MAX_WIDTH / 2, (MAX_HEIGHT / 2) - (MAX_HEIGHT / 3.8)),
                 text=game_state.summary,
                 stroke_fill="#FFFFFF",
                 font=font(90),
-                anchor="mm",
+                anchor="ma",
                 align="center"
             )
         # Time

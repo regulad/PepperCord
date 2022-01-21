@@ -595,10 +595,14 @@ class GameState:
                 content = self._build_summary("The left light is on.", content)
                 if self.animatronics_in(Room.LEFT_DOOR):
                     content = self._build_summary("Bonnie is at the door.", content)
+                else:
+                    content = self._build_summary("Nobody is at the door.", content)
             if self.light_state.right_light_on:
                 content = self._build_summary("The right light is on.", content)
                 if self.animatronics_in(Room.RIGHT_DOOR):
                     content = self._build_summary("Chica is at the door.", content)
+                else:
+                    content = self._build_summary("Nobody is at the door.", content)
         return content or ""
 
     def animatronics_in(self, search_room: Room) -> list[Animatronic]:
@@ -725,10 +729,12 @@ class GameState:
     def move_animatronics(self) -> "GameState":
         mutable_pos: dict[Animatronic, Room] = dict(self.animatronic_positions)
 
-        for animatronic, room in self.animatronic_positions.items():
-            if AnimatronicDifficulty.roll(self.difficulty.calculate_for_hour(animatronic, self.game_time.display_time)):
-                mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state,
-                                                         self.power_left)
+        if self.game_time.millis % 2 == 0:  # every other
+            for animatronic, room in self.animatronic_positions.items():
+                if AnimatronicDifficulty.roll(
+                        self.difficulty.calculate_for_hour(animatronic, self.game_time.display_time)):
+                    mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state,
+                                                             self.power_left)
 
         return self.__class__(
             misc.FrozenDict(mutable_pos),

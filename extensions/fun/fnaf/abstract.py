@@ -11,7 +11,7 @@ Some notes on implementation:
 3. The game should be played as similar to FNAF as intricacies  of views allow.
 """
 
-MAX_TIME: int = 48  # MUST BE EVENLY DIVISIBLE BY 6
+MAX_TIME: int = 54  # MUST BE EVENLY DIVISIBLE BY 6
 MAX_STEP: int = int(MAX_TIME / 6)
 
 

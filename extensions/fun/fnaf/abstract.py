@@ -17,25 +17,13 @@ MAX_STEP: int = int(MAX_TIME / 6)
 
 class DisplayTime(Enum):
     """Represents a time displayed to the player."""
-    TWELVE_AM = auto()
-    ONE_AM = auto()
-    TWO_AM = auto()
-    THREE_AM = auto()
-    FOUR_AM = auto()
-    FIVE_AM = auto()
-    SIX_AM = auto()
-
-    @property
-    def offset(self) -> int:
-        match self:
-            case DisplayTime.TWO_AM \
-                 | DisplayTime.THREE_AM:
-                return 1
-            case DisplayTime.FOUR_AM \
-                 | DisplayTime.FIVE_AM:
-                return 2
-            case _:
-                return 0
+    TWELVE_AM = 0
+    ONE_AM = 1
+    TWO_AM = 2
+    THREE_AM = 3
+    FOUR_AM = 4
+    FIVE_AM = 5
+    SIX_AM = 6
 
     @property
     def friendly_name(self) -> str:
@@ -146,23 +134,54 @@ class Animatronic(Enum):
 
     @property
     def default_diff(self):
-        return self.difficulty(3)
+        return self.difficulty(5)
+
+    @property
+    def all_diffs(self) -> list[list[int]]:
+        match self:
+            case Animatronic.FREDDY:
+                return [
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1],
+                    [1, 0, 1, 0, 1, 0],  # approx
+                    [3, 3, 3, 3, 3, 3],
+                    [4, 4, 4, 4, 4, 4],
+                ]
+            case Animatronic.BONNIE:
+                return [
+                    [0, 0, 1, 2, 3, 3],
+                    [3, 3, 4, 5, 6, 6],
+                    [0, 0, 1, 2, 3, 3],
+                    [2, 2, 3, 4, 5, 5],
+                    [5, 5, 6, 7, 8, 8],
+                    [10, 10, 11, 12, 13, 13],
+                ]
+            case Animatronic.CHICA:
+                return [
+                    [0, 0, 0, 1, 2, 2],
+                    [1, 1, 1, 2, 3, 3],
+                    [5, 5, 5, 6, 7, 7],
+                    [4, 4, 4, 5, 6, 6],
+                    [7, 7, 7, 8, 9, 9],
+                    [12, 12, 12, 13, 14, 14],
+                ]
+            case Animatronic.FOXY:
+                return [
+                    [0, 0, 0, 1, 2, 2],
+                    [1, 1, 1, 2, 3, 3],
+                    [2, 2, 2, 3, 4, 4],
+                    [6, 6, 6, 7, 8, 8],
+                    [5, 5, 5, 6, 7, 7],
+                    [16, 16, 16, 17, 18],
+                ]
 
     def difficulty(self, night: int, time: DisplayTime = DisplayTime.TWELVE_AM) -> int:
-        match self:  # fixme This is a rough approximation
-            case Animatronic.BONNIE:
-                bias: int = 4
-                night_scale: float = 0.4
-            case Animatronic.FOXY:
-                bias: int = 5
-                night_scale: float = 0.2
-            case Animatronic.FREDDY:
-                bias: int = 2
-                night_scale: float = 0.1
-            case _:
-                bias: int = 3
-                night_scale: float = 0.3
-        return int((night * night_scale) + time.offset + bias)
+        if night < 7 and time is not DisplayTime.SIX_AM:
+            lists: list[list[int]] = self.all_diffs
+            return lists[night - 1][time.value]
+        else:
+            return 20
 
 
 class Room(Enum):
@@ -313,10 +332,7 @@ class Room(Enum):
             animatronic: Animatronic,
             door_state: Optional[DoorState] = None,
             camera_state: Optional["CameraState"] = None,
-            power_left: int = 100,
     ) -> "Room":
-        if power_left <= 0 and animatronic is not Animatronic.FREDDY:
-            return self
         if camera_state is not None:
             if camera_state.camera_up and animatronic is Animatronic.FOXY:
                 return self
@@ -479,7 +495,7 @@ class AnimatronicDifficulty:
         return self._diffs[item]
 
     def calculate_for_hour(self, item: Animatronic, display_time: DisplayTime) -> int:
-        return self._diffs[item] + (display_time.offset if self._offset else 0)
+        return item.difficulty(self.night, display_time) if self._offset else self[item]
 
     @property
     def foxy(self) -> int:
@@ -729,12 +745,15 @@ class GameState:
     def move_animatronics(self) -> "GameState":
         mutable_pos: dict[Animatronic, Room] = dict(self.animatronic_positions)
 
-        if self.game_time.millis % 2 == 0:  # every other
+        if self.power_left <= 0:
+            if self.game_time.millis % 2 == 0:
+                mutable_pos[Animatronic.FREDDY] = mutable_pos[Animatronic.FREDDY] \
+                    .get_room(Animatronic.FREDDY, DoorState.empty(), CameraState.empty())
+        elif self.game_time.millis % 2 == 0:  # every other
             for animatronic, room in self.animatronic_positions.items():
                 if AnimatronicDifficulty.roll(
                         self.difficulty.calculate_for_hour(animatronic, self.game_time.display_time)):
-                    mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state,
-                                                             self.power_left)
+                    mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state)
 
         return self.__class__(
             misc.FrozenDict(mutable_pos),

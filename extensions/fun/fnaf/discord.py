@@ -248,8 +248,9 @@ class FiveNightsAtFreddys(commands.Cog):
             self,
             ctx: bots.CustomContext,
             night: Optional[int] = commands.Option(
-                description="The night to simulate. Overrides all other options. The default is 7, for custom night.",
-                default=7,
+                description="The night to simulate. Overrides all other options. "
+                            "To use custom settings, set to 7.",
+                default=5,
             ),
             freddy: Optional[int] = commands.Option(
                 description="The difficulty for Freddy.",

@@ -26,7 +26,8 @@ class GameStateHolder:
             view: Optional[discord.ui.View] = None,
             game_state: GameState = GameState.initialize(),
             *,
-            loop: Optional[AbstractEventLoop] = None
+            loop: Optional[AbstractEventLoop] = None,
+            debug_win: bool = False
     ) -> None:
         self._current_view: Optional[discord.ui.View] = view
         self._message: discord.Message = message
@@ -34,6 +35,7 @@ class GameStateHolder:
         self._scratch_channel: discord.TextChannel = scratch_channel
         self._game_state: GameState = game_state
         self.loop: AbstractEventLoop = loop or get_event_loop()
+        self._debug_win: bool = debug_win
 
     @property
     def game_state(self) -> GameState:
@@ -46,9 +48,11 @@ class GameStateHolder:
     def message_of(self, message: Optional[discord.Message] = None) -> discord.Message:
         return message or self._message
 
-    def stop(self) -> None:
+    async def stop(self, delete_view: bool = True) -> None:
         if self._current_view is not None:
             self._current_view.stop()
+        if delete_view:
+            await self._message.edit(view=None)
 
     async def new_view(self, interaction: Optional[discord.Interaction] = None) -> Optional[discord.ui.View]:
         target_view_type: Type = CameraSelectionView if self.game_state.camera_state.camera_up else OfficeGUI
@@ -62,46 +66,55 @@ class GameStateHolder:
         return await self.loop.run_in_executor(None, partial)
 
     async def on_update(self, interaction: Optional[discord.Interaction] = None) -> None:
-        """Override this method."""
+        if self.game_state.power_left <= 0:
+            self.game_state = self.game_state.process_input_changes(
+                camera_state=self.game_state.camera_state.change_position(False),
+                light_state=LightState.empty(),
+                door_state=DoorState.empty(),
+            )
+            await self.stop()
+
         message: discord.Message = self.message_of(interaction.message if interaction is not None else None)
-        if self.game_state.won:
+        if self.game_state.won or self._debug_win:
             await message.edit(
                 content="You win! It is 6AM!",
                 view=None,
+                file=discord.File("resources/images/fnaf/end/Clock_6AM.gif")
             )
-            self.stop()
+            await self.stop(delete_view=False)
         elif self.game_state.lost:
+            animatronics: list[Animatronic] = self.game_state.animatronics_in(Room.OFFICE)
+            killer: Animatronic = animatronics[-1]
+            match killer:
+                case Animatronic.FOXY:
+                    file_name: str = "resources/images/fnaf/end/foxy.gif"
+                case Animatronic.FREDDY:
+                    file_name: str = "resources/images/fnaf/end/freddy.gif" \
+                                     if self.game_state.power_left <= 0 \
+                                     else "resources/images/fnaf/end/freddy1.gif"
+                case Animatronic.CHICA:
+                    file_name: str = "resources/images/fnaf/end/chica.gif"
+                case Animatronic.BONNIE:
+                    file_name: str = "resources/images/fnaf/end/bonnie.gif"
+                case _:
+                    file_name: str = "resources/fnaf/end/gfred.png"
             await message.edit(
-                content=f"You lose! You were killed by "
-                        f"{', '.join([animatronic.friendly_name for animatronic in self.game_state.animatronics_in(Room.OFFICE)])}!",
+                content=f"You lose! You were killed by {killer.friendly_name}!",
                 view=None,
+                file=discord.File(file_name)
             )
-            self.stop()
+            await self.stop(delete_view=False)
         else:
-            possible_view: discord.ui.View = await self.new_view(interaction)
-            content: str = "__**Five Nights At Freddy's**__"
-            if len(self.game_state.summary) > 0:
-                content += f"\n============="
-                content += f"\n{self.game_state.summary}"
-            """
+            possible_view: discord.ui.View = await self.new_view(interaction) \
+                if self.game_state.power_left > 0 \
+                else None
             with await self.render() as fp:
                 # Behaves very weirdly when this isn't sent via a webhook.
-                scratch_webhook: discord.Webhook = await webhook.get_or_create_namespaced_webhook(
-                    "fnaf",
-                    self._bot,
-                    self._scratch_channel
+                await message.edit(
+                    content="__**Five Nights At Freddy's**__",
+                    view=possible_view if possible_view is not None else discord.utils.MISSING,
+                    file=discord.File(fp, filename="game.png")
                 )
-                webhook_message: Optional[discord.WebhookMessage] = await scratch_webhook.send(
-                    file=discord.File(fp, filename="FNAF.png"),
-                    wait=True
-                )
-                assert webhook_message is not None
-                content += f"\n{webhook_message.attachments[-1].url}"
-            """
-            await message.edit(
-                content=content,
-                view=possible_view if possible_view is not None else discord.utils.MISSING,
-            )
 
 
 class OfficeGUI(discord.ui.View):
@@ -218,7 +231,7 @@ class FiveNightsAtFreddys(commands.Cog):
             game.game_state = game.game_state.full_tick()
             await game.on_update()
             if game.game_state.done:
-                game.stop()
+                await game.stop()
                 del self.games[message]
 
     def cog_unload(self) -> None:
@@ -248,7 +261,7 @@ class FiveNightsAtFreddys(commands.Cog):
         """Play a game of Five Nights at Freddy's!"""
         result = await self.get_game(ctx.author)
         if freddy == 1 and bonnie == 9 and chica == 8 and foxy == 7:
-            await ctx.send("https://media.discordapp.net/attachments/824789288574779393/933822496933814292/unknown.png")
+            await ctx.send(file=discord.File("resources/images/fnaf/end/gfred.png"))
             return
         if result is not None:
             message, holder = result

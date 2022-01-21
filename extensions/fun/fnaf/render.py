@@ -1,12 +1,156 @@
+import os
 import random
+from enum import Enum, auto
 from io import BytesIO
+from pathlib import Path
+from typing import Optional
 
 from PIL import Image, ImageFont, ImageDraw
+from PIL.Image import Image as ImageType
 
 from .abstract import *
 
-MAX_WIDTH: int = 1700
-MAX_HEIGHT: int = 1000
+
+class CameraImage(Enum):
+    # Multiple
+    BACKSTAGE_BONNIE = auto()
+    BACKSTAGE_NONE = auto()
+    BATHROOM_CHICA = auto()
+    DINING_BONNIE = auto()
+    DINING_CHICA = auto()
+    E_CORNER_CHICA = auto()
+    E_CORNER_NONE = auto()
+    E_HALL_CHICA = auto()
+    STAGE_ALL = auto()
+    STAGE_FREDDY = auto()
+    W_CORNER_BONNIE = auto()
+    W_CORNER_NONE = auto()
+    W_HALL_FOXY = auto()
+    W_HALL_NONE = auto()
+    # Single
+    BATHROOM_FREDDY = auto()
+    BATHROOM_NONE = auto()
+    DINING_FREDDY = auto()
+    DINING_NONE = auto()
+    E_CORNER_FREDDY = auto()
+    E_HALL_FREDDY = auto()
+    E_HALL_NONE = auto()
+    FOXY_1 = auto()
+    FOXY_2 = auto()
+    FOXY_3 = auto()
+    FOXY_NONE = auto()
+    FOXY_OUT = auto()
+    STAGE_BONNIE_FREDDY = auto()
+    STAGE_CHICA_FREDDY = auto()
+    STAGE_NONE = auto()
+    SUPPLY_BONNIE = auto()
+    SUPPLY_NONE = auto()
+    W_HALL_BONNIE = auto()
+
+    @classmethod
+    def get_image(cls, game_state: GameState, room: Room) -> Optional["CameraImage"]:
+        animatronics: list[Animatronic] = game_state.animatronics_in(room)
+        match room:
+            case Room.CAM_1_A:
+                if Animatronic.FREDDY in animatronics \
+                        and Animatronic.BONNIE in animatronics \
+                        and Animatronic.CHICA in animatronics:
+                    return cls.STAGE_ALL
+                elif Animatronic.FREDDY in animatronics and Animatronic.CHICA in animatronics:
+                    return cls.STAGE_CHICA_FREDDY
+                elif Animatronic.FREDDY in animatronics and Animatronic.BONNIE in animatronics:
+                    return cls.STAGE_BONNIE_FREDDY
+                elif Animatronic.FREDDY in animatronics:
+                    return cls.STAGE_FREDDY
+                else:
+                    return cls.STAGE_NONE
+            case Room.CAM_1_B:
+                if Animatronic.FREDDY in animatronics:
+                    return cls.DINING_FREDDY
+                elif Animatronic.BONNIE in animatronics:
+                    return cls.DINING_BONNIE
+                elif Animatronic.CHICA in animatronics:
+                    return cls.DINING_CHICA
+                else:
+                    return cls.DINING_NONE
+            case Room.CAM_1_C:
+                match game_state.room_of(Animatronic.FOXY):
+                    case Room.FOXY_1:
+                        return cls.FOXY_1
+                    case Room.FOXY_2:
+                        return cls.FOXY_2
+                    case Room.FOXY_3:
+                        return cls.FOXY_3
+                    case _:
+                        return cls.FOXY_NONE
+            case Room.CAM_2_A:
+                if Animatronic.BONNIE in animatronics:
+                    return cls.W_HALL_BONNIE
+                elif Animatronic.FOXY in animatronics:
+                    return cls.W_HALL_FOXY
+                else:
+                    return cls.W_HALL_NONE
+            case Room.CAM_2_B:
+                if Animatronic.BONNIE in animatronics:
+                    return cls.W_CORNER_BONNIE
+                else:
+                    return cls.W_CORNER_NONE
+            case Room.CAM_3:
+                if Animatronic.BONNIE in animatronics:
+                    return cls.SUPPLY_BONNIE
+                else:
+                    return cls.SUPPLY_NONE
+            case Room.CAM_4_A:
+                if Animatronic.FREDDY in animatronics:
+                    return cls.E_HALL_FREDDY
+                elif Animatronic.CHICA in animatronics:
+                    return cls.E_HALL_CHICA
+                else:
+                    return cls.E_HALL_NONE
+            case Room.CAM_4_B:
+                if Animatronic.FREDDY in animatronics:
+                    return cls.E_CORNER_FREDDY
+                elif Animatronic.CHICA in animatronics:
+                    return cls.E_CORNER_CHICA
+                else:
+                    return cls.E_CORNER_NONE
+            case Room.CAM_5:
+                if Animatronic.BONNIE in animatronics:
+                    return cls.BACKSTAGE_BONNIE
+                else:
+                    return cls.BACKSTAGE_NONE
+            case Room.CAM_7:
+                if Animatronic.CHICA in animatronics:
+                    return cls.BATHROOM_CHICA
+                elif Animatronic.FREDDY in animatronics:
+                    return cls.BATHROOM_FREDDY
+                else:
+                    return cls.BATHROOM_NONE
+            case _:
+                return None
+
+    @property
+    def filename(self) -> str:
+        return self.name.lower()
+
+    def get_png(self) -> Optional[str]:
+        maybe_path: Path = Path(f"resources/images/fnaf/cam/{self.filename}")
+        if not maybe_path.exists():
+            return f"resources/images/fnaf/cam/{self.filename}.png"
+        elif maybe_path.is_dir():
+            files: list[str] = os.listdir(str(maybe_path))
+            if len(files) > 0:
+                return os.path.join(maybe_path, random.choice(files))
+            else:
+                return None
+        else:
+            return None
+
+
+MAX_WIDTH: int = 960
+MAX_HEIGHT: int = 720
+OUTPUT_WIDTH: int = 1920
+OUTPUT_HEIGHT: int = 1440
 
 
 def canvas(color: float | tuple[float, float, float, float] | str = "grey") -> Image:
@@ -19,19 +163,39 @@ def font(size: int = 72) -> ImageFont:
     )
 
 
-def static() -> Image:
-    opened_image: Image = Image.open("resources/images/fnaf/static2.png")
+def camera(game_state: GameState) -> Optional[ImageType]:
+    camera_image: Optional[CameraImage] = CameraImage.get_image(game_state, game_state.camera_state.looking_at)
+    maybe_file_name: Optional[str] = camera_image.get_png() if camera_image is not None else None
+    if maybe_file_name is not None:
+        image: ImageType = Image.open(maybe_file_name)
+        width: int = image.width
+        height: int = image.height
+        width_buffer: int = int((width - MAX_WIDTH) / 2)
+        height_buffer: int = int((height - MAX_HEIGHT) / 2)
+        return image.crop((width_buffer, height_buffer, width - width_buffer, height - height_buffer))
+    else:
+        return None
+
+
+def static() -> ImageType:
+    opened_image: ImageType = Image.open("resources/images/fnaf/static2.png")
     left_offset: int = random.randint(0, 1000)
     top_offset: int = random.randint(0, 1000)
     return opened_image.crop((left_offset, top_offset, MAX_WIDTH + left_offset, MAX_HEIGHT + top_offset))
 
 
-def render(game_state: GameState) -> Image:
+def render(game_state: GameState) -> ImageType:
     power_on: bool = game_state.power_left > 0
-    drawing_canvas: Image = canvas(color=(52, 52, 52, 255) if not power_on else "grey")
+    drawing_canvas: ImageType = canvas(color=(52, 52, 52, 255) if not power_on else "grey")
     image_draw: ImageDraw = ImageDraw.Draw(drawing_canvas)
     if power_on:
         # Background processing (static)
+        can_draw_summary: bool = True
+        if game_state.camera_state.camera_up and game_state.camera_state.looking_at is not None:
+            camera_image: Optional[Image] = camera(game_state)
+            if camera_image is not None:
+                drawing_canvas.paste(camera_image)
+                can_draw_summary = False
         if game_state.camera_state.camera_up:
             static_image: Image = static()
             drawing_canvas.paste(static_image, mask=static_image)
@@ -41,14 +205,15 @@ def render(game_state: GameState) -> Image:
         if game_state.camera_state.camera_up and game_state.game_time.millis % 2 == 0:
             image_draw.ellipse((MAX_WIDTH / 20, 50, (MAX_WIDTH / 20) + 70, 120), fill="red")
         # Start HUD (time and power)
-        image_draw.text(
-            xy=(MAX_WIDTH / 2, MAX_HEIGHT / 2),
-            text=game_state.summary,
-            stroke_fill="#FFFFFF",
-            font=font(90),
-            anchor="mm",
-            align="center"
-        )
+        if can_draw_summary:
+            image_draw.text(
+                xy=(MAX_WIDTH / 2, MAX_HEIGHT / 2),
+                text=game_state.summary,
+                stroke_fill="#FFFFFF",
+                font=font(90),
+                anchor="mm",
+                align="center"
+            )
         # Time
         image_draw.text(
             xy=(MAX_WIDTH - 15, 15),
@@ -100,17 +265,17 @@ def render(game_state: GameState) -> Image:
                 fill="green" if (i < 3) else ("yellow" if (i < 4) else "red"),
                 width=3
             )
-    return drawing_canvas
+    return drawing_canvas.resize((OUTPUT_WIDTH, OUTPUT_HEIGHT))
 
 
-def save_buffer(im: Image, image_format: str = "PNG") -> BytesIO:
+def save_buffer(im: ImageType, image_format: str = "PNG") -> BytesIO:
     buffer: BytesIO = BytesIO()
     im.save(buffer, image_format)
     buffer.seek(0)
     return buffer
 
 
-def load_bytes(im: Image, image_format: str = "PNG") -> bytes:
+def load_bytes(im: ImageType, image_format: str = "PNG") -> bytes:
     with save_buffer(im, image_format) as buffer:
         return buffer
 

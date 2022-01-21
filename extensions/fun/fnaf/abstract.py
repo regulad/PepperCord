@@ -300,7 +300,10 @@ class Room(Enum):
             animatronic: Animatronic,
             door_state: Optional[DoorState] = None,
             camera_state: Optional["CameraState"] = None,
+            power_left: int = 100,
     ) -> "Room":
+        if power_left <= 0 and animatronic is not Animatronic.FREDDY:
+            return self
         if camera_state is not None:
             if camera_state.camera_up and animatronic is Animatronic.FOXY:
                 return self
@@ -486,13 +489,13 @@ class LightState:
         state: bool = state or not self.left_light_on
         return self.__class__(
             state,
-            self.right_light_on,
+            False,
         )
 
     def change_right(self, state: Optional[bool] = None) -> "LightState":
         state: bool = state or not self.right_light_on
         return self.__class__(
-            self.left_light_on,
+            False,
             state,
         )
 
@@ -538,10 +541,7 @@ class GameState:
 
     @property
     def summary(self) -> str:
-        content: str = f"{self.game_time.display_time.friendly_name} " \
-                       f"({self.game_time.millis})"
-        content += f"\nPower: {self.power_left}"
-        content += f"\nUsage: {self.usage}"
+        content: str = "FNaF 1"
         if self.camera_state.camera_up and self.camera_state.looking_at is not None:
             # Cameras
             room: Room = self.camera_state.looking_at
@@ -654,9 +654,9 @@ class GameState:
         if not self.done:
             return (
                 self
-                    .tick_power()
-                    .move_animatronics()
-                    .tick_time()
+                .tick_power()
+                .move_animatronics()
+                .tick_time()
             )
         else:
             return self
@@ -671,7 +671,7 @@ class GameState:
         return self.__class__(
             self.animatronic_positions,
             door_state or self.door_state,
-            light_state or self.light_state,
+            light_state or (LightState.empty() if camera_state is not None else None) or self.light_state,
             camera_state or self.camera_state,
             self.difficulty,
             self.power_left,
@@ -694,7 +694,7 @@ class GameState:
 
         for animatronic, room in self.animatronic_positions.items():
             if AnimatronicDifficulty.roll(self.difficulty[animatronic]):
-                mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state)
+                mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state, self.power_left)
 
         return self.__class__(
             misc.FrozenDict(mutable_pos),

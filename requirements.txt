@@ -1,5 +1,6 @@
 # Core libraries
-discord.py[voice]@git+https://github.com/iDevision/enhanced-discord.py
+discord.py[voice]@git+https://github.com/Soheab/enhanced-discord.py.git@feat/interaction_files
+# https://github.com/iDevision/enhanced-discord.py/pull/145
 discord-ext-menus@git+https://github.com/regulad/discord-ext-menus.git@slash  # Stupid view... thing.
 discord-pretty-help@git+https://github.com/regulad/discord-pretty-help.git@fix/support_edpy  # Makes the help command look nice. Better version.
 

@@ -173,7 +173,7 @@ def camera(game_state: GameState) -> Optional[ImageType]:
         height: int = image.height
         width_buffer: int = int((width - MAX_WIDTH) / 2)
         height_buffer: int = int((height - MAX_HEIGHT) / 2)
-        offset: int = random.randint(-360, 360)
+        offset: int = random.randint(-300, 300)
         return image.crop((width_buffer + offset, height_buffer, width - width_buffer + offset, height - height_buffer))
     else:
         return None

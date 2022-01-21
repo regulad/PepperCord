@@ -7,7 +7,7 @@ from typing import Optional
 import discord
 from youtube_dl import YoutubeDL
 
-from .config import ytdl_format_options
+from .config import YTDL_FORMAT_OPTIONS
 
 
 class AudioQueue(asyncio.Queue):
@@ -67,7 +67,7 @@ class AudioPlayer:
     @property
     def file_downloader(self):
         if self._file_downloader is None:
-            self._file_downloader = YoutubeDL(ytdl_format_options)
+            self._file_downloader = YoutubeDL(YTDL_FORMAT_OPTIONS)
 
         return self._file_downloader
 

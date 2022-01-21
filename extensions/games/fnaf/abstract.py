@@ -178,8 +178,9 @@ class Animatronic(Enum):
 
     def difficulty(self, night: int, time: DisplayTime = DisplayTime.TWELVE_AM) -> int:
         if night < 7 and time is not DisplayTime.SIX_AM:
-            lists: list[list[int]] = self.all_diffs
-            return lists[night - 1][time.value]
+            return self.all_diffs[night - 1][time.value]
+        elif time is DisplayTime.SIX_AM:
+            return max(self.all_diffs[night - 1])
         else:
             return 20
 
@@ -582,10 +583,10 @@ class GameState:
     @property
     def fazpoints(self) -> int:
         return (
-                       self.difficulty.freddy
-                       + self.difficulty.bonnie
-                       + self.difficulty.chica
-                       + self.difficulty.foxy
+                       self.difficulty.fixed_or_calc(Animatronic.FREDDY, DisplayTime.SIX_AM)
+                       + self.difficulty.fixed_or_calc(Animatronic.BONNIE, DisplayTime.SIX_AM)
+                       + self.difficulty.fixed_or_calc(Animatronic.CHICA, DisplayTime.SIX_AM)
+                       + self.difficulty.fixed_or_calc(Animatronic.FOXY, DisplayTime.SIX_AM)
                ) * 10
 
     @staticmethod

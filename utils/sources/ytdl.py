@@ -5,7 +5,7 @@ from typing import Union
 import discord
 from youtube_dl import YoutubeDL
 
-from utils.audio import ffmpeg_options
+from utils.audio import FFMPEG_OPTIONS
 from .common import QueueSource
 
 
@@ -57,7 +57,7 @@ class YTDLSource(QueueSource):
             raise RuntimeError("Multiple tracks")
         else:
             return cls(
-                discord.FFmpegPCMAudio(info["url"], **ffmpeg_options),
+                discord.FFmpegPCMAudio(info["url"], **FFMPEG_OPTIONS),
                 info=info,
                 invoker=invoker,
                 file_downloader=file_downloader,
@@ -85,7 +85,7 @@ class YTDLSource(QueueSource):
 
             for entry in info["entries"]:
                 track = cls(
-                    discord.FFmpegPCMAudio(entry["url"], **ffmpeg_options),
+                    discord.FFmpegPCMAudio(entry["url"], **FFMPEG_OPTIONS),
                     info=entry,
                     invoker=invoker,
                     file_downloader=file_downloader,
@@ -95,7 +95,7 @@ class YTDLSource(QueueSource):
             # Url refers to a single track, so a list containing only a single instance must be returned.
 
             track = cls(
-                discord.FFmpegPCMAudio(info["url"], **ffmpeg_options),
+                discord.FFmpegPCMAudio(info["url"], **FFMPEG_OPTIONS),
                 info=info,
                 invoker=invoker,
                 file_downloader=file_downloader,

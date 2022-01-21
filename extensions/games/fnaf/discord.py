@@ -58,6 +58,7 @@ class GameStateHolder:
             view: Optional[discord.ui.View] = None,
             game_state: GameState = GameState.initialize(),
             invoker: Optional[discord.abc.User] = None,
+            initial_fazpoints: int = 0,
             *,
             loop: Optional[AbstractEventLoop] = None,
             debug_win: bool = False
@@ -68,8 +69,10 @@ class GameStateHolder:
         self._invoker: Optional[discord.abc.User] = invoker
         self._scratch_channel: discord.TextChannel = scratch_channel
         self._game_state: GameState = game_state
+        self._initial_fazpoints: int = initial_fazpoints
         self.loop: AbstractEventLoop = loop or get_event_loop()
         self._debug_win: bool = debug_win
+        self._closed: bool = False
 
     @property
     def invoker(self) -> Optional[discord.abc.User]:
@@ -104,61 +107,65 @@ class GameStateHolder:
         return await self.loop.run_in_executor(None, partial)
 
     async def on_update(self, interaction: Optional[discord.Interaction] = None) -> None:
-        if self.game_state.power_left <= 0:
-            self.game_state = self.game_state.process_input_changes(
-                camera_state=self.game_state.camera_state.change_position(False),
-                light_state=LightState.empty(),
-                door_state=DoorState.empty(),
-            )
-            await self.stop()
+        if not self._closed:
+            if self.game_state.power_left <= 0:
+                self.game_state = self.game_state.process_input_changes(
+                    camera_state=self.game_state.camera_state.change_position(False),
+                    light_state=LightState.empty(),
+                    door_state=DoorState.empty(),
+                )
+                await self.stop()
 
-        message: discord.Message = self.message_of(interaction.message if interaction is not None else None)
-        if self.game_state.won or self._debug_win:
-            await message.edit(
-                content=f"You win! It is 6AM! You earned {self.game_state.fazpoints} fazpoints!",
-                view=None,
-                file=discord.File("resources/images/fnaf/end/Clock_6AM.gif")
-            )
-            await self.stop(delete_view=False)
-            if self._invoker is not None:
-                await set_fazpoints(
-                    self._bot,
-                    self._invoker,
-                    (await get_fazpoints(self._bot, self._invoker)) + self.game_state.fazpoints
-                )
-        elif self.game_state.lost:
-            animatronics: list[Animatronic] = self.game_state.animatronics_in(Room.OFFICE)
-            killer: Animatronic = animatronics[-1]
-            match killer:
-                case Animatronic.FOXY:
-                    file_name: str = "resources/images/fnaf/end/foxy.gif"
-                case Animatronic.FREDDY:
-                    file_name: str = "resources/images/fnaf/end/freddy.gif" \
-                        if self.game_state.power_left <= 0 \
-                        else "resources/images/fnaf/end/freddy1.gif"
-                case Animatronic.CHICA:
-                    file_name: str = "resources/images/fnaf/end/chica.gif"
-                case Animatronic.BONNIE:
-                    file_name: str = "resources/images/fnaf/end/bonnie.gif"
-                case _:
-                    file_name: str = "resources/fnaf/end/gfred.png"
-            await message.edit(
-                content=f"You lose! You were killed by {killer.friendly_name}!",
-                view=None,
-                file=discord.File(file_name)
-            )
-            await self.stop(delete_view=False)
-        else:
-            possible_view: discord.ui.View = await self.new_view(interaction) \
-                if self.game_state.power_left > 0 \
-                else None
-            with await self.render() as fp:
-                # Behaves very weirdly when this isn't sent via a webhook.
+            message: discord.Message = self.message_of(interaction.message if interaction is not None else None)
+            if self.game_state.won or self._debug_win:
+                self._closed = True
                 await message.edit(
-                    content="__**Five Nights At Freddy's**__",
-                    view=possible_view if possible_view is not None else discord.utils.MISSING,
-                    file=discord.File(fp, filename="game.png")
+                    content=f"You win! It is 6AM! "
+                            f"You earned {self._initial_fazpoints} fazpoints, "
+                            f"plus {self.game_state.fazpoints - self._initial_fazpoints} bonus fazpoints!",
+                    view=None,
+                    file=discord.File("resources/images/fnaf/end/Clock_6AM.gif")
                 )
+                await self.stop(delete_view=False)
+                if self._invoker is not None:
+                    await set_fazpoints(
+                        self._bot,
+                        self._invoker,
+                        (await get_fazpoints(self._bot, self._invoker)) + self.game_state.fazpoints)
+            elif self.game_state.lost:
+                self._closed = True
+                animatronics: list[Animatronic] = self.game_state.animatronics_in(Room.OFFICE)
+                killer: Animatronic = animatronics[-1]
+                match killer:
+                    case Animatronic.FOXY:
+                        file_name: str = "resources/images/fnaf/end/foxy.gif"
+                    case Animatronic.FREDDY:
+                        file_name: str = "resources/images/fnaf/end/freddy.gif" \
+                            if self.game_state.power_left <= 0 \
+                            else "resources/images/fnaf/end/freddy1.gif"
+                    case Animatronic.CHICA:
+                        file_name: str = "resources/images/fnaf/end/chica.gif"
+                    case Animatronic.BONNIE:
+                        file_name: str = "resources/images/fnaf/end/bonnie.gif"
+                    case _:
+                        file_name: str = "resources/fnaf/end/gfred.png"
+                await message.edit(
+                    content=f"You lose! You were killed by {killer.friendly_name}!",
+                    view=None,
+                    file=discord.File(file_name)
+                )
+                await self.stop(delete_view=False)
+            else:
+                possible_view: discord.ui.View = await self.new_view(interaction) \
+                    if self.game_state.power_left > 0 \
+                    else None
+                with await self.render() as fp:
+                    # Behaves very weirdly when this isn't sent via a webhook.
+                    await message.edit(
+                        content="__**Five Nights At Freddy's**__",
+                        view=possible_view if possible_view is not None else discord.utils.MISSING,
+                        file=discord.File(fp, filename="game.png")
+                    )
 
 
 class OfficeGUI(discord.ui.View):
@@ -381,6 +388,7 @@ class FiveNightsAtFreddys(commands.Cog):
             response_message,
             ctx.bot.scratch_channel,
             ctx.bot,
+            initial_fazpoints=initial_state.fazpoints,
             invoker=ctx.author,
             game_state=initial_state,
             loop=ctx.bot.loop

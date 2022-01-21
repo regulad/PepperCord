@@ -4,7 +4,7 @@ from io import BytesIO
 from typing import Optional, Type
 
 import discord
-from PIL import Image
+from PIL.Image import Image as ImageType
 from discord.ext import commands, tasks
 
 from utils import bots, misc
@@ -13,7 +13,7 @@ from .render import *
 
 
 def fully_render(game_state: GameState) -> BytesIO:
-    image: Image = render(game_state)
+    image: ImageType = render(game_state)
     return save_buffer(image, "PNG")
 
 

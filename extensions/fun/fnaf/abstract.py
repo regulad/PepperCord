@@ -149,7 +149,7 @@ class Animatronic(Enum):
         return self.difficulty(4)
 
     def difficulty(self, night: int, time: DisplayTime = DisplayTime.TWELVE_AM) -> int:
-        return (night - 3) + time.offset + 10
+        return (night - 3) + time.offset + 4
 
 
 class Room(Enum):
@@ -654,9 +654,9 @@ class GameState:
         if not self.done:
             return (
                 self
-                .tick_power()
-                .move_animatronics()
-                .tick_time()
+                    .tick_power()
+                    .move_animatronics()
+                    .tick_time()
             )
         else:
             return self
@@ -694,7 +694,8 @@ class GameState:
 
         for animatronic, room in self.animatronic_positions.items():
             if AnimatronicDifficulty.roll(self.difficulty[animatronic]):
-                mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state, self.power_left)
+                mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state,
+                                                         self.power_left)
 
         return self.__class__(
             misc.FrozenDict(mutable_pos),

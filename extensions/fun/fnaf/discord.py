@@ -25,6 +25,7 @@ class GameStateHolder:
             bot: bots.BOT_TYPES,
             view: Optional[discord.ui.View] = None,
             game_state: GameState = GameState.initialize(),
+            invoker: Optional[discord.abc.User] = None,
             *,
             loop: Optional[AbstractEventLoop] = None,
             debug_win: bool = False
@@ -32,10 +33,15 @@ class GameStateHolder:
         self._current_view: Optional[discord.ui.View] = view
         self._message: discord.Message = message
         self._bot: bots.BOT_TYPES = bot
+        self._invoker: Optional[discord.abc.User] = invoker
         self._scratch_channel: discord.TextChannel = scratch_channel
         self._game_state: GameState = game_state
         self.loop: AbstractEventLoop = loop or get_event_loop()
         self._debug_win: bool = debug_win
+
+    @property
+    def invoker(self) -> Optional[discord.abc.User]:
+        return self._invoker
 
     @property
     def game_state(self) -> GameState:
@@ -213,31 +219,31 @@ class FiveNightsAtFreddys(commands.Cog):
 
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot: bots.BOT_TYPES = bot
-        self.games: dict[discord.Message, GameStateHolder] = {}
+        self.games: list[GameStateHolder] = []
         self.update_games.start()
 
-    async def get_game(self, model: discord.abc.User | discord.Message) \
-            -> Optional[tuple[discord.Message, GameStateHolder]]:
-        if isinstance(model, discord.Message):
-            return model, self.games.get(model)
+    def get_game(self, model: discord.abc.User | discord.Message) \
+            -> Optional[GameStateHolder]:
+        for game in self.games:
+            if game.invoker.id == model.id or game.message_of(None).id == model.id:
+                return game
         else:
-            for message, game in self.games.items():
-                if message.author.id == model.id:
-                    return message, game
+            return None
 
-    @tasks.loop(seconds=4.5)  # Determines how many minutes the game will last
+    @tasks.loop(seconds=5)  # Determines how many minutes the game will last
     async def update_games(self):
-        for message, game in misc.FrozenDict(self.games).items():
+        for game in list(self.games):
             game.game_state = game.game_state.full_tick()
             await game.on_update()
             if game.game_state.done:
                 await game.stop()
-                del self.games[message]
+                self.games.remove(game)
 
     def cog_unload(self) -> None:
         self.update_games.stop()
 
     @commands.command()
+    @commands.cooldown(1, 60, commands.BucketType.channel)
     async def fnaf(
             self,
             ctx: bots.CustomContext,
@@ -263,14 +269,13 @@ class FiveNightsAtFreddys(commands.Cog):
             ),
     ) -> None:
         """Play a game of Five Nights at Freddy's!"""
-        result = await self.get_game(ctx.author)
+        result = self.get_game(ctx.author)
         if freddy == 1 and bonnie == 9 and chica == 8 and foxy == 7:
             await ctx.send(file=discord.File("resources/images/fnaf/end/gfred.png"))
             return
         if result is not None:
-            message, holder = result
-            if holder.game_state.done:
-                del self.games[message]
+            if result.game_state.done:
+                self.games.remove(result)
             else:
                 await ctx.send("You have a game ongoing!", ephemeral=True)
                 return
@@ -306,7 +311,7 @@ class FiveNightsAtFreddys(commands.Cog):
             game_state=initial_state,
             loop=ctx.bot.loop
         )
-        self.games[response_message] = holder
+        self.games.append(holder)
         await holder.on_update()
 
 

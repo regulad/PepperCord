@@ -7,6 +7,7 @@ from typing import Optional
 
 from PIL import Image, ImageFont, ImageDraw
 from PIL.Image import Image as ImageType
+from PIL.ImageDraw import ImageDraw as ImageDrawType
 
 from .abstract import *
 
@@ -172,9 +173,14 @@ def camera(game_state: GameState) -> Optional[ImageType]:
         height: int = image.height
         width_buffer: int = int((width - MAX_WIDTH) / 2)
         height_buffer: int = int((height - MAX_HEIGHT) / 2)
-        return image.crop((width_buffer, height_buffer, width - width_buffer, height - height_buffer))
+        offset: int = 6
+        return image.crop((width_buffer + offset, height_buffer, width - width_buffer - offset, height - height_buffer))
     else:
         return None
+
+
+def base_map(odd: bool = False) -> ImageType:
+    return Image.open(f"resources/images/fnaf/map/{'Cam_Map' if odd else 'Cam_Map2'}.png")
 
 
 def static() -> ImageType:
@@ -184,26 +190,96 @@ def static() -> ImageType:
     return opened_image.crop((left_offset, top_offset, MAX_WIDTH + left_offset, MAX_HEIGHT + top_offset))
 
 
+def camera_xy(room: Room) -> tuple[int, int, int, int]:
+    assert room.has_camera
+    match room:
+        case Room.CAM_1_A:
+            return 0, 0, 30, 30
+        case Room.CAM_1_B:
+            return 0, 0, 30, 30
+        case Room.CAM_1_C:
+            return 0, 0, 30, 30
+        case Room.CAM_2_A:
+            return 0, 0, 30, 30
+        case Room.CAM_2_B:
+            return 0, 0, 30, 30
+        case Room.CAM_3:
+            return 0, 0, 30, 30
+        case Room.CAM_4_A:
+            return 0, 0, 30, 30
+        case Room.CAM_4_B:
+            return 0, 0, 30, 30
+        case Room.CAM_5:
+            return 0, 0, 30, 30
+        case Room.CAM_6:
+            return 0, 0, 30, 30
+        case Room.CAM_7:
+            return 0, 0, 30, 30
+        case _:
+            return 0, 0, 30, 30
+
+
 def render(game_state: GameState) -> ImageType:
     power_on: bool = game_state.power_left > 0
+    even_frame: bool = game_state.game_time.millis % 2 == 0
     drawing_canvas: ImageType = canvas(color=(52, 52, 52, 255) if not power_on else "grey")
-    image_draw: ImageDraw = ImageDraw.Draw(drawing_canvas)
+    image_draw: ImageDrawType = ImageDraw.Draw(drawing_canvas)
     if power_on:
         # Background processing (static)
         can_draw_summary: bool = True
-        if game_state.camera_state.camera_up and game_state.camera_state.looking_at is not None:
-            camera_image: Optional[Image] = camera(game_state)
-            if camera_image is not None:
-                drawing_canvas.paste(camera_image)
-                can_draw_summary = False
         if game_state.camera_state.camera_up:
+            target_cam: Optional[Room] = game_state.camera_state.looking_at
+            if target_cam is not None:
+                # Camera Image
+                camera_image: Optional[Image] = camera(game_state)
+                if camera_image is not None:
+                    drawing_canvas.paste(camera_image)
+                    can_draw_summary = False
+                # Map Dot
+            # Static
             static_image: Image = static()
             drawing_canvas.paste(static_image, mask=static_image)
-        # Start pre-ui (like outlike and recording dot)
-        if game_state.camera_state.camera_up:
-            image_draw.rectangle((7, 7, MAX_WIDTH - 7, MAX_HEIGHT - 7), outline="white", width=3)
-        if game_state.camera_state.camera_up and game_state.game_time.millis % 2 == 0:
-            image_draw.ellipse((MAX_WIDTH / 20, 50, (MAX_WIDTH / 20) + 70, 120), fill="red")
+            # Map
+            map_image: ImageType = base_map(not even_frame)
+            map_image_draw: ImageDrawType = ImageDraw.Draw(map_image)
+            if target_cam is not None:
+                map_image_draw.rectangle(
+                    xy=camera_xy(target_cam),
+                    fill=(114, 191, 63, 137),
+                )
+            left_offset: int = int((MAX_WIDTH / 3) * 2)
+            down_offset: int = int((MAX_HEIGHT / 6) * 3.2)
+            sub_width: int = int((MAX_WIDTH / 19) * 18.5) - left_offset
+            sub_height: int = int((MAX_HEIGHT / 15) * 14.5) - down_offset
+            resize_map: ImageType = map_image.resize((sub_width, sub_height))
+            drawing_canvas.paste(
+                resize_map,
+                (
+                    left_offset,
+                    down_offset,
+                    left_offset + sub_width,
+                    down_offset + sub_height,
+                ),
+                resize_map,
+            )
+            if target_cam is not None:
+                image_draw.text(
+                    xy=(
+                        left_offset - 4,
+                        down_offset - 7,
+                    ),
+                    text=target_cam.room_name,
+                    stroke_fill="#FFFFFF",
+                    font=font(78),
+                    anchor="ld",
+                )
+            # Outline
+            image_draw.rectangle((7, 7, MAX_WIDTH - 8, MAX_HEIGHT - 8), outline="white", width=4)
+            # Recording dot (random chance)
+            if game_state.camera_state.camera_up and even_frame:
+                image_draw.ellipse((MAX_WIDTH / 20, 50, (MAX_WIDTH / 20) + 70, 120), fill="red")
+        else:
+            pass  # fixme: office
         # Start HUD (time and power)
         if can_draw_summary:
             image_draw.text(
@@ -261,6 +337,8 @@ def render(game_state: GameState) -> ImageType:
                 fill="green" if (i < 3) else ("yellow" if (i < 4) else "red"),
                 width=3
             )
+    else:
+        pass  # markiplier???
     return drawing_canvas.resize((OUTPUT_WIDTH, OUTPUT_HEIGHT))
 
 

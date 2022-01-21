@@ -11,7 +11,7 @@ Some notes on implementation:
 3. The game should be played as similar to FNAF as intricacies  of views allow.
 """
 
-MAX_TIME: int = 54  # MUST BE EVENLY DIVISIBLE BY 6
+MAX_TIME: int = 42  # MUST BE EVENLY DIVISIBLE BY 6
 MAX_STEP: int = int(MAX_TIME / 6)
 
 
@@ -563,9 +563,16 @@ class GameState:
     def room_of(self, animatronic: Animatronic) -> Room:
         return self.animatronic_positions[animatronic]
 
+    @staticmethod
+    def _build_summary(add: str, existing: Optional[str] = None) -> str:
+        if existing is not None:
+            return existing + f"\n{add}"
+        else:
+            return add
+
     @property
     def summary(self) -> str:
-        content: str = "FNaF 1"
+        content: Optional[str] = None
         if self.camera_state.camera_up and self.camera_state.looking_at is not None:
             # Cameras
             room: Room = self.camera_state.looking_at
@@ -573,24 +580,26 @@ class GameState:
                 if self.animatronics_in(Room.FOXY_1) \
                         or self.animatronics_in(Room.FOXY_2) \
                         or self.animatronics_in(Room.FOXY_3):
-                    content += f"\n{Animatronic.FOXY.friendly_name} is here."
+                    content = self._build_summary(f"{Animatronic.FOXY.friendly_name} is here.", content)
+            elif room is Room.CAM_6:
+                content = self._build_summary(f"-CAMERA DISABLED-\nTEXT ONLY")
             for animatronic in self.animatronics_in(room):
-                content += f"\n{animatronic.friendly_name} is here."
+                content = self._build_summary(f"{animatronic.friendly_name} is here.", content)
         else:
             # Office
             if self.door_state.left_door_closed:
-                content += f"\nThe left door is closed."
+                content = self._build_summary("The left door is closed.", content)
             if self.door_state.right_door_closed:
-                content += f"\nThe right door is closed."
+                content = self._build_summary("The right door is closed.", content)
             if self.light_state.left_light_on:
-                content += f"\nThe left light is on."
+                content = self._build_summary("The left light is on.", content)
                 if self.animatronics_in(Room.LEFT_DOOR):
-                    content += f"\nBonnie is here."
+                    content = self._build_summary("Bonnie is at the door.", content)
             if self.light_state.right_light_on:
-                content += f"\nThe right light is on."
+                content = self._build_summary("The right light is on.", content)
                 if self.animatronics_in(Room.RIGHT_DOOR):
-                    content += f"\nChica is here."
-        return content
+                    content = self._build_summary("Chica is at the door.", content)
+        return content or ""
 
     def animatronics_in(self, search_room: Room) -> list[Animatronic]:
         animatronics: list[Animatronic] = []

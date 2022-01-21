@@ -17,7 +17,7 @@ python-dotenv >=0.19.2, <0.20
 
 # Features
 psutil >=5.9, <6 # System status
-mcstatus >=6.4.0, <7 # Minecraft Server
+mcstatus >=6.4.0, <9 # Minecraft Server
 asyncio-dgram >2, <3 # mcstatus fsr
 Pillow >=9, <10 # Image editing
 youtube_dl >=2021.6

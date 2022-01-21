@@ -11,7 +11,7 @@ Some notes on implementation:
 3. The game should be played as similar to FNAF as intricacies  of views allow.
 """
 
-MAX_TIME: int = 60  # MUST BE EVENLY DIVISIBLE BY 6
+MAX_TIME: int = 54  # MUST BE EVENLY DIVISIBLE BY 6
 MAX_STEP: int = int(MAX_TIME / 6)
 
 
@@ -146,10 +146,23 @@ class Animatronic(Enum):
 
     @property
     def default_diff(self):
-        return self.difficulty(4)
+        return self.difficulty(3)
 
     def difficulty(self, night: int, time: DisplayTime = DisplayTime.TWELVE_AM) -> int:
-        return (night - 3) + time.offset + 4
+        match self:  # fixme This is a rough approximation
+            case Animatronic.BONNIE:
+                bias: int = 4
+                night_scale: float = 0.4
+            case Animatronic.FOXY:
+                bias: int = 5
+                night_scale: float = 0.2
+            case Animatronic.FREDDY:
+                bias: int = 2
+                night_scale: float = 0.1
+            case _:
+                bias: int = 3
+                night_scale: float = 0.3
+        return int((night * night_scale) + time.offset + bias)
 
 
 class Room(Enum):
@@ -441,21 +454,32 @@ class CameraState:
 class AnimatronicDifficulty:
     def __init__(
             self,
+            night: int = 7,
             diffs: Mapping[Animatronic, int] = misc.FrozenDict({
                 Animatronic.FOXY: Animatronic.FOXY.default_diff,
                 Animatronic.BONNIE: Animatronic.BONNIE.default_diff,
                 Animatronic.FREDDY: Animatronic.FREDDY.default_diff,
                 Animatronic.CHICA: Animatronic.CHICA.default_diff
             }),
+            use_hour_offset: bool = True,
     ) -> None:
+        self._night: int = night
         self._diffs: Mapping[Animatronic, int] = diffs
+        self._offset: bool = use_hour_offset
 
     @classmethod
     def empty(cls) -> "AnimatronicDifficulty":
         return cls()
 
+    @property
+    def night(self) -> int:
+        return self._night
+
     def __getitem__(self, item: Animatronic) -> int:
         return self._diffs[item]
+
+    def calculate_for_hour(self, item: Animatronic, display_time: DisplayTime) -> int:
+        return self._diffs[item] + (display_time.offset if self._offset else 0)
 
     @property
     def foxy(self) -> int:
@@ -693,7 +717,7 @@ class GameState:
         mutable_pos: dict[Animatronic, Room] = dict(self.animatronic_positions)
 
         for animatronic, room in self.animatronic_positions.items():
-            if AnimatronicDifficulty.roll(self.difficulty[animatronic]):
+            if AnimatronicDifficulty.roll(self.difficulty.calculate_for_hour(animatronic, self.game_time.display_time)):
                 mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state,
                                                          self.power_left)
 

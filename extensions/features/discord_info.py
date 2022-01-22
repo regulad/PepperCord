@@ -139,7 +139,7 @@ class DiscordInfo(commands.Cog):
             base = ctx.bot.config.get(
                 "PEPPERCORD_WEB", "https://www.regulad.xyz/PepperCord"
             )
-            embed = (
+            embed: discord.Embed = (
                 discord.Embed(
                     colour=discord.Colour.orange(),
                     title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
@@ -148,17 +148,17 @@ class DiscordInfo(commands.Cog):
                                 f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
                                 f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
                 )
-                    .set_thumbnail(url=ctx.bot.user.avatar.url)
-                    .add_field(
+                .set_thumbnail(url=ctx.bot.user.avatar.url)
+                .add_field(
                     name="Invite:",
                     value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
                     inline=False,
                 )
-                    .add_field(
+                .add_field(
                     name="Bot status:",
                     value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
                 )
-                    .add_field(
+                .add_field(
                     name="System resources:",
                     value=f"Memory: "
                           f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
@@ -169,15 +169,17 @@ class DiscordInfo(commands.Cog):
                           f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
                           f"{psutil.cpu_count(logical=False)} physical cores",
                 )
-                    .add_field(
+            )
+            repo: git.Repo = git.Repo()
+            if repo.active_branch is not None:
+                embed.add_field(
                     name="Versions:",
                     value=f"OS: {platform.system()} (`{platform.release()}`)"
                           f"\nPython: `{version}`"
                           f"\ndiscord.py: `{discord.__version__}`"
-                          f"\nBot Version: `{git.Repo().head.name}` (`{git.Repo().head.commit}`)",
+                          f"\nBot Version: `{repo.active_branch.name}` (`{repo.active_branch.commit}`)",
                     inline=False,
                 )
-            )
         except psutil.Error:
             await ctx.send(
                 "Had trouble fetching information about the bot. Try again later."

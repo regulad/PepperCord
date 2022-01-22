@@ -25,4 +25,4 @@ async def check_bot_is_sharded(ctx: CustomContext) -> bool:
     return True
 
 
-__all__ = ["NotSharded", "check_bot_is_sharded"]
+__all__: list[str] = ["NotSharded", "check_bot_is_sharded"]

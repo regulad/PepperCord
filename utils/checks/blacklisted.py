@@ -19,7 +19,7 @@ async def is_blacklisted(ctx: CustomContext) -> bool:
            ) or ctx["author_document"].get("blacklisted", False)
 
 
-__all__ = [
+__all__: list[str] = [
     "Blacklisted",
     "is_blacklisted",
 ]

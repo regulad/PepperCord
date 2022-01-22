@@ -33,6 +33,7 @@ YTDL_FORMAT_OPTIONS: FrozenDict = FrozenDict({
     "nocheckcertificate": True,
     "ignoreerrors": False,
     "logtostderr": False,
+    "prefer_ffmpeg": True,
     "quiet": True,
     "no_warnings": True,
     "default_search": "auto",

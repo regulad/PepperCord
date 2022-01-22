@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, cast
+from typing import Optional, cast, Type
 
 import discord
 from asyncgTTS import LibraryException as TtsException
@@ -9,7 +9,7 @@ from evb import LibraryException as EvbException
 from utils import checks, bots, attachments
 from utils.bots import CustomContext
 
-known_errors = {
+known_errors: dict[Type, str] = {
     checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
     asyncio.QueueFull: "The queue is full. Please wait for this track to finish before you play the next song.",
     commands.UserInputError: "You entered a bad argument.",
@@ -30,27 +30,16 @@ known_errors = {
     attachments.MediaTooLarge: "This media is too large to be uploaded to discord.",
 }
 
-try:
-    from extensions.features.starboard import AlreadyPinned
-except ImportError:
-    AlreadyPinned = object
-else:
-    known_errors[AlreadyPinned] = "This message is already pinned to the starboard."
 
-try:
-    from external.text_to_speech import VoiceDoesNotExist
-except ImportError:  # it might not exist if it's not configured
-    VoiceDoesNotExist = object
-else:
-    known_errors[VoiceDoesNotExist] = "This voice doesn't exist. Check voices."
-
-
-def find_error(error) -> Optional[str]:
+def find_error(error: Exception) -> Optional[str]:
     for known_error, response in known_errors.items():
         if isinstance(error, known_error):
             return response
     else:
-        return None
+        if error.__doc__ is not None:
+            return error.__doc__
+        else:
+            return None
 
 
 class ErrorMenu(menus.ViewMenu):
@@ -164,7 +153,8 @@ class ErrorHandling(commands.Cog):
                 commands.CheckFailure,
                 commands.CommandInvokeError,
                 commands.CommandNotFound,
-                commands.DisabledCommand
+                commands.DisabledCommand,
+                RuntimeError,
             ),
         )
 

@@ -25,7 +25,7 @@ async def check_voice_client(ctx: CustomContext) -> bool:
     if await can_have_voice_client(ctx):
         return True
     else:
-        raise
+        raise CantCreateAudioClient
 
 
 __all__: list[str] = [

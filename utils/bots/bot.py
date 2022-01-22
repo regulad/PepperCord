@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 from typing import Union, Type, MutableMapping
 
 import discord
@@ -23,6 +24,7 @@ class CustomBotBase(commands.bot.BotBase):
     ):
         self._database = database
         self._config: CONFIGURATION_PROVIDERS = config
+        self._context_cache: deque[tuple[discord.Message, commands.Context]] = deque(maxlen=10)
 
         super().__init__(
             command_prefix,
@@ -59,21 +61,20 @@ class CustomBotBase(commands.bot.BotBase):
 
         return await Document.get_document(self._database["guild"], {"_id": model.id})
 
-    async def get_user_document(
-            self, model: Union[discord.Member, discord.User]
-    ) -> Document:
+    async def get_user_document(self, model: discord.abc.User) -> Document:
         """Gets a user's document from the database."""
 
         return await Document.get_document(self._database["user"], {"_id": model.id})
 
     async def get_context(
-            self, message, *, cls: Type[commands.Context] = CustomContext
+            self, message: discord.Message, *, cls: Type[commands.Context] = CustomContext
     ):
+        for other, context in self._context_cache:
+            if isinstance(context, cls) and other == message:
+                return context
         result: cls = await super().get_context(message, cls=cls)
         await self.wait_for_dispatch("context_creation", result)
-        # Possiblily could safely be made asynchronous?
-        # We don't need to wait for one to complete to start the other,
-        # just for all to complete before the context is sent.
+        self._context_cache.appendleft((message, result))
         return result
 
     async def on_context_creation(

@@ -10,6 +10,7 @@ from utils import checks, bots, attachments
 from utils.bots import CustomContext
 
 known_errors: dict[Type, str] = {
+    checks.CantCreateAudioClient: "The bot failed to find a way to make an audio player. Are you in a voice channel?",
     checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
     asyncio.QueueFull: "The queue is full. Please wait for this track to finish before you play the next song.",
     commands.UserInputError: "You entered a bad argument.",
@@ -27,7 +28,7 @@ known_errors: dict[Type, str] = {
     TtsException: "Something went wrong while trying to use text_to_speech.",
     checks.Blacklisted: "You have been blacklisted from using this bot.",
     attachments.MediaTooLong: "You can't download media this long.",
-    attachments.MediaTooLarge: "This media is too large to be uploaded to discord.",
+    attachments.MediaTooLarge: "This media is too large to be uploaded to discord."
 }
 
 

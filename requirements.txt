@@ -12,15 +12,15 @@ dnspython >= 2.1.0 # For MongoDB SRV connection strings
 topggpy >= 1.4.0, <2
 GitPython >=3.1.24, <4
 art >=5.3, <6
-discord-webhook-logger >=1.1.1, <2
+discord-webhook-logger >=1.2, <2
 python-dotenv >=0.19.2, <0.20
 
 # Features
 psutil >=5.9, <6 # System status
-mcstatus >=6.4.0, <9 # Minecraft Server
+mcstatus >=8, <9 # Minecraft Server
 asyncio-dgram >2, <3 # mcstatus fsr
 Pillow >=9, <10 # Image editing
-youtube_dl >=2021.6
+youtube_dl >=2021.12
 async-gTTS >= 0.2.0, <1
 evb.py >= 1.1.1, <2
 aiocoingecko >= 1.0.0

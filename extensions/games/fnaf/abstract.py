@@ -437,17 +437,17 @@ class Room(Enum):
 class CameraState:
     """Represents the current state of the cameras."""
 
-    def __init__(self, camera: Optional[Room] = None, camera_up: bool = False) -> None:
+    def __init__(self, camera: Room = Room.CAM_1_A, camera_up: bool = False) -> None:
         if camera is not None:
             assert camera.has_camera
-        self._camera: Optional[Room] = camera
+        self._camera: Room = camera
         self._camera_up: bool = camera_up
 
     @classmethod
     def empty(cls) -> "CameraState":
-        return cls(None, False)
+        return cls()
 
-    def change_camera(self, camera: Optional[Room] = None):
+    def change_camera(self, camera: Room):
         return self.__class__(
             camera,
             self.camera_up

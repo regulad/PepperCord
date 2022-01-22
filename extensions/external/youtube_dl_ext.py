@@ -1,18 +1,17 @@
 from functools import partial
-from typing import Optional
 from io import BytesIO
 from os.path import splitext, split
+from typing import Optional
 
 import discord
+from aiohttp import ClientSession
+from discord import File
 from discord.ext import commands
 from youtube_dl import YoutubeDL
-from discord import File
-from aiohttp import ClientSession
 
 from utils.bots import BOT_TYPES, CustomContext
-from utils.validators import str_is_url
-from utils.audio import YTDL_FORMAT_OPTIONS
 from utils.misc import FrozenDict
+from utils.validators import str_is_url
 
 
 class FileTooLong(commands.CommandError):
@@ -27,9 +26,18 @@ class BadVideo(commands.CommandError):
     pass
 
 
-ytdl_format_options_clone: dict = dict(YTDL_FORMAT_OPTIONS)
-ytdl_format_options_clone["format"] = "best"
-YTDL_FORMAT_OPTIONS_VIDEO = FrozenDict(ytdl_format_options_clone)
+YTDL_FORMAT_OPTIONS: FrozenDict = FrozenDict({
+    "format": "best",
+    "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
+    "restrictfilenames": True,
+    "nocheckcertificate": True,
+    "ignoreerrors": False,
+    "logtostderr": False,
+    "quiet": True,
+    "no_warnings": True,
+    "default_search": "auto",
+    "source_address": "0.0.0.0",  # bind to ipv4 since ipv6 addresses cause issues sometimes
+})
 
 
 class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
@@ -37,7 +45,7 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
 
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
-        self.ytdl: YoutubeDL = YoutubeDL(YTDL_FORMAT_OPTIONS_VIDEO)
+        self.ytdl: YoutubeDL = YoutubeDL(YTDL_FORMAT_OPTIONS)
 
         self.downloader: Optional[ClientSession] = None
 

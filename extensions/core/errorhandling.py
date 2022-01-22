@@ -12,7 +12,6 @@ from utils.bots import CustomContext
 known_errors = {
     checks.NotSharded: "This bot is not sharded. This command can only run if the bot is sharded.",
     asyncio.QueueFull: "The queue is full. Please wait for this track to finish before you play the next song.",
-    checks.NotInVoiceChannel: "You must be in a voice channel to execute this command.",
     commands.UserInputError: "You entered a bad argument.",
     commands.NSFWChannelRequired: "This command displays explicit content. "
                                   "You can only use it in channels marked as NSFW.",

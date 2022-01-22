@@ -19,14 +19,6 @@ async def is_blacklisted(ctx: CustomContext) -> bool:
            ) or ctx["author_document"].get("blacklisted", False)
 
 
-@commands.check
-async def check_if_blacklisted(ctx: CustomContext) -> bool:
-    if is_blacklisted(ctx):
-        raise Blacklisted()
-    else:
-        return True
-
-
 __all__ = [
     "Blacklisted",
     "is_blacklisted",

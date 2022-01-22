@@ -1,10 +1,9 @@
 import logging
-from typing import Union, List, Type, Optional, MutableMapping
+from typing import Union, Type, MutableMapping
 
 import discord
 from discord.ext import commands
 
-from utils.audio import AudioPlayer
 from utils.database import Document
 from .context import CustomContext
 
@@ -25,12 +24,6 @@ class CustomBotBase(commands.bot.BotBase):
         self._database = database
         self._config: CONFIGURATION_PROVIDERS = config
 
-        self._audio_players: List[AudioPlayer] = []
-        # TODO: Having audio players stored here prevents them from being garbage collected, causing a memory leak.
-        # Ideally, they should be deleted once the VoiceClient ceases to exist.
-        # A subclass of VoiceClient may be a good idea, but that isn't very well documented.
-        # There doesn't seem to be an event dispatched when a VoiceClient is destroyed. Perhaps implement that?
-
         super().__init__(
             command_prefix,
             help_command=help_command,
@@ -49,22 +42,6 @@ class CustomBotBase(commands.bot.BotBase):
     @property
     def scratch_channel(self) -> discord.TextChannel:
         return self.home_guild.get_channel(int(self.config.get("PEPPERCORD_SCRATCH_CHANNEL", "933823355231031386")))
-
-    def get_audio_player(
-            self, voice_client: Optional[discord.VoiceClient]
-    ) -> AudioPlayer:
-        """Gets or creates audio player from VoiceClient."""
-
-        for player in self._audio_players:
-            if player.voice_client == voice_client:
-                return player
-        else:
-            if voice_client is not None:
-                music_player = AudioPlayer(voice_client)
-                self._audio_players.append(music_player)
-                return music_player
-            else:
-                return None
 
     async def get_command_document(self, command: commands.Command):
         """Gets a command's document from the database."""

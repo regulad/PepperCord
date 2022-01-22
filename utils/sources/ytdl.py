@@ -28,8 +28,16 @@ class YTDLSource(EnhancedSourceImpl):
         super().__init__(source, volume, invoker=invoker)
 
     @property
-    async def length(self) -> Optional[int]:
+    def duration(self) -> Optional[int]:
         return (self.info["duration"] * 1000) if self.info.get("duration") is not None else None
+
+    @property
+    def name(self) -> str:
+        return self.info["title"]
+
+    @property
+    def description(self) -> str:
+        return self.info["webpage_url"]
 
     async def refresh(self, voice_client: CustomVoiceClient) -> "YTDLSource":
         """Regrabs audio from site. Useful if video is time limited."""

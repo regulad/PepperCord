@@ -9,13 +9,10 @@ from discord import File
 from discord.ext import commands
 from youtube_dl import YoutubeDL
 
+from utils.attachments import MediaTooLong
 from utils.bots import BOT_TYPES, CustomContext
 from utils.misc import FrozenDict
 from utils.validators import str_is_url
-
-
-class FileTooLong(commands.CommandError):
-    pass
 
 
 class MiscHTTPException(discord.HTTPException):
@@ -89,7 +86,7 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
                 raise BadVideo("This video cannot be downloaded")
 
         if (info.get("duration") is not None and info["duration"] > 600) and not await ctx.bot.is_owner(ctx.author):
-            raise FileTooLong(
+            raise MediaTooLong(
                 f"Cannot download this video, it is over 5 minutes in length, "
                 f"as it is {info['duration'] / 60} minutes long."
             )

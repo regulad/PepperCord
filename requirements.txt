@@ -3,6 +3,7 @@ discord.py[voice]@git+https://github.com/Soheab/enhanced-discord.py.git@feat/int
 # https://github.com/iDevision/enhanced-discord.py/pull/145
 discord-ext-menus@git+https://github.com/regulad/discord-ext-menus.git@slash  # Stupid view... thing.
 discord-pretty-help@git+https://github.com/regulad/discord-pretty-help.git@fix/support_edpy  # Makes the help command look nice. Better version.
+# asyncio-ffmpeg@git+https://github.com/regulad/asyncio-ffmpeg.git@asyncio
 
 # Helper libraries
 jishaku >= 2.3.2  # Useful development tools.
@@ -17,7 +18,7 @@ python-dotenv >=0.19.2, <0.20
 
 # Features
 psutil >=5.9, <6 # System status
-mcstatus >=8, <9 # Minecraft Server
+mcstatus ==6.4.0 # Minecraft Server, cant update because of exclude click version
 asyncio-dgram >2, <3 # mcstatus fsr
 Pillow >=9, <10 # Image editing
 youtube_dl >=2021.12

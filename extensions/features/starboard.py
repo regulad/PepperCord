@@ -8,7 +8,9 @@ from utils import bots, database
 from utils.attachments import find_url, NoMedia
 
 
-class AlreadyPinned(Exception):
+class AlreadyPinned(RuntimeError):
+    """This message is already pinned to the starboard."""
+
     pass
 
 

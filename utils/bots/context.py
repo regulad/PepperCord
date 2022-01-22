@@ -1,8 +1,10 @@
 import abc
-from typing import Dict, Any
+from typing import Dict, Any, Optional, cast
 
 import discord
 from discord.ext import commands
+
+from .audio import *
 
 
 class SendHandler(abc.ABC):
@@ -48,6 +50,22 @@ class CustomContext(commands.Context):
 
     def __delitem__(self, key: Any) -> None:
         del self._custom_state[key]
+
+    @property
+    def voice_client(self) -> Optional[CustomVoiceClient]:
+        return cast(CustomVoiceClient, super().voice_client)
+
+    async def get_or_create_voice_client(self, **kwargs) -> CustomVoiceClient:
+        """
+        Shortcut to creating a custom voice client for the author's channel.
+        If a client is already present, return that.
+        """
+
+        return (
+            self.voice_client
+            if self.voice_client is not None
+            else (await CustomVoiceClient.create(self.author.voice.channel, **kwargs))
+        )
 
     async def defer(self, *, ephemeral: bool = False, trigger_typing: bool = True) -> None:
         try:

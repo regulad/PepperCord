@@ -27,23 +27,24 @@ class QueueMenuSource(ListPageSource):
         )
 
         if self.client.source is not None and self.client.source.duration is not None:
-            time_until: float = (self.client.source.duration - self.client.ms_read) / 1000
+            time_until: float = self.client.source.duration - self.client.ms_read
         else:
             time_until: float = 0
         # Before the current page
         for track in self.entries[:offset]:
-            duration = track.duration or 0
-            time_until += duration / 1000
+            if track.duration is not None:
+                time_until += track.duration
 
         # The current page
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
-                name=f"{iteration + 1}: {duration_to_str(int(time_until))} left",
-                value=f"[{value.name}]({value.description})\n{duration_to_str(value.duration / 1000)} long"
+                name=f"{iteration + 1}: {duration_to_str(int(time_until / 1000))} left",
+                value=f"[{value.name}]({value.description})\n{duration_to_str(int(value.duration / 1000))} long"
                       f"\nAdded by: {value.invoker.display_name}",
                 inline=False,
             )
-            time_until += (value.duration or 0 / 1000)
+            if value.duration is not None:
+                time_until += value.duration
         return base_embed
 
 

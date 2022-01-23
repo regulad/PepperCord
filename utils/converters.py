@@ -4,10 +4,10 @@ from typing import List, Dict, Optional
 from discord.ext import commands
 
 
-def duration_to_str(duration_strings: int) -> str:  # TODO: Make this take a timedelta.
+def duration_to_str(seconds: int) -> str:  # TODO: Make this take a timedelta.
     """Takes in a duration in seconds and returns a fancy string."""
 
-    minutes, seconds = divmod(duration_strings, 60)
+    minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
     days, hours = divmod(hours, 24)
 

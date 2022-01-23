@@ -3,7 +3,7 @@ from asyncio import Queue, Future, Task, wait_for
 from collections import deque
 from typing import Optional, cast
 
-from discord import VoiceClient, Client, AudioSource
+from discord import VoiceClient, Client, AudioSource, TextChannel, Thread
 from discord import abc
 
 
@@ -65,12 +65,22 @@ class CustomVoiceClient(VoiceClient):
         self._should_loop: bool = False
         self._task: Task = self.loop.create_task(self._run())
         self._audio_queue: AudioQueue = AudioQueue()
+        self._bound_to: Optional[TextChannel | Thread] = None
 
-        self.wait_for: int = 120
+        self.wait_for: Optional[int] = None
 
     @property
     def queue(self) -> AudioQueue:
         return self._audio_queue
+
+    @property
+    def bound(self) -> Optional[TextChannel | Thread]:
+        return self._bound_to
+
+    def bind(self, to: TextChannel | Thread) -> None:
+        assert self._bound_to is None
+        assert isinstance(to, (TextChannel, Thread))
+        self._bound_to = to
 
     def play_future(self, source: AudioSource) -> Future[None]:
         future: Future[None] = self.loop.create_future()
@@ -96,6 +106,8 @@ class CustomVoiceClient(VoiceClient):
                     if not self._should_loop:
                         break
         except TimeoutError:
+            if self.bound is not None:
+                await self.bound.send("Ran out of tracks to play. Leaving...")
             self.wait_for: int = 120  # Reset this
         except Exception:
             raise

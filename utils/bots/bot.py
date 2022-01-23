@@ -24,7 +24,10 @@ class CustomBotBase(commands.bot.BotBase):
     ):
         self._database = database
         self._config: CONFIGURATION_PROVIDERS = config
+
         self._context_cache: deque[tuple[discord.Message, commands.Context]] = deque(maxlen=10)
+        self._user_doc_cache: deque[tuple[discord.abc.User, Document]] = deque(maxlen=30)
+        self._guild_doc_cache: deque[tuple[discord.Guild, Document]] = deque(maxlen=30)
 
         super().__init__(
             command_prefix,
@@ -59,12 +62,24 @@ class CustomBotBase(commands.bot.BotBase):
     async def get_guild_document(self, model: discord.Guild) -> Document:
         """Gets a guild's document from the database."""
 
-        return await Document.get_document(self._database["guild"], {"_id": model.id})
+        for other, document in self._guild_doc_cache:
+            if other == model:
+                return document
+        else:
+            document: Document = await Document.get_document(self._database["guild"], {"_id": model.id})
+            self._guild_doc_cache.appendleft((model, document))
+            return document
 
     async def get_user_document(self, model: discord.abc.User) -> Document:
         """Gets a user's document from the database."""
 
-        return await Document.get_document(self._database["user"], {"_id": model.id})
+        for other, document in self._user_doc_cache:
+            if other == model:
+                return document
+        else:
+            document: Document = await Document.get_document(self._database["user"], {"_id": model.id})
+            self._user_doc_cache.appendleft((model, document))
+            return document
 
     async def get_context(
             self, message: discord.Message, *, cls: Type[commands.Context] = CustomContext
@@ -72,10 +87,11 @@ class CustomBotBase(commands.bot.BotBase):
         for other, context in self._context_cache:
             if isinstance(context, cls) and other == message:
                 return context
-        result: cls = await super().get_context(message, cls=cls)
-        await self.wait_for_dispatch("context_creation", result)
-        self._context_cache.appendleft((message, result))
-        return result
+        else:
+            result: cls = await super().get_context(message, cls=cls)
+            await self.wait_for_dispatch("context_creation", result)
+            self._context_cache.appendleft((message, result))
+            return result
 
     async def on_context_creation(
             self, ctx: commands.Context

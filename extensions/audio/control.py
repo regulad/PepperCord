@@ -1,13 +1,11 @@
 from discord import Embed, Message
-from discord.ext.commands import command, Cog, Option
+from discord.ext.commands import command, Cog
 from discord.ext.menus import ViewMenuPages, ListPageSource, ViewMenu
-from youtube_dl import YoutubeDL
 
 from utils.bots import BOT_TYPES, CustomContext, EnhancedSource, CustomVoiceClient
 from utils.checks import can_have_voice_client, CantCreateAudioClient
 from utils.converters import duration_to_str
-from utils.sources import YTDLSource, YTDL_FORMAT_OPTIONS
-from utils.validators import str_is_url
+from utils.sources import YTDLSource
 
 PROGRESS: str = "🟩"
 VOID: str = "⬜"
@@ -96,38 +94,12 @@ class Audio(Cog):
 
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
-        self._file_downloader: YoutubeDL = YoutubeDL(YTDL_FORMAT_OPTIONS)
 
     async def cog_check(self, ctx: CustomContext) -> bool:
         if await can_have_voice_client(ctx):
             return True
         else:
             raise CantCreateAudioClient
-
-    @command(aliases=["p"])
-    async def play(
-            self,
-            ctx: CustomContext,
-            *,
-            query: str = Option(description="The video to search on YouTube, or a url.")
-    ) -> None:
-        """Plays a video from YouTube, or from another place with a URL."""
-        await ctx.defer()
-        query: str = query if str_is_url(query) else f"ytsearch:{query}"
-
-        ytdl_sources: list[YTDLSource] = await YTDLSource.from_url(
-            self._file_downloader,
-            query,
-            ctx.author,
-            loop=ctx.voice_client.loop
-        )
-        for source in ytdl_sources:
-            await ctx.voice_client.queue.put(source)
-
-        if len(ytdl_sources) == 1:
-            await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
-        else:
-            await ViewMenuPages(QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")).start(ctx)
 
     @command(aliases=["q"])
     async def queue(self, ctx: CustomContext) -> None:
@@ -149,34 +121,6 @@ class Audio(Cog):
         else:
             await AudioSourceMenu(maybe_source, ctx.voice_client).start(ctx)
 
-    @command(aliases=["pt"])
-    async def playtop(
-            self,
-            ctx: CustomContext,
-            *,
-            query: str = Option(description="The video to search on YouTube, or a url.")
-    ) -> None:
-        """Plays a song at the top of the queue."""
-        await ctx.defer()
-        query: str = query if str_is_url(query) else f"ytsearch:{query}"
-
-        ytdl_sources: list[YTDLSource] = await YTDLSource.from_url(
-            self._file_downloader,
-            query,
-            ctx.author,
-            loop=ctx.voice_client.loop
-        )
-        for source in ytdl_sources:
-            if len(ctx.voice_client.queue.deque) > 1:
-                ctx.voice_client.queue.deque.appendleft(source)
-            else:
-                await ctx.voice_client.queue.put(source)
-
-        if len(ytdl_sources) == 1:
-            await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
-        else:
-            await ViewMenuPages(QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")).start(ctx)
-
     @command()
     async def pause(self, ctx: CustomContext) -> None:
         """Pauses the audio player."""
@@ -192,7 +136,7 @@ class Audio(Cog):
     @command()
     async def skip(self, ctx: CustomContext) -> None:
         """Stops the currently playing track."""
-        ctx.voice_client.stop()
+        ctx.voice_client.stop_playing()
         await ctx.send("Stopped the currently playing track.", ephemeral=True)
 
     @command()

@@ -10,7 +10,7 @@ from discord.ext import commands
 from utils.bots import BOT_TYPES, CustomContext
 
 
-class MinecraftError(Exception):
+class MinecraftError(commands.CommandError):
     """Base class for all minecraft-related errors."""
 
     pass

@@ -103,7 +103,7 @@ class Audio(Cog):
         else:
             raise CantCreateAudioClient
 
-    @command()
+    @command(aliases=["p"])
     async def play(
             self,
             ctx: CustomContext,
@@ -128,7 +128,7 @@ class Audio(Cog):
         else:
             await ViewMenuPages(QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")).start(ctx)
 
-    @command()
+    @command(aliases=["q"])
     async def queue(self, ctx: CustomContext) -> None:
         """Displays information the upcoming tracks."""
         maybe_source: EnhancedSource = ctx.voice_client.source
@@ -139,7 +139,7 @@ class Audio(Cog):
                 QueueMenuSource(list(ctx.voice_client.queue.deque), ctx.voice_client, "Tracks on queue:")
             ).start(ctx, ephemeral=False)
 
-    @command()
+    @command(aliases=["np"])
     async def nowplaying(self, ctx: CustomContext) -> None:
         """Displays information for the currently playing track, including how much time is left."""
         maybe_source: EnhancedSource = ctx.voice_client.source
@@ -148,7 +148,7 @@ class Audio(Cog):
         else:
             await AudioSourceMenu(maybe_source, ctx.voice_client).start(ctx)
 
-    @command()
+    @command(aliases=["pt"])
     async def playtop(
             self,
             ctx: CustomContext,

@@ -155,6 +155,7 @@ class ErrorHandling(commands.Cog):
                 commands.CommandInvokeError,
                 commands.CommandNotFound,
                 commands.DisabledCommand,
+                commands.CommandError,
                 RuntimeError,
             ),
         )

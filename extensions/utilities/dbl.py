@@ -38,10 +38,10 @@ class VotesMenu(menus.ViewMenu):
         if len(votes) > 0:
             embed = (
                 discord.Embed(title=f"{self.user.display_name}'s Votes")
-                    .set_thumbnail(url=self.user.avatar.url)
-                    .add_field(name="Times voted:", value=len(votes))
-                    .add_field(name="First voted:", value=f"<t:{votes[0].timestamp():.0f}>")
-                    .add_field(
+                .set_thumbnail(url=self.user.avatar.url)
+                .add_field(name="Times voted:", value=len(votes))
+                .add_field(name="First voted:", value=f"<t:{votes[0].timestamp():.0f}>")
+                .add_field(
                     name="Last voted:", value=f"<t:{votes[-1].timestamp():.0f}:R>"
                 )
             )
@@ -106,13 +106,11 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
             # If a user has not voted in the past 24 hours, there is only a 5% chance we make it here.
 
-            await ctx.author.send(
-                f"Psst... {choice(PESTERING_MESSAGES)} "
-                f"{get_top_gg_link(ctx.bot.user.id)}"
-                f" Tried of these messages? Try nopester."
-                if ctx["author_document"].get("pestered", 0) > 2
-                else ""
-            )
+            if ctx["author_document"].get("pestered", 0) > 2:
+                await ctx.author.send(
+                    f"Psst... {choice(PESTERING_MESSAGES)} "
+                    f"{get_top_gg_link(ctx.bot.user.id)}"
+                )
 
             await ctx["author_document"].update_db({"$inc": {"pestered": 1}})
 

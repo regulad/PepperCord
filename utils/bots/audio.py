@@ -84,22 +84,24 @@ class CustomVoiceClient(VoiceClient):
         If the timeout is reached, a TimeoutError will be thrown.
         """
         try:
-            try:
-                while True:
-                    track: EnhancedSource = await wait_for(self._audio_queue.get(), self.wait_for)
+            while True:
+                track: EnhancedSource = await wait_for(self._audio_queue.get(), self.wait_for)
 
-                    while True:
-                        track: EnhancedSource = await track.refresh(self)
+                while True:
+                    track: EnhancedSource = await track.refresh(self)
+                    try:
                         await self.play_future(track)
-                        if not self._should_loop:
-                            break
-            finally:
-                if self.is_connected():
-                    await self.disconnect(force=False)
+                    except Exception:
+                        pass  # We don't care. Go on to the next one!
+                    if not self._should_loop:
+                        break
         except TimeoutError:
-            pass
+            self.wait_for: int = 120  # Reset this
         except Exception:
             raise
+        finally:
+            if self.is_connected():
+                await self.disconnect(force=False)
 
     async def disconnect(self, *, force: bool = False) -> None:
         await super().disconnect(force=force)

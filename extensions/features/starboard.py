@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Union
+from typing import Optional, Union, cast
 
 import discord
 from discord.ext import commands
@@ -15,7 +15,9 @@ class AlreadyPinned(RuntimeError):
 
 
 async def send_star(
-        document: database.Document, message: discord.Message
+        document: database.Document,
+        message: discord.Message,
+        bot: bots.BOT_TYPES,
 ) -> discord.Message:
     send_channel_id: Optional[int] = document.get("starboard", {}).get("channel")
 
@@ -51,6 +53,8 @@ async def send_star(
         ):  # deprecated!... kinda
             embed.set_image(url=url)
 
+    bot.dispatch("star_sent", message)
+
     await document.update_db({"$push": {"starboard.messages": message.id}})
     return await send_channel.send(embed=embed)
 
@@ -74,11 +78,12 @@ class Starboard(commands.Cog):
             return
 
         guild = self.bot.get_guild(payload.guild_id)
-        ctx: bots.CustomContext = await self.bot.get_context(
-            await guild.get_channel_or_thread(payload.channel_id).fetch_message(
-                payload.message_id
-            )
-        )
+        channel: discord.TextChannel = guild.get_channel_or_thread(payload.channel_id)
+        message: discord.Message = await channel.fetch_message(payload.message_id)
+        ctx: bots.CustomContext = cast(bots.CustomContext, await self.bot.get_context(message))
+
+        if not isinstance(ctx.author, discord.Member) or ctx.guild is None:
+            return
 
         send_emoji = ctx["guild_document"].get("starboard", {}).get("emoji", "⭐")
         threshold = ctx["guild_document"].get("starboard", {}).get("threshold", 3)
@@ -99,7 +104,12 @@ class Starboard(commands.Cog):
         if react_count is None:
             return
         if react_count >= threshold or manager:
-            await send_star(ctx["guild_document"], ctx.message)
+            try:
+                await send_star(ctx["guild_document"], ctx.message, self.bot)
+            except bots.NotConfigured:
+                pass
+            except Exception:
+                raise
         else:
             return
 
@@ -234,7 +244,7 @@ class Starboard(commands.Cog):
                     before=ctx.message.created_at, limit=1
                 ).flatten()
                 message = messages[0]
-        message: discord.Message = await send_star(ctx["guild_document"], message)
+        message: discord.Message = await send_star(ctx["guild_document"], message, ctx.bot)
         await ctx.send(
             f"Your pinned message can now be found at {message.jump_url}",
             ephemeral=True,
@@ -255,7 +265,7 @@ class Starboard(commands.Cog):
     ) -> None:
         await ctx.defer(ephemeral=True)
         for pin in (await channel.pins())[::-1]:
-            await send_star(ctx["guild_document"], pin)
+            await send_star(ctx["guild_document"], pin, ctx.bot)
             await asyncio.sleep(1)  # Prevents rate-limiting
         await ctx.send("Done moving pins!", ephemeral=True)
 

@@ -11,7 +11,6 @@ env:
   IMAGE_NAME: peppercord
 jobs:
   push:
-    needs: test
     name: Push image
     runs-on: ubuntu-latest
     if: github.event_name == 'push'

@@ -20,7 +20,7 @@ python-dotenv >=0.19.2, <0.20
 
 # Features
 psutil >=5.9, <6 # System status
-mcstatus ==6.4.0 # Minecraft Server, cant update because of exclude click version
+mcstatus ==8.0.0 # Minecraft Server, cant update because of exclude click version
 asyncio-dgram >2, <3 # mcstatus fsr
 Pillow >=9, <10 # Image editing
 youtube_dl >=2021.12

@@ -37,7 +37,7 @@ class QueueMenuSource(ListPageSource):
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {duration_to_str(int(time_until / 1000))} left",
-                value=f"[{value.name}]({value.description})\n{duration_to_str(int(value.duration / 1000))} long"
+                value=f"[{value.name}]({value.description})\n{duration_to_str(int(value.duration or 0 / 1000))} long"
                       f"\nAdded by: {value.invoker.display_name}",
                 inline=False,
             )
@@ -109,7 +109,11 @@ class Audio(Cog):
             await ctx.send("No track is playing.", ephemeral=True)
         else:
             await ViewMenuPages(
-                QueueMenuSource(list(ctx.voice_client.queue.deque), ctx.voice_client, "Tracks on queue:")
+                QueueMenuSource(
+                    list(ctx.voice_client.queue.deque),
+                    ctx.voice_client,
+                    "Tracks on queue (Loop is on):" if ctx.voice_client.should_loop else "Tracks on queue:"
+                )
             ).start(ctx, ephemeral=False)
 
     @command(aliases=["np"])
@@ -133,17 +137,23 @@ class Audio(Cog):
         ctx.voice_client.resume()
         await ctx.send("Resumed the audio player.", ephemeral=True)
 
-    @command()
+    @command(aliases=["s"])
     async def skip(self, ctx: CustomContext) -> None:
         """Stops the currently playing track."""
-        ctx.voice_client.stop_playing()
+        ctx.voice_client.stop()
         await ctx.send("Stopped the currently playing track.", ephemeral=True)
 
-    @command()
+    @command(aliases=["dc", "fuckoff"])
     async def disconnect(self, ctx: CustomContext) -> None:
         """Disconnects the audio player."""
         await ctx.voice_client.disconnect(force=True)
         await ctx.send("Disconnected from the voice channel.", ephemeral=True)
+
+    @command(aliases=["l"])
+    async def loop(self, ctx: CustomContext) -> None:
+        """Toggles loop."""
+        ctx.voice_client.should_loop = not ctx.voice_client.should_loop
+        await ctx.send(f"Toggled loop {'on' if ctx.voice_client.should_loop else 'off'}.", ephemeral=True)
 
 
 def setup(bot: BOT_TYPES) -> None:

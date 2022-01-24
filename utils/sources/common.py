@@ -1,4 +1,4 @@
-from discord import abc, PCMVolumeTransformer, FFmpegPCMAudio
+from discord import abc, PCMVolumeTransformer, AudioSource
 
 from utils.bots import EnhancedSource
 from utils.misc import FrozenDict
@@ -20,10 +20,10 @@ YTDL_FORMAT_OPTIONS: FrozenDict = FrozenDict({
 FFMPEG_OPTIONS: FrozenDict = FrozenDict({"options": "-vn"})
 
 
-class EnhancedSourceImpl(PCMVolumeTransformer, EnhancedSource):
+class EnhancedSourceWrapper(PCMVolumeTransformer, EnhancedSource):
     def __init__(
             self,
-            source: FFmpegPCMAudio,
+            source: AudioSource,
             volume=0.5,
             *,
             invoker: abc.User
@@ -40,5 +40,5 @@ class EnhancedSourceImpl(PCMVolumeTransformer, EnhancedSource):
 __all__: list[str] = [
     "YTDL_FORMAT_OPTIONS",
     "FFMPEG_OPTIONS",
-    "EnhancedSourceImpl",
+    "EnhancedSourceWrapper",
 ]

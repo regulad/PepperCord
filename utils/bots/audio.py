@@ -23,7 +23,7 @@ class EnhancedSource(AudioSource, ABC):
 
     @property
     def description(self) -> str:
-        return "Description"
+        return f"\"{self.name}\""
 
     async def refresh(self, voice_client: "CustomVoiceClient") -> "EnhancedSource":
         """
@@ -62,7 +62,7 @@ class CustomVoiceClient(VoiceClient):
 
     def __init__(self, client: Client, channel: abc.Connectable):
         super().__init__(client, channel)
-        self._should_loop: bool = False
+        self.should_loop: bool = False
         self._task: Task = self.loop.create_task(self._run())
         self._audio_queue: AudioQueue = AudioQueue()
         self._bound_to: Optional[TextChannel | Thread] = None
@@ -103,7 +103,7 @@ class CustomVoiceClient(VoiceClient):
                         await self.play_future(track)
                     except Exception:
                         pass  # We don't care. Go on to the next one!
-                    if not self._should_loop:
+                    if not self.should_loop:
                         break
         except TimeoutError:
             if self.bound is not None:

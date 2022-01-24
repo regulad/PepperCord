@@ -9,7 +9,7 @@ from utils.bots import CustomVoiceClient
 from .common import *
 
 
-class YTDLSource(EnhancedSourceImpl):
+class YTDLSource(EnhancedSourceWrapper):
     """Represents a source from YoutubeDL that has the ability to have it's volume changed."""
 
     def __init__(

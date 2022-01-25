@@ -4,7 +4,7 @@ from youtube_dl import YoutubeDL
 
 from extensions.audio.control import QueueMenuSource, AudioSourceMenu
 from utils.bots import BOT_TYPES, CustomContext
-from utils.checks import can_have_voice_client, CantCreateAudioClient
+from utils.checks import can_have_voice_client, CantCreateAudioClient, check_voice_client_predicate
 from utils.sources import YTDLSource, YTDL_FORMAT_OPTIONS
 from utils.validators import str_is_url
 
@@ -17,10 +17,7 @@ class Music(Cog):
         self._file_downloader: YoutubeDL = YoutubeDL(YTDL_FORMAT_OPTIONS)
 
     async def cog_check(self, ctx: CustomContext) -> bool:
-        if await can_have_voice_client(ctx):
-            return True
-        else:
-            raise CantCreateAudioClient
+        return await check_voice_client_predicate(ctx)
 
     @command(aliases=["p"])
     async def play(

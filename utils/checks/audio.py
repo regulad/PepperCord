@@ -16,7 +16,9 @@ async def can_have_voice_client(ctx: CustomContext) -> bool:
         custom_voice_client: CustomVoiceClient = await ctx.get_or_create_voice_client()
         if custom_voice_client.bound is None and isinstance(ctx.channel, (TextChannel, Thread)):
             custom_voice_client.bind(ctx.channel)
-    except AttributeError | AssertionError:
+    except AttributeError:
+        return False
+    except AssertionError:
         return False
     except Exception:
         raise
@@ -24,16 +26,21 @@ async def can_have_voice_client(ctx: CustomContext) -> bool:
         return True
 
 
-@check
-async def check_voice_client(ctx: CustomContext) -> bool:
+async def check_voice_client_predicate(ctx: CustomContext) -> bool:
     if await can_have_voice_client(ctx):
         return True
     else:
         raise CantCreateAudioClient
 
 
+@check
+async def check_voice_client(ctx: CustomContext) -> bool:
+    return await check_voice_client_predicate(ctx)
+
+
 __all__: list[str] = [
     "CantCreateAudioClient",
     "can_have_voice_client",
-    "check_voice_client"
+    "check_voice_client",
+    "check_voice_client_predicate"
 ]

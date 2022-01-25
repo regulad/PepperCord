@@ -3,7 +3,7 @@ from discord.ext.commands import command, Cog
 from discord.ext.menus import ViewMenuPages, ListPageSource, ViewMenu
 
 from utils.bots import BOT_TYPES, CustomContext, EnhancedSource, CustomVoiceClient
-from utils.checks import can_have_voice_client, CantCreateAudioClient
+from utils.checks import can_have_voice_client, CantCreateAudioClient, check_voice_client_predicate
 from utils.converters import duration_to_str
 from utils.sources import YTDLSource
 
@@ -96,10 +96,7 @@ class Audio(Cog):
         self.bot: BOT_TYPES = bot
 
     async def cog_check(self, ctx: CustomContext) -> bool:
-        if await can_have_voice_client(ctx):
-            return True
-        else:
-            raise CantCreateAudioClient
+        return await check_voice_client_predicate(ctx)
 
     @command(aliases=["q"])
     async def queue(self, ctx: CustomContext) -> None:

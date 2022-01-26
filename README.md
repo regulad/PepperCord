@@ -108,6 +108,7 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
 * `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled.
 * `PEPPERCORD_HOME_GUILD`: Optional. Used as the main guild.
 * `PEPPERCORD_SCRATCH_CHANNEL`: Optional. Used as a channel for images.
+* `PEPPERCORD_UPTIMEROBOT`: Optional. If running under https://replit.com, this will allow the container to stay alive forever using a UptimeRobot API token.
 
 # Extending
 

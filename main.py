@@ -14,7 +14,7 @@ from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pretty_help import PrettyHelp
-from replutil import ReplKeepAlive, is_repl
+from replutil import ReplKeepAlive, in_repl
 
 from utils import bots, help, misc
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     logging.info("Ready.")
     logging.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")
 
-    if is_repl() and config_source.get("PEPPERCORD_UPTIMEROBOT") is not None:
+    if in_repl() and config_source.get("PEPPERCORD_UPTIMEROBOT") is not None:
         with ReplKeepAlive(config_source["PEPPERCORD_UPTIMEROBOT"]):
             bot.run(config_source["PEPPERCORD_TOKEN"])
     else:

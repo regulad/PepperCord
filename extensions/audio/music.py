@@ -4,7 +4,7 @@ from youtube_dl import YoutubeDL
 
 from extensions.audio.control import QueueMenuSource, AudioSourceMenu
 from utils.bots import BOT_TYPES, CustomContext
-from utils.checks import can_have_voice_client, CantCreateAudioClient, check_voice_client_predicate
+from utils.checks import check_voice_client_predicate
 from utils.sources import YTDLSource, YTDL_FORMAT_OPTIONS
 from utils.validators import str_is_url
 

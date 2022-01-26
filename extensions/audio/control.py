@@ -3,7 +3,7 @@ from discord.ext.commands import command, Cog
 from discord.ext.menus import ViewMenuPages, ListPageSource, ViewMenu
 
 from utils.bots import BOT_TYPES, CustomContext, EnhancedSource, CustomVoiceClient
-from utils.checks import can_have_voice_client, CantCreateAudioClient, check_voice_client_predicate
+from utils.checks import check_voice_client_predicate
 from utils.converters import duration_to_str
 from utils.sources import YTDLSource
 

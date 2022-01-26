@@ -1,3 +1,4 @@
+from functools import partial
 from io import BytesIO
 from typing import Optional
 
@@ -44,15 +45,12 @@ class Images(commands.Cog):
             ),
     ) -> None:
         """Shows how many pins are left in a channel in a wonderfully flashy way."""
-        channel = channel or ctx.channel
+        channel: discord.TextChannel = channel or ctx.channel
         await ctx.defer()
 
         pins_left = 50 - len(await channel.pins())
-        buffer = await ctx.bot.loop.run_in_executor(
-            None, lambda: pins_left_executor(pins_left)
-        )
-        file = discord.File(buffer, "majora.png")
-        await ctx.send(file=file)
+        with await ctx.bot.loop.run_in_executor(None, partial(pins_left_executor, pins_left)) as buffer:
+            await ctx.send(file=discord.File(buffer, "pinsleft.png"))
 
 
 def setup(bot: BOT_TYPES):

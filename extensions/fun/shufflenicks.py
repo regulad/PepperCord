@@ -22,6 +22,7 @@ class ShuffleNicks(commands.Cog):
     )
     @commands.cooldown(1, 3600, commands.BucketType.guild)
     @commands.bot_has_permissions(manage_nicknames=True)
+    @commands.has_permissions(manage_nicknames=True)
     async def shufflenicks(self, ctx: CustomContext) -> None:
         """
         Shuffles nicknames between people on your server.

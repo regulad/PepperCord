@@ -6,7 +6,7 @@ from typing import Optional
 import discord
 from aiohttp import ClientSession
 from discord import File
-from discord.ext import commands
+from discord.ext import commands, tasks
 from youtube_dl import YoutubeDL
 
 from utils.attachments import MediaTooLong
@@ -43,9 +43,26 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
 
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
-        self.ytdl: YoutubeDL = YoutubeDL(YTDL_FORMAT_OPTIONS)
+        self.ytdl: Optional[YoutubeDL] = None
+        self.assemble_downloader()
+
+        self.reassemble_downloader.start()
 
         self.downloader: Optional[ClientSession] = None
+
+    def assemble_downloader(self) -> None:
+        self.ytdl = YoutubeDL(YTDL_FORMAT_OPTIONS)
+
+    def cog_unload(self) -> None:
+        self.reassemble_downloader.cancel()
+
+    @tasks.loop(hours=12)
+    async def reassemble_downloader(self) -> None:
+        await self.bot.loop.run_in_executor(None, self.assemble_downloader)
+
+    @reassemble_downloader.before_loop
+    async def wait(self) -> None:
+        await self.bot.wait_until_ready()
 
     async def secure_session(self) -> None:
         if self.downloader is None:

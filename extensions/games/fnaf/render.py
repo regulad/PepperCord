@@ -32,7 +32,7 @@ class OfficeImage(Enum):
         elif game_state.light_state.left_light_on:
             return cls.LEFT_HALL_LIGHT
         elif game_state.animatronics_in(Room.RIGHT_DOOR) and game_state.light_state.right_light_on:
-            return cls.BONNIE_AT_DOOR
+            return cls.CHICA_AT_DOOR
         elif game_state.light_state.right_light_on:
             return cls.RIGHT_HALL_LIGHT
         else:

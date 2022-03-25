@@ -15,7 +15,7 @@ topggpy >= 1.4.0, <2
 GitPython >=3.1.24, <4
 art >=5.3, <6
 discord-webhook-logger >=1.2, <2
-python-dotenv >=0.19.2, <0.20
+python-dotenv >=0.19.2, <0.21
 replutil >=0.1.1, <1
 # asyncio-ffmpeg@git+https://github.com/regulad/asyncio-ffmpeg.git@asyncio
 

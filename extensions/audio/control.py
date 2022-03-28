@@ -23,6 +23,7 @@ class QueueMenuSource(ListPageSource):
         base_embed = Embed(
             title=self.msg, description=f"{len(self.entries)} total tracks"
         )
+        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
 
         if self.client.source is not None and self.client.source.duration is not None:
             time_until: float = self.client.source.duration - self.client.ms_read

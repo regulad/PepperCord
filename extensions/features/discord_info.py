@@ -109,8 +109,6 @@ class DiscordInfo(commands.Cog):
                 colour=discord.Colour.random(),
                 title=f"Info for {guild.name}\n({guild.id})",
             )
-                .set_thumbnail(url=guild.icon.url)
-                .add_field(name="Icon URL:", value=f"[Click Here]({guild.icon.url})")
                 .add_field(
                 name="Server Owner:",
                 value=f"{guild.owner.display_name}#{guild.owner.discriminator} ({guild.owner.id})",
@@ -127,6 +125,10 @@ class DiscordInfo(commands.Cog):
             )
                 .add_field(name="Total members:", value=guild.member_count)
         )
+        if guild.icon is not None:
+            embed.set_thumbnail(url=guild.icon.url)
+
+            embed.add_field(name="Icon URL:", value=f"[Click Here]({guild.icon.url})")
         await ctx.send(embed=embed)
         await ctx.invoke(self.whois, user=guild.owner)
 

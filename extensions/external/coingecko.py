@@ -12,6 +12,7 @@ class CoinMenuSource(menus.ListPageSource):
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(title="Coins")
+        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
 
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
@@ -37,6 +38,7 @@ class CurrencyMenuSource(menus.ListPageSource):
         embed: discord.Embed = discord.Embed(
             title="Currencies", description=description
         )
+        embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
 
         return embed
 

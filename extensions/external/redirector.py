@@ -76,7 +76,7 @@ class HitSource(ListPageSource):
                 value=f"Occurred at <t:{floor((entry.redirected_at - UTC_OFFSET).timestamp())}>\n"
                       f"Redirected to [{entry.redirected_to}]({entry.redirected_to})\n"
                       f"IP Address: `{entry.remote}`"
-                      f"\nUser Agent: `{entry.user_agent}`" if entry.user_agent is not None else "",
+                      + (f"\nUser Agent: `{entry.user_agent}`" if entry.user_agent is not None else ""),
                 inline=False,
             )
 

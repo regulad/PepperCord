@@ -53,7 +53,7 @@ class Alerts(commands.Cog):
             self,
             ctx: CustomContext,
             messagetype: str = commands.Option(
-                description="The event that must happen to dispatch this message. on_member_join or on_member_leave."
+                description="The event that must happen to dispatch this message. on_member_join or on_member_remove."
             ),
             channel: discord.TextChannel = commands.Option(
                 description="The channel the message will be sent in."

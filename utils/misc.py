@@ -1,4 +1,7 @@
 import os
+import random
+import string
+from datetime import timedelta, datetime
 from typing import Mapping
 
 
@@ -19,6 +22,28 @@ def get_list_of_files_in_base(basedir: str) -> list[str]:
         all_files.append(full_path)
 
     return all_files
+
+
+def random_string(
+        length: int = 6,
+        *,
+        upper: bool = True,
+        lower: bool = True,
+        numbers: bool = True,
+        symbols: bool = False
+) -> str:
+    """Get a random string of the specified length. Will error if all keyword parameters are set to False"""
+    return ''.join(
+        random.choices(
+            (
+                string.ascii_uppercase if upper else ""
+                                                     + string.digits if numbers else ""
+                                                                                     + string.ascii_lowercase if lower else ""
+                                                                                                                            + string.punctuation if symbols else ""
+            ),
+            k=length
+        )
+    )
 
 
 def is_module(file_or_directory: str) -> bool:
@@ -67,10 +92,14 @@ class FrozenDict(Mapping):
         return self._hash
 
 
+UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()
+
 __all__: list[str] = [
     "split_string_chunks",
     "FrozenDict",
     "is_module",
     "get_list_of_files_in_base",
     "get_python_modules",
+    "random_string",
+    "UTC_OFFSET"
 ]

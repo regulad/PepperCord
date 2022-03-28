@@ -40,8 +40,8 @@ class ShardMenu(menus.ViewMenu):
             discord.Embed(
                 title=f"Info for shard {self.shard_info.id + 1}/{self.shard_info.shard_count}",
             )
-            .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
-            .add_field(
+                .add_field(name="Online:", value=str(not self.shard_info.is_closed()))
+                .add_field(
                 name="Latency:", value=f"{round(self.shard_info.latency * 1000)} ms"
             )
         )

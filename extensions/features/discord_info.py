@@ -148,17 +148,17 @@ class DiscordInfo(commands.Cog):
                                 f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
                                 f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
                 )
-                .set_thumbnail(url=ctx.bot.user.avatar.url)
-                .add_field(
+                    .set_thumbnail(url=ctx.bot.user.avatar.url)
+                    .add_field(
                     name="Invite:",
                     value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
                     inline=False,
                 )
-                .add_field(
+                    .add_field(
                     name="Bot status:",
                     value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
                 )
-                .add_field(
+                    .add_field(
                     name="System resources:",
                     value=f"Memory: "
                           f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"

@@ -38,10 +38,10 @@ class VotesMenu(menus.ViewMenu):
         if len(votes) > 0:
             embed = (
                 discord.Embed(title=f"{self.user.display_name}'s Votes")
-                .set_thumbnail(url=self.user.avatar.url)
-                .add_field(name="Times voted:", value=len(votes))
-                .add_field(name="First voted:", value=f"<t:{votes[0].timestamp():.0f}>")
-                .add_field(
+                    .set_thumbnail(url=self.user.avatar.url)
+                    .add_field(name="Times voted:", value=len(votes))
+                    .add_field(name="First voted:", value=f"<t:{votes[0].timestamp():.0f}>")
+                    .add_field(
                     name="Last voted:", value=f"<t:{votes[-1].timestamp():.0f}:R>"
                 )
             )

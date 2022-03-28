@@ -117,4 +117,3 @@ if __name__ == "__main__":
             bot.run(config_source["PEPPERCORD_TOKEN"])
     else:
         bot.run(config_source["PEPPERCORD_TOKEN"])
-

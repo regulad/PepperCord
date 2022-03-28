@@ -4,6 +4,7 @@ from typing import Union, Type, MutableMapping
 
 import discord
 from discord.ext import commands
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.database import Document
 from .context import CustomContext
@@ -35,6 +36,10 @@ class CustomBotBase(commands.bot.BotBase):
             description=description,
             **options,
         )
+
+    @property
+    def database(self) -> AsyncIOMotorDatabase:
+        return self._database
 
     @property
     def config(self) -> CONFIGURATION_PROVIDERS:

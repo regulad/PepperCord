@@ -61,6 +61,7 @@ class LanguageSource(menus.ListPageSource):
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(title="Available Languages")
+        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value['name']}",

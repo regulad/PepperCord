@@ -14,6 +14,7 @@ class GuildsMenuList(menus.ListPageSource):
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(title="Guilds")
+        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
         for iteration, value in enumerate(page_entries, start=offset):
             value: discord.Guild
 

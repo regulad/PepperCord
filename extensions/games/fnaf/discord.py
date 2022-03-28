@@ -40,6 +40,7 @@ class LevelSource(menus.ListPageSource):
         )
         if self.guild.icon is not None:
             base_embed.set_thumbnail(url=self.guild.icon.url)
+        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value[0].display_name}",

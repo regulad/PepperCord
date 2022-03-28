@@ -89,7 +89,10 @@ class LevelSource(menus.ListPageSource):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(
             title=f"{self.guild.name}'s Leaderboard"
-        ).set_thumbnail(url=self.guild.icon.url)
+        )
+        if self.guild.icon is not None:
+            base_embed.set_thumbnail(url=self.guild.icon.url)
+        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value.user.display_name}",

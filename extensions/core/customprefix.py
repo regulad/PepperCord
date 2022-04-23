@@ -27,7 +27,7 @@ class CustomPrefix(commands.Cog):
             self,
             ctx: CustomContext,
             *,
-            prefix: Optional[str] = commands.Option(description="The new prefix to set.")
+            prefix: Optional[str],
     ) -> None:
         """Changes the bot's prefix. This is only for message commands."""
         if ctx.interaction is None:
@@ -36,17 +36,19 @@ class CustomPrefix(commands.Cog):
                     await ctx["guild_document"].update_db({"$unset": {"prefix": 1}})
                 else:
                     await ctx["guild_document"].update_db({"$set": {"prefix": prefix}})
-            await ctx.send(f"The prefix is now "
-                           f"{ctx['guild_document'].get('prefix', ctx.bot.config.get('PEPPERCORD_PREFIX', '?'))}.")
+            await ctx.send(
+                f"The prefix is now "
+                f"{ctx['guild_document'].get('prefix', ctx.bot.config.get('PEPPERCORD_PREFIX', '?'))}."
+            )
         else:
             await ctx.send("You cannot set a prefix for slash messages.")
 
 
-def setup(bot: BOT_TYPES) -> None:
+async def setup(bot: BOT_TYPES) -> None:
     bot.command_prefix = get_prefix
-    bot.add_cog(CustomPrefix(bot))
+    await bot.add_cog(CustomPrefix(bot))
 
 
-def teardown(bot: BOT_TYPES) -> None:
+async def teardown(bot: BOT_TYPES) -> None:
     bot.command_prefix = bot.config.get("PEPPERCORD_PREFIX", "?")
-    bot.remove_cog("CustomPrefix")
+    await bot.remove_cog("CustomPrefix")

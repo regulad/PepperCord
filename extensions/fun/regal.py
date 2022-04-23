@@ -1,7 +1,12 @@
 from random import choice
 
 from discord import Forbidden
-from discord.ext.commands import Cog, command, has_permissions, bot_has_permissions
+from discord.ext.commands import (
+    Cog,
+    has_permissions,
+    bot_has_permissions,
+    hybrid_command,
+)
 
 from utils.bots import BOT_TYPES, CustomContext
 
@@ -77,7 +82,7 @@ class Regal(Cog):
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
 
-    @command(name="regal", aliases=["regalize"])
+    @hybrid_command(name="regal", aliases=["regalize"])
     @has_permissions(manage_nicknames=True)
     @bot_has_permissions(manage_nicknames=True)
     async def regalize(self, ctx: CustomContext) -> None:
@@ -87,7 +92,9 @@ class Regal(Cog):
             display_name_regal: str = regalize(member.display_name)
             try:
                 await member.edit(
-                    nick=display_name_regal if member.display_name != display_name_regal else regalize(member.name)
+                    nick=display_name_regal
+                    if member.display_name != display_name_regal
+                    else regalize(member.name)
                 )
             except Forbidden:
                 continue
@@ -96,6 +103,6 @@ class Regal(Cog):
         await ctx.send("Done!", ephemeral=True)
 
 
-def setup(bot: BOT_TYPES) -> None:
+async def setup(bot: BOT_TYPES) -> None:
     """Load the cog."""
-    bot.add_cog(Regal(bot))
+    await bot.add_cog(Regal(bot))

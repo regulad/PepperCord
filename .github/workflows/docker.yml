@@ -2,7 +2,7 @@ name: Docker
 on:
   push:
     branches:
-      - "**"
+      - main
     tags:
       - v*
   pull_request:
@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - name: Run tests
         run: |
           if [ -f docker-compose.test.yml ]; then
@@ -24,6 +25,7 @@ jobs:
             docker build . --file Dockerfile
           fi
   push:
+    needs: test
     name: Push image
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
@@ -32,13 +34,13 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v2
-        with:
-          lfs: true
-          fetch-depth: 0
+
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
+
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Push image
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME

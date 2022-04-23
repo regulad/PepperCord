@@ -1,5 +1,7 @@
 from discord.ext import commands
 
+from utils.bots import BOT_TYPES
+
 
 class Cooldown(commands.Cog):
     """The cooldown system prevents abuse of the bots."""
@@ -21,5 +23,5 @@ class Cooldown(commands.Cog):
             return True
 
 
-def setup(bot):
-    bot.add_cog(Cooldown(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Cooldown(bot))

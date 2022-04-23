@@ -1,7 +1,9 @@
 from typing import List, Optional
 
 import discord
+from discord.app_commands import describe
 from discord.ext import commands
+from discord.ext.commands import hybrid_group
 
 from utils import bots
 from utils.bots import CustomContext, BOT_TYPES
@@ -35,8 +37,8 @@ class Alerts(commands.Cog):
     async def on_member_remove(self, member: discord.Member) -> None:
         await member_message_processor(self.bot, member, "on_member_remove")
 
-    @commands.group()
-    @commands.has_permissions(admin=True)
+    @hybrid_group()
+    @commands.has_permissions(administrator=True)
     async def events(self, ctx: CustomContext) -> None:
         pass
 
@@ -49,17 +51,18 @@ class Alerts(commands.Cog):
         await ctx.send("Done.", ephemeral=True)
 
     @events.command()
+    @describe(
+        messagetype="The event that must be recieved to dispatch the message. on_member_join or on_member_remove, for members joining and leaving respectively.",
+        channel="The channel to send the message to.",
+        message="The message to send, not including the member mention.",
+    )
     async def add(
             self,
             ctx: CustomContext,
-            messagetype: str = commands.Option(
-                description="The event that must happen to dispatch this message. on_member_join or on_member_remove."
-            ),
-            channel: discord.TextChannel = commands.Option(
-                description="The channel the message will be sent in."
-            ),
+            messagetype: str,
+            channel: discord.TextChannel,
             *,
-            message: str = commands.Option(description="The contents of the message."),
+            message: str,
     ) -> None:
         """Registers a message."""
         await ctx["guild_document"].update_db(
@@ -68,5 +71,5 @@ class Alerts(commands.Cog):
         await ctx.send("Done.", ephemeral=True)
 
 
-def setup(bot: BOT_TYPES):
-    bot.add_cog(Alerts(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Alerts(bot))

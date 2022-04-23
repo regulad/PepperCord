@@ -3,16 +3,20 @@ from typing import Optional
 import discord
 from aiocoingecko import AsyncCoinGeckoAPISession
 from aiohttp import ClientSession
+from discord.app_commands import describe
 from discord.ext import commands, menus
+from discord.ext.commands import hybrid_group
 
-from utils.bots import CustomContext
+from utils.bots import CustomContext, BOT_TYPES
 
 
 class CoinMenuSource(menus.ListPageSource):
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(title="Coins")
-        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        base_embed.set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
+        )
 
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
@@ -58,8 +62,8 @@ class CoinGecko(commands.Cog):
             100, 60, commands.BucketType.default
         )
 
-    def cog_unload(self):
-        self.bot.loop.create_task(self.client_session.close())
+    async def cog_unload(self):
+        await self.client_session.close()
 
     async def cog_check(self, ctx):
         cooldown: commands.Cooldown = self.cooldown.get_bucket(ctx.message)
@@ -70,9 +74,12 @@ class CoinGecko(commands.Cog):
         else:
             return True
 
-    @commands.group()
-    async def coingecko(self, ctx) -> None:
-        pass
+    @hybrid_group(fallback="status")
+    async def coingecko(self, ctx: CustomContext) -> None:
+        """Gets the status of the CoinGecko API."""
+
+        await ctx.defer(ephemeral=True)
+        await ctx.send(await self.coin_gecko_session.ping())
 
     @coingecko.command()
     async def coins(self, ctx: CustomContext) -> None:
@@ -99,16 +106,15 @@ class CoinGecko(commands.Cog):
         )
 
     @coingecko.command()
+    @describe(
+        coin="The name of a currency to search. Example: ethereum.",
+        currency="The currency that the coin's value will be represented in. Defaults to usd.",
+    )
     async def price(
             self,
             ctx: CustomContext,
-            coin: str = commands.Option(
-                description="The name of a currency to search. Example: ethereum."
-            ),
-            currency: Optional[str] = commands.Option(
-                "usd",
-                description="The currency that the coin's value will be represented in. Defaults to usd.",
-            ),
+            coin: str,
+            currency: Optional[str] = "usd",
     ) -> None:
         """Gets the price of a cryptocurrency."""
 
@@ -124,5 +130,5 @@ class CoinGecko(commands.Cog):
             await ctx.send(f"{get[coin][currency]} {currency.upper()}", ephemeral=True)
 
 
-def setup(bot):
-    bot.add_cog(CoinGecko(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(CoinGecko(bot))

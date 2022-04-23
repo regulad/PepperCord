@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Union
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import hybrid_group
 
 from extensions.features.moderation import get_any_id
 from utils.bots import CustomContext, BOT_TYPES
@@ -14,11 +15,12 @@ class ShuffleNicks(commands.Cog):
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
 
-    @commands.command(
+    @hybrid_group(
         name="shufflenames",
         aliases=["shufflenicks"],
         brief="Shuffles usernames.",
         description="Shuffles usernames around between people. Do it again to reverse.",
+        fallback="shuffle",
     )
     @commands.cooldown(1, 3600, commands.BucketType.guild)
     @commands.bot_has_permissions(manage_nicknames=True)
@@ -100,7 +102,7 @@ class ShuffleNicks(commands.Cog):
                     pass
         await ctx.send("Done shuffling nicknames.", ephemeral=True)
 
-    @commands.command()
+    @shufflenicks.command("reset")
     @commands.cooldown(1, 3600, commands.BucketType.guild)
     @commands.bot_has_permissions(manage_nicknames=True)
     async def resetnicks(self, ctx: CustomContext) -> None:
@@ -117,5 +119,5 @@ class ShuffleNicks(commands.Cog):
         await ctx.send("Done resetting nicknames.", ephemeral=True)
 
 
-def setup(bot: BOT_TYPES) -> None:
-    bot.add_cog(ShuffleNicks(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(ShuffleNicks(bot))

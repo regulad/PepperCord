@@ -1,6 +1,7 @@
 import discord
 from aiohttp import ClientSession
 from discord.ext import commands
+from discord.ext.commands import hybrid_command
 
 from utils import bots
 
@@ -12,10 +13,10 @@ class APIs(commands.Cog):
         self.bot = bot
         self.aiohttp_cs = ClientSession()
 
-    def cog_unload(self) -> None:
-        self.bot.loop.create_task(self.aiohttp_cs.close())
+    async def cog_unload(self) -> None:
+        await self.aiohttp_cs.close()
 
-    @commands.command()
+    @hybrid_command()
     async def bored(self, ctx: bots.CustomContext) -> None:
         """Gives you something to do to stop you from being bored."""
         await ctx.defer()
@@ -29,5 +30,5 @@ class APIs(commands.Cog):
         await ctx.send(embed=embed)
 
 
-def setup(bot: bots.BOT_TYPES) -> None:
-    bot.add_cog(APIs(bot))
+async def setup(bot: bots.BOT_TYPES) -> None:
+    await bot.add_cog(APIs(bot))

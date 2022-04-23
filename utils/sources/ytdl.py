@@ -29,7 +29,11 @@ class YTDLSource(EnhancedSourceWrapper):
 
     @property
     def duration(self) -> Optional[int]:
-        return (self.info["duration"] * 1000) if self.info.get("duration") is not None else None
+        return (
+            (self.info["duration"] * 1000)
+            if self.info.get("duration") is not None
+            else None
+        )
 
     @property
     def name(self) -> str:
@@ -47,7 +51,7 @@ class YTDLSource(EnhancedSourceWrapper):
                 self.file_downloader,
                 self.info["webpage_url"],
                 self.invoker,
-                loop=voice_client.loop
+                loop=voice_client.loop,
             )
 
     @classmethod
@@ -94,12 +98,18 @@ class YTDLSource(EnhancedSourceWrapper):
             tracks = []
             for entry in info["entries"]:
                 tracks.append(
-                    await cls.from_url_single(file_downloader, entry["webpage_url"], invoker, entry, loop=loop)
+                    await cls.from_url_single(
+                        file_downloader, entry["webpage_url"], invoker, entry, loop=loop
+                    )
                 )
             return tracks
         else:
             # Url refers to a single track, so a list containing only a single instance must be returned.
-            return [await cls.from_url_single(file_downloader, info["webpage_url"], invoker, info, loop=loop)]
+            return [
+                await cls.from_url_single(
+                    file_downloader, info["webpage_url"], invoker, info, loop=loop
+                )
+            ]
 
 
 __all__: list[str] = ["YTDLSource"]

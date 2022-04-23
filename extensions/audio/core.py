@@ -11,11 +11,16 @@ class AudioCore(Cog):
         self.bot: BOT_TYPES = bot
 
     @Cog.listener("on_voice_state_update")
-    async def on_left_alone(self, member: Member, before: VoiceState, after: VoiceState) -> None:
-        if member.guild.voice_client is not None and member.guild.voice_client.channel == before.channel:
+    async def on_left_alone(
+            self, member: Member, before: VoiceState, after: VoiceState
+    ) -> None:
+        if (
+                member.guild.voice_client is not None
+                and member.guild.voice_client.channel == before.channel
+        ):
             if len(before.channel.members) == 1:
                 await member.guild.voice_client.disconnect(force=False)
 
 
-def setup(bot: BOT_TYPES) -> None:
-    bot.add_cog(AudioCore(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(AudioCore(bot))

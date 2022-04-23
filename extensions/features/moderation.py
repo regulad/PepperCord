@@ -3,9 +3,12 @@ import math
 from typing import Optional, Union, cast
 
 import discord
+from discord.app_commands import describe
 from discord.ext import commands, tasks
+from discord.ext.commands import hybrid_command
 
 from utils import bots, database, converters
+from utils.bots import BOT_TYPES
 
 
 async def get_any_id(
@@ -59,49 +62,51 @@ class Moderation(commands.Cog):
                                     }
                                 )
 
-    @commands.command()
+    @hybrid_command()
     @commands.is_owner()
     async def nopunish(self, ctx: bots.CustomContext):
         """Clears all previous punishments."""
         await ctx.defer(ephemeral=True)
         for guild in ctx.bot.guilds:
-            await (await ctx.bot.get_guild_document(guild)).update_db({"$unset": {"punishments": 1}})
+            await (await ctx.bot.get_guild_document(guild)).update_db(
+                {"$unset": {"punishments": 1}}
+            )
         await ctx.send("Done.")
 
-    @commands.command()
+    @hybrid_command(aliases=["pu", "del"])
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
+    @describe(messages="The amount of messages to be deleted.")
     async def purge(
             self,
             ctx: bots.CustomContext,
-            messages: int = commands.Option(
-                description="The amount of messages to be deleted."
-            ),
+            messages: int,
     ) -> None:
         """Deletes a set amount of messages from a channel."""
         await ctx.channel.purge(limit=messages)
         await ctx.send("Deleted.", ephemeral=True)
 
-    @commands.command()
+    @hybrid_command(aliases=["tb"])
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
+    @describe(
+        member="The member to be banned.",
+        reason="The reason for the ban.",
+        time="The amount of time for the user to be banned for",
+    )
     async def timeban(
             self,
             ctx: bots.CustomContext,
-            member: discord.Member = commands.Option(
-                description="The member to be banned."
-            ),
-            time: converters.TimedeltaShorthand = commands.Option(
-                description="The amount of time to keep the member punished for. Example: 10d."
-            ),
+            member: discord.Member,
+            time: converters.TimedeltaShorthand,
             *,
-            reason: str = commands.Option(
-                None, description="The reason why this user was banned."
-            ),
+            reason: str | None = None,
     ) -> None:
         """Bans a member, and then unbans them later."""
         member: member if not isinstance(member, int) else discord.Object(id=member)
-        if ctx.guild.roles.index(ctx.author.roles[-1]) <= ctx.guild.roles.index(member.roles[-1]):
+        if ctx.guild.roles.index(ctx.author.roles[-1]) <= ctx.guild.roles.index(
+                member.roles[-1]
+        ):
             raise RuntimeError("You cannot ban this member.")
         time: datetime.timedelta = cast(datetime.timedelta, time)
         unpunishdatetime: datetime.datetime = datetime.datetime.utcnow() + time
@@ -132,5 +137,5 @@ class Moderation(commands.Cog):
         )
 
 
-def setup(bot):
-    bot.add_cog(Moderation(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Moderation(bot))

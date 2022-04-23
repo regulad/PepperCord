@@ -27,5 +27,5 @@ class Startup(commands.Cog):
         )
 
 
-def setup(bot: BOT_TYPES) -> None:
-    bot.add_cog(Startup(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Startup(bot))

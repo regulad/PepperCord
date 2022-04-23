@@ -4,7 +4,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from utils import bots, webhook
+from utils import bots
 
 SPICE_BOT_ID: int = 933457773365170256
 
@@ -30,23 +30,6 @@ class SpiceBot(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         await self.secure_client()
-
-    async def cog_before_invoke(self, ctx: bots.CustomContext) -> None:
-        await self.secure_client()
-        if ctx.interaction is not None:
-            raise commands.CommandError("SpiceBot commands can only be run as a message command.")
-        else:
-            spice_bot_user: discord.abc.User = \
-                ctx.guild.get_member(SPICE_BOT_ID) \
-                or await ctx.bot.fetch_user(SPICE_BOT_ID)
-            spice_bot_webhook: discord.Webhook = await webhook.get_or_create_namespaced_webhook(
-                "spicebot",
-                ctx.bot,
-                ctx.channel,
-                avatar=await spice_bot_user.avatar.read(),
-                name=spice_bot_user.display_name,
-            )
-            ctx.send_handler = webhook.ImpersonateSendHandler(spice_bot_webhook, spice_bot_user)
 
     @commands.command(aliases=["inspire"])
     async def quote(self, ctx: bots.CustomContext) -> None:
@@ -96,5 +79,5 @@ class SpiceBot(commands.Cog):
         )
 
 
-def setup(bot: bots.BOT_TYPES) -> None:
-    bot.add_cog(SpiceBot(bot))
+async def setup(bot: bots.BOT_TYPES) -> None:
+    await bot.add_cog(SpiceBot(bot))

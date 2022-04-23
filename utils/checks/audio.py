@@ -14,7 +14,9 @@ async def can_have_voice_client(ctx: CustomContext) -> bool:
     try:
         assert ctx.guild is not None
         custom_voice_client: CustomVoiceClient = await ctx.get_or_create_voice_client()
-        if custom_voice_client.bound is None and isinstance(ctx.channel, (TextChannel, Thread)):
+        if custom_voice_client.bound is None and isinstance(
+                ctx.channel, (TextChannel, Thread)
+        ):
             custom_voice_client.bind(ctx.channel)
     except AttributeError:
         return False
@@ -42,5 +44,5 @@ __all__: list[str] = [
     "CantCreateAudioClient",
     "can_have_voice_client",
     "check_voice_client",
-    "check_voice_client_predicate"
+    "check_voice_client_predicate",
 ]

@@ -67,16 +67,21 @@ class CustomContext(commands.Context):
             else (await CustomVoiceClient.create(self.author.voice.channel, **kwargs))
         )
 
-    async def defer(self, *, ephemeral: bool = False, trigger_typing: bool = True) -> None:
-        try:
-            return await super().defer(ephemeral=ephemeral, trigger_typing=trigger_typing)
-        except discord.NotFound:
-            if self.interaction is not None:
-                await super().channel.trigger_typing()
-            else:
+    async def defer(
+            self, *, ephemeral: bool = False, trigger_typing: bool = True
+    ) -> None:
+        if self.interaction is not None:
+            try:
+                return await super().defer(ephemeral=ephemeral)
+            except discord.NotFound:
+                if self.interaction is not None:
+                    await super().channel.trigger_typing()
+                else:
+                    raise
+            except Exception:
                 raise
-        except Exception:
-            raise
+        else:
+            await super().channel.trigger_typing()
 
     async def send(self, *args, **kwargs) -> discord.Message:
         return await self.send_handler.send(*args, **kwargs)

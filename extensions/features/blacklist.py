@@ -15,11 +15,14 @@ class Blacklist(commands.Cog):
         self.bot: BOT_TYPES = bot
 
     async def bot_check(self, ctx: CustomContext) -> bool:
-        if await checks.is_blacklisted(ctx) \
-                or (ctx.bot.config.get("PEPPERCORD_TESTGUILDS") is not None
-                    and ctx.guild.id not in [
-                        int(guild) for guild in ctx.bot.config.get("PEPPERCORD_TESTGUILDS").split(",")
-                    ]):
+        if await checks.is_blacklisted(ctx) or (
+                ctx.bot.config.get("PEPPERCORD_TESTGUILDS") is not None
+                and ctx.guild.id
+                not in [
+                    int(guild)
+                    for guild in ctx.bot.config.get("PEPPERCORD_TESTGUILDS").split(",")
+                ]
+        ):
             raise checks.Blacklisted()
         else:
             return True
@@ -32,11 +35,7 @@ class Blacklist(commands.Cog):
             self,
             ctx: CustomContext,
             *,
-            entity: Optional[
-                Union[discord.User, discord.Member, discord.Guild]
-            ] = commands.Option(
-                description="A user, a member of a server, or a guild that will be disallowed from using the bot."
-            ),
+            entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ) -> None:
         """Disallows a user, member, or a guild from using the bot."""
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
@@ -52,11 +51,7 @@ class Blacklist(commands.Cog):
             self,
             ctx: CustomContext,
             *,
-            entity: Optional[
-                Union[discord.User, discord.Member, discord.Guild]
-            ] = commands.Option(
-                description="A user, a member of a server, or a guild that will be allowed to use the bot."
-            ),
+            entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
     ) -> None:
         """Allows a user, member, or a guild to use the bot"""
         entity: Union[discord.User, discord.Member, discord.Guild] = entity or ctx.guild
@@ -68,5 +63,5 @@ class Blacklist(commands.Cog):
         await ctx.send(f"Unblacklisted {entity.name}.", ephemeral=True)
 
 
-def setup(bot: BOT_TYPES):
-    bot.add_cog(Blacklist(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Blacklist(bot))

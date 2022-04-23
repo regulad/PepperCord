@@ -5,7 +5,8 @@ from typing import Optional, Any
 
 from aiohttp import ClientSession
 from discord import Embed, User, HTTPException
-from discord.ext.commands import Cog, command, Option, Context
+from discord.app_commands import describe
+from discord.ext.commands import Cog, Context, hybrid_command
 from discord.ext.menus import ListPageSource, ViewMenuPages
 from discord.ext.tasks import loop
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -23,8 +24,16 @@ logger: Logger = getLogger(__name__)
 class LoggedEvent:
     """A logged redirector event."""
 
-    def __init__(self, link_id: str, redirected_to: str, redirected_at: datetime, remote: str,
-                 user_agent: Optional[str], *, document: Document):
+    def __init__(
+            self,
+            link_id: str,
+            redirected_to: str,
+            redirected_at: datetime,
+            remote: str,
+            user_agent: Optional[str],
+            *,
+            document: Document,
+    ):
         self.link_id: str = link_id
         self.redirected_to: str = redirected_to
         self.redirected_at: datetime = redirected_at
@@ -32,17 +41,28 @@ class LoggedEvent:
         self.document: Document = document
         self.user_agent: Optional[str] = user_agent
 
-    __slots__ = ('link_id', 'redirected_to', 'redirected_at', 'remote', 'document', 'user_agent')
+    __slots__ = (
+        "link_id",
+        "redirected_to",
+        "redirected_at",
+        "remote",
+        "document",
+        "user_agent",
+    )
 
 
 class CampaignSource(ListPageSource):
-    def __init__(self, campaigns: list[tuple[str, datetime]], *, per_page: int = 10) -> None:
-        super().__init__(sorted(campaigns, key=lambda x: x[1], reverse=True), per_page=per_page)
+    def __init__(
+            self, campaigns: list[tuple[str, datetime]], *, per_page: int = 10
+    ) -> None:
+        super().__init__(
+            sorted(campaigns, key=lambda x: x[1], reverse=True), per_page=per_page
+        )
 
     async def format_page(self, menu, entries):
         offset = menu.current_page * self.per_page
 
-        embed: Embed = Embed(title=f"All campaigns", color=0x00ff00)
+        embed: Embed = Embed(title=f"All campaigns", color=0x00FF00)
         embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
 
         for iteration, entry in enumerate(entries, start=offset):
@@ -56,15 +76,21 @@ class CampaignSource(ListPageSource):
 
 
 class HitSource(ListPageSource):
-    def __init__(self, hits: list[LoggedEvent], campaign_id: str, *, per_page: int = 4) -> None:
+    def __init__(
+            self, hits: list[LoggedEvent], campaign_id: str, *, per_page: int = 4
+    ) -> None:
         self.campaign_id: str = campaign_id
-        super().__init__(sorted(hits, key=lambda x: x.redirected_at, reverse=True), per_page=per_page)
+        super().__init__(
+            sorted(hits, key=lambda x: x.redirected_at, reverse=True), per_page=per_page
+        )
 
     async def format_page(self, menu, entries):
         offset = menu.current_page * self.per_page
 
         embed: Embed = Embed(
-            title=f"Campaign {self.campaign_id} summary", color=0x00ff00, description=f"{len(self.entries)} total hits"
+            title=f"Campaign {self.campaign_id} summary",
+            color=0x00FF00,
+            description=f"{len(self.entries)} total hits",
         )
         embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
 
@@ -76,7 +102,11 @@ class HitSource(ListPageSource):
                 value=f"Occurred at <t:{floor((entry.redirected_at - UTC_OFFSET).timestamp())}>\n"
                       f"Redirected to [{entry.redirected_to}]({entry.redirected_to})\n"
                       f"IP Address: `{entry.remote}`"
-                      + (f"\nUser Agent: `{entry.user_agent}`" if entry.user_agent is not None else ""),
+                      + (
+                          f"\nUser Agent: `{entry.user_agent}`"
+                          if entry.user_agent is not None
+                          else ""
+                      ),
                 inline=False,
             )
 
@@ -110,17 +140,24 @@ class Redirector(Cog):
         await self.get_client()
 
         async for raw_document in get_collection(self.bot).find({}):
-            document: Document = Document(raw_document, collection=get_collection(self.bot),
-                                          query={"_id": raw_document["_id"]})
+            document: Document = Document(
+                raw_document,
+                collection=get_collection(self.bot),
+                query={"_id": raw_document["_id"]},
+            )
 
             if document.get("listening_user") is None:
                 continue
             else:
-                async with self.client_session.get(f"{API_URL}hits/{document['_id']}") as response:
+                async with self.client_session.get(
+                        f"{API_URL}hits/{document['_id']}"
+                ) as response:
                     if response.status == 200:
                         data: list[dict[str, Any]] = await response.json()
                         for entry in data:
-                            timestamp: datetime = datetime.fromisoformat(entry["timestamp"])
+                            timestamp: datetime = datetime.fromisoformat(
+                                entry["timestamp"]
+                            )
                             if timestamp > document["last_checked"]:
                                 self.bot.dispatch(
                                     "redirection",
@@ -131,12 +168,16 @@ class Redirector(Cog):
                                         entry["remote"],
                                         entry.get("user_agent"),
                                         document=document,
-                                    )
+                                    ),
                                 )
 
-                        await document.update_db({"$currentDate": {"last_checked": True}})
+                        await document.update_db(
+                            {"$currentDate": {"last_checked": True}}
+                        )
                     else:
-                        logger.warning(f"Failed to get redirections for {document['_id']}")
+                        logger.warning(
+                            f"Failed to get redirections for {document['_id']}"
+                        )
 
     async def get_client(self) -> None:
         if self.client_session is None:
@@ -158,52 +199,47 @@ class Redirector(Cog):
         listening_document: Document = logged_event.document
 
         if listening_document.get("listening_user") is not None:
-            listening_user: User = (
-                    self.bot.get_user(listening_document["listening_user"])
-                    or await self.bot.fetch_user(listening_document["listening_user"])
-            )
+            listening_user: User = self.bot.get_user(
+                listening_document["listening_user"]
+            ) or await self.bot.fetch_user(listening_document["listening_user"])
 
             embed: Embed = (
                 Embed(
                     title="Result",
-                    description=f"Regarding campaign ID `{logged_event.link_id}`"
+                    description=f"Regarding campaign ID `{logged_event.link_id}`",
                 )
                     .add_field(
                     name="Redirected to:",
-                    value=f"[{logged_event.redirected_to}]({logged_event.redirected_to})"
+                    value=f"[{logged_event.redirected_to}]({logged_event.redirected_to})",
                 )
                     .add_field(
                     name="Redirected at:",
-                    value=f"<t:{floor((logged_event.redirected_at - UTC_OFFSET).timestamp())}>"
+                    value=f"<t:{floor((logged_event.redirected_at - UTC_OFFSET).timestamp())}>",
                 )
-                    .add_field(
-                    name="IP Address:",
-                    value=f"`{logged_event.remote}`"
-                )
+                    .add_field(name="IP Address:", value=f"`{logged_event.remote}`")
             )
 
             if logged_event.user_agent is not None:
                 embed: Embed = embed.add_field(
-                    name="User Agent:",
-                    value=f"`{logged_event.user_agent}`"
+                    name="User Agent:", value=f"`{logged_event.user_agent}`"
                 )
 
-            await listening_user.send(
-                "An IP address has been grabbed!",
-                embed=embed
-            )
+            await listening_user.send("An IP address has been grabbed!", embed=embed)
 
-    @command()
+    @hybrid_command()
+    @describe(link_id="The campaign ID to stop listening to.")
     async def stopgrabbing(
             self,
             ctx: CustomContext,
-            link_id: str = Option(name="campaign_id", description="The campaign ID to stop listening to.")
+            link_id: str,
     ) -> None:
         """Stops listening to a campaign ID."""
 
         await ctx.defer(ephemeral=True)
 
-        listening_document: Document = await get_listen_doc(get_collection(self.bot), link_id)
+        listening_document: Document = await get_listen_doc(
+            get_collection(self.bot), link_id
+        )
 
         if listening_document.get("listening_user") is None:
             await ctx.send("That campaign ID is not being listened to.", ephemeral=True)
@@ -214,14 +250,20 @@ class Redirector(Cog):
             return
 
         await listening_document.delete_db()
-        await ctx.send("You are no longer listening to that campaign ID.", ephemeral=True)
+        await ctx.send(
+            "You are no longer listening to that campaign ID.", ephemeral=True
+        )
 
-    @command(aliases=["register_listener", "make_campaign"])
+    @hybrid_command(aliases=["register_listener", "make_campaign"])
+    @describe(
+        destination="The URL to redirect the victim to.",
+        link_id="The campaign ID to register.",
+    )
     async def ipgrab(
             self,
             ctx: CustomContext,
-            destination: str = Option(description="The URL to redirect the victim to."),
-            link_id: Optional[str] = Option(name="campaign_id", description="The campaign ID to register.")
+            destination: str,
+            link_id: Optional[str],
     ) -> None:
         """
         Registers a redirector campaign.
@@ -233,14 +275,23 @@ class Redirector(Cog):
         link_id: str = link_id or random_string(length=6)
 
         # Start listening
-        listening_document: Document = await get_listen_doc(get_collection(self.bot), link_id)
+        listening_document: Document = await get_listen_doc(
+            get_collection(self.bot), link_id
+        )
         await listening_document.update_db(
-            {"$set": {"listening_user": ctx.author.id}, "$currentDate": {"last_checked": True, "created_at": True}}
+            {
+                "$set": {"listening_user": ctx.author.id},
+                "$currentDate": {"last_checked": True, "created_at": True},
+            }
         )
 
-        async with self.client_session.post(f"{API_URL}{link_id}", data=destination) as response:
+        async with self.client_session.post(
+                f"{API_URL}{link_id}", data=destination
+        ) as response:
             if response.status != 201:
-                raise HTTPException(response, response.reason)  # Possibly jank. It should be fine.
+                raise HTTPException(
+                    response, response.reason
+                )  # Possibly jank. It should be fine.
 
         # TODO: Webhook implementation
 
@@ -248,10 +299,10 @@ class Redirector(Cog):
             f"Campaign link created: <{SHORT_URL}{link_id}>\n"
             f"Your campaign ID is: `{link_id}`\n"
             f"Make sure your DMs are open. You will receive notifications there.",
-            ephemeral=True
+            ephemeral=True,
         )
 
-    @command()
+    @hybrid_command()
     async def all_campaigns(self, ctx: CustomContext) -> None:
         """Lists all the redirector campaigns you are listening to."""
 
@@ -259,18 +310,21 @@ class Redirector(Cog):
 
         all_campaigns: list[tuple[str, datetime]] = []
 
-        async for document in get_collection(self.bot).find({"listening_user": ctx.author.id}):
+        async for document in get_collection(self.bot).find(
+                {"listening_user": ctx.author.id}
+        ):
             all_campaigns.append((document["_id"], document["created_at"]))
 
         source: CampaignSource = CampaignSource(all_campaigns)
 
         await ViewMenuPages(source).start(ctx, ephemeral=True)
 
-    @command()
+    @hybrid_command()
+    @describe(link_id="The campaign ID to summarize.")
     async def summarize_campaign(
             self,
             ctx: CustomContext,
-            link_id: str = Option(name="campaign_id", description="The campaign ID to summarize."),
+            link_id: str,
     ) -> None:
         """Summarizes a redirector campaign."""
 
@@ -280,7 +334,9 @@ class Redirector(Cog):
 
         document: Document = await get_listen_doc(get_collection(self.bot), link_id)
 
-        async with self.client_session.get(f"{API_URL}hits/{document['_id']}") as response:
+        async with self.client_session.get(
+                f"{API_URL}hits/{document['_id']}"
+        ) as response:
             data: list[dict[str, Any]] = await response.json()
             for entry in data:
                 timestamp: datetime = datetime.fromisoformat(entry["timestamp"])
@@ -300,6 +356,6 @@ class Redirector(Cog):
         await ViewMenuPages(source).start(ctx, ephemeral=True)
 
 
-def setup(bot: BOT_TYPES) -> None:
+async def setup(bot: BOT_TYPES) -> None:
     """Loads the Redirector cog."""
-    bot.add_cog(Redirector(bot))
+    await bot.add_cog(Redirector(bot))

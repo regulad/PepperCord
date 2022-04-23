@@ -23,7 +23,7 @@ class EnhancedSource(AudioSource, ABC):
 
     @property
     def description(self) -> str:
-        return f"\"{self.name}\""
+        return f'"{self.name}"'
 
     async def refresh(self, voice_client: "CustomVoiceClient") -> "EnhancedSource":
         """
@@ -35,7 +35,9 @@ class EnhancedSource(AudioSource, ABC):
 
 class AudioQueue(Queue[EnhancedSource]):
     def _init(self, maxsize: int) -> None:
-        self._queue: deque[EnhancedSource] = deque(maxlen=maxsize) if maxsize > 0 else deque()
+        self._queue: deque[EnhancedSource] = (
+            deque(maxlen=maxsize) if maxsize > 0 else deque()
+        )
 
     def _get(self) -> EnhancedSource:
         return self._queue.popleft()
@@ -95,7 +97,9 @@ class CustomVoiceClient(VoiceClient):
         """
         try:
             while True:
-                track: EnhancedSource = await wait_for(self._audio_queue.get(), self.wait_for)
+                track: EnhancedSource = await wait_for(
+                    self._audio_queue.get(), self.wait_for
+                )
 
                 while True:
                     track: EnhancedSource = await track.refresh(self)
@@ -143,8 +147,4 @@ class CustomVoiceClient(VoiceClient):
             return self.ms_read / self.source.duration
 
 
-__all__: list[str] = [
-    "CustomVoiceClient",
-    "EnhancedSource",
-    "AudioQueue"
-]
+__all__: list[str] = ["CustomVoiceClient", "EnhancedSource", "AudioQueue"]

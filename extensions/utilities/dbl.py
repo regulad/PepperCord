@@ -3,14 +3,19 @@ from random import choice, randint
 from typing import Union, Optional, List
 
 import discord
+from discord.app_commands import describe
 from discord.ext import commands, menus
+from discord.ext.commands import hybrid_group
 from topgg import DBLClient, WebhookManager
 from topgg.types import BotVoteData, BotData
 
 from utils import bots, database
+from utils.bots import CustomContext
 
 PESTERING_MESSAGES: List[str] = [
     "Like the bot? Vote for it!",
+    "Vote for the bot!",
+    "Enjoy the bot? Vote for it!",
 ]
 
 
@@ -114,31 +119,39 @@ class TopGGWebhook(commands.Cog, name="Voting"):
 
             await ctx["author_document"].update_db({"$inc": {"pestered": 1}})
 
-    @commands.group()
-    async def votesettings(self):
-        pass
+    @hybrid_group(fallback="status")
+    async def voting(self, ctx: CustomContext) -> None:
+        """Tells you if you have pestering enabled."""
+        if ctx["author_document"].get("nopester", False):
+            await ctx.send(
+                f"{ctx.author.mention} You have pestering disabled. "
+                f"{get_top_gg_link(ctx.bot.user.id)}"
+            )
+        else:
+            await ctx.send(
+                f"{ctx.author.mention} You have pestering enabled. "
+                f"{get_top_gg_link(ctx.bot.user.id)}"
+            )
 
-    @votesettings.command()
+    @voting.command()
+    @describe(pester="If the bot should be allowed to pester you to vote.")
     async def pester(
             self,
             ctx: bots.CustomContext,
             *,
-            pester: bool = commands.Option(
-                False, description="If the bot should be allowed to pester you to vote."
-            ),
+            pester: bool = False,
     ) -> None:
         """Adjust the pester status."""
         await ctx["author_document"].update_db({"$set": {"nopester": not pester}})
         await ctx.send("Settings updated.", ephemeral=True)
 
     @commands.command()
+    @describe(user="The user who will have their stats displayed.")
     async def votes(
             self,
             ctx: bots.CustomContext,
             *,
-            user: discord.Member = commands.Option(
-                description="The user who will have their stats displayed."
-            ),
+            user: discord.Member,
     ) -> None:
         """Shows you your voting stats."""
         await ctx.defer(ephemeral=True)
@@ -166,12 +179,8 @@ class TopGG(commands.Cog):
     def cog_unload(self) -> None:
         self.bot.loop.create_task(self.topggpy.close())
 
-    @commands.group()
+    @hybrid_group(fallback="link")
     async def topgg(self, ctx: bots.CustomContext) -> None:
-        pass
-
-    @topgg.command()
-    async def vote(self, ctx: bots.CustomContext) -> None:
         """Shows you where to vote for the bot on top.gg"""
         await ctx.send(get_top_gg_link(ctx.bot.user.id), ephemeral=True)
 
@@ -186,8 +195,8 @@ class TopGG(commands.Cog):
         )
 
 
-def setup(bot: bots.BOT_TYPES) -> None:
+async def setup(bot: bots.BOT_TYPES) -> None:
     if bot.config.get("PEPPERCORD_TOPGG") is not None:
-        bot.add_cog(TopGG(bot))
+        await bot.add_cog(TopGG(bot))
     if bot.config.get("PEPPERCORD_TOPGG_WH_SECRET") is not None:
-        bot.add_cog(TopGGWebhook(bot))
+        await bot.add_cog(TopGGWebhook(bot))

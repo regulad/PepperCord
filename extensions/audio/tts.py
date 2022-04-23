@@ -4,9 +4,23 @@ from typing import Optional
 
 import discord
 from aiohttp import ClientSession
-from asyncgTTS import ServiceAccount, AsyncGTTSSession, SynthesisInput, VoiceSelectionParams, TextSynthesizeRequestBody
-from discord.ext import commands, menus
-from discord.ext.commands import Context
+from asyncgTTS import (
+    ServiceAccount,
+    AsyncGTTSSession,
+    SynthesisInput,
+    VoiceSelectionParams,
+    TextSynthesizeRequestBody,
+)
+from discord.app_commands import describe
+from discord.ext.commands import (
+    Context,
+    hybrid_command,
+    Cog,
+    cooldown,
+    BucketType,
+    hybrid_group,
+)
+from discord.ext.menus import ListPageSource, ViewMenuPages
 
 from utils import bots
 from utils.checks import check_voice_client
@@ -25,7 +39,7 @@ class TTSSource(EnhancedSourceWrapper):
             volume=0.7,
             *,
             text: str,
-            invoker: discord.abc.User
+            invoker: discord.abc.User,
     ):
         super().__init__(source, volume, invoker=invoker)
 
@@ -57,11 +71,13 @@ class TTSSource(EnhancedSourceWrapper):
         return cls(source, text=text, invoker=invoker)
 
 
-class LanguageSource(menus.ListPageSource):
+class LanguageSource(ListPageSource):
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(title="Available Languages")
-        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        base_embed.set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
+        )
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value['name']}",
@@ -72,12 +88,10 @@ class LanguageSource(menus.ListPageSource):
         return base_embed
 
 
-class TextToSpeech(commands.Cog):
+class TextToSpeech(Cog):
     """Sends Text-To-Speech in the voice chat."""
 
-    def __init__(
-            self, bot: bots.BOT_TYPES, service_account: ServiceAccount
-    ) -> None:
+    def __init__(self, bot: bots.BOT_TYPES, service_account: ServiceAccount) -> None:
         self._async_gtts_session: AsyncGTTSSession | None = None
         self._service_account: ServiceAccount = service_account
         self.bot: bots.BOT_TYPES = bot
@@ -85,14 +99,13 @@ class TextToSpeech(commands.Cog):
     async def secure_sesion(self) -> None:
         if self._async_gtts_session is None:
             self._async_gtts_session = AsyncGTTSSession.from_service_account(
-                self._service_account,
-                client_session=ClientSession()
+                self._service_account, client_session=ClientSession()
             )
 
     async def cog_before_invoke(self, ctx: Context) -> None:
         await self.secure_sesion()
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_ready(self) -> None:
         await self.secure_sesion()
 
@@ -100,16 +113,15 @@ class TextToSpeech(commands.Cog):
         if self._async_gtts_session is not None:
             self.bot.loop.create_task(self._async_gtts_session.client_session.close())
 
-    @commands.command(aliases=["tts"])
-    @commands.cooldown(10, 2, commands.BucketType.user)
+    @hybrid_command(aliases=["tts"])
+    @cooldown(10, 2, BucketType.user)
+    @describe(text="The text that will be converted to speech.")
     @check_voice_client
     async def texttospeech(
             self,
             ctx: bots.CustomContext,
             *,
-            text: str = commands.Option(
-                description="The text that will be converted to speech."
-            ),
+            text: str,
     ) -> None:
         """Have the bot talk for you in a voice channel."""
         await ctx.defer(ephemeral=True)
@@ -128,20 +140,19 @@ class TextToSpeech(commands.Cog):
 
         await ctx.send("Added text.", ephemeral=True)
 
-    @commands.group()
+    @hybrid_group()
     async def ttssettings(self, ctx: bots.CustomContext) -> None:
         pass
 
     @ttssettings.command()
+    @describe(
+        desiredvoice="The voice that the bot will attempt to use when talking for you. See the command listvoices."
+    )
     async def setvoice(
             self,
             ctx: bots.CustomContext,
             *,
-            desiredvoice: Optional[str] = commands.Option(
-                "en-US-Wavenet-D",
-                description=
-                "The voice that the bot will attempt to use when talking for you. See the command listvoices.",
-            ),
+            desiredvoice: Optional[str] = "en-US-Wavenet-D",
     ) -> None:
         """Allows you to select a voice that the bot will use to portray you in Text-To-Speech conversations."""
         await ctx.defer(ephemeral=True)
@@ -163,21 +174,16 @@ class TextToSpeech(commands.Cog):
         """Lists all voices that the bot can use."""
         await ctx.defer(ephemeral=True)
         voices: list = await self._async_gtts_session.get_voices("en-US")
-        await menus.ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(
+        await ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(
             ctx, ephemeral=True
         )
 
 
-def setup(bot: bots.BOT_TYPES):
+async def setup(bot: bots.BOT_TYPES) -> None:
     if os.path.exists("config/SERVICE_ACCOUNT.JSON"):
         with open("config/SERVICE_ACCOUNT.JSON") as service_account_fp:
             service_account: ServiceAccount = ServiceAccount.from_service_account_dict(
                 load(service_account_fp)
             )
 
-        bot.add_cog(
-            TextToSpeech(
-                bot,
-                service_account
-            )
-        )
+        await bot.add_cog(TextToSpeech(bot, service_account))

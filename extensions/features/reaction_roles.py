@@ -1,8 +1,14 @@
-import typing
 from typing import Tuple
 
 import discord
+from discord.app_commands import describe
 from discord.ext import commands
+from discord.ext.commands import (
+    hybrid_group,
+    EmojiConverter,
+    BadArgument,
+    MessageConverter,
+)
 
 from utils import bots
 
@@ -74,7 +80,7 @@ class ReactionRoles(commands.Cog):
                                         ctx.guild.get_role(role_id)
                                     )
 
-    @commands.group()
+    @hybrid_group()
     async def reactionrole(self, ctx: bots.CustomContext) -> None:
         """
         Reaction Roles are a system that allow users to get a role by reacting to a message.
@@ -91,25 +97,28 @@ class ReactionRoles(commands.Cog):
             await ctx.send("Deleted all reaction roles.")
 
     @reactionrole.command()
+    @describe(
+        message="A reference to the message that will have a reaction role attached.",
+        emoji="The emoji that will trigger the reaction role.",
+        role="The role that will be given to the user.",
+    )
     async def add(
             self,
             ctx: bots.CustomContext,
-            message: typing.Union[
-                discord.Message, discord.PartialMessage
-            ] = commands.Option(
-                description="A URL to the message that will be reacted to."
-            ),
-            emoji: typing.Union[discord.Emoji, discord.PartialEmoji, str] = commands.Option(
-                description="The emoji that will be used. Send the emoji, do not just send it's name."
-            ),
-            role: discord.Role = commands.Option(
-                description="The role that will be given/taken."
-            ),
+            message: MessageConverter,
+            emoji: str,
+            role: discord.Role,
     ) -> None:
         """
         Adds a reaction role to a message.
         The message parameter must be a link to the message.
         """
+        try:
+            converter: EmojiConverter = EmojiConverter()
+            emoji: discord.Emoji = await converter.convert(ctx, emoji)
+        except BadArgument:
+            pass
+
         await message.add_reaction(emoji)
         await ctx["guild_document"].update_db(
             {
@@ -121,5 +130,5 @@ class ReactionRoles(commands.Cog):
         await ctx.send("Reaction role added.", ephemeral=True)
 
 
-def setup(bot: bots.BOT_TYPES) -> None:
-    bot.add_cog(ReactionRoles(bot))
+async def setup(bot: bots.BOT_TYPES) -> None:
+    await bot.add_cog(ReactionRoles(bot))

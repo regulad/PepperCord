@@ -14,7 +14,9 @@ class GuildsMenuList(menus.ListPageSource):
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
         base_embed = discord.Embed(title="Guilds")
-        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        base_embed.set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
+        )
         for iteration, value in enumerate(page_entries, start=offset):
             value: discord.Guild
 
@@ -70,9 +72,7 @@ class OwnerUtils(commands.Cog):
             self,
             ctx: bots.CustomContext,
             *,
-            nickname: Optional[str] = commands.Option(
-                description="The nickname the bot will take."
-            ),
+            nickname: Optional[str],
     ) -> None:
         """Sets the bots nickname in this guild to a desired string."""
         await ctx.guild.me.edit(nick=nickname)
@@ -84,9 +84,7 @@ class OwnerUtils(commands.Cog):
             self,
             ctx: bots.CustomContext,
             *,
-            shard_id: Optional[Union[discord.Guild, int]] = commands.Option(
-                description="The guild or shard ID to be investigated."
-            ),
+            shard_id: Optional[Union[discord.Guild, int]],
     ) -> None:
         """Get info on the bots current shard, if the bot is sharded."""
 
@@ -112,5 +110,5 @@ class OwnerUtils(commands.Cog):
         )
 
 
-def setup(bot: bots.BOT_TYPES):
-    bot.add_cog(OwnerUtils(bot))
+async def setup(bot: bots.BOT_TYPES) -> None:
+    await bot.add_cog(OwnerUtils(bot))

@@ -5,7 +5,9 @@ from typing import Optional, List
 import discord
 import mcstatus
 from aiohttp import ClientSession
+from discord.app_commands import describe
 from discord.ext import commands
+from discord.ext.commands import hybrid_command
 
 from utils.bots import BOT_TYPES, CustomContext
 
@@ -38,15 +40,13 @@ class Minecraft(commands.Cog):
     def cog_unload(self) -> None:
         self.bot.loop.create_task(self.aiohttp_cs.close())
 
-    @commands.command()
+    @hybrid_command()
+    @describe(server="The Minecraft: Java Edition server to query.")
     async def javaserver(
             self,
             ctx: CustomContext,
             *,
-            server: Optional[str] = commands.Option(
-                "smp.play.regulad.xyz",
-                description="The Minecraft: Java Edition server to query.",
-            ),
+            server: Optional[str] = "beeehive.regulad.xyz",
     ) -> None:
         """Get the status of a Minecraft: Java Edition server"""
         await ctx.defer(ephemeral=True)
@@ -133,15 +133,13 @@ class Minecraft(commands.Cog):
 
         await ctx.send(embed=embed, file=file, ephemeral=True)
 
-    @commands.command()
+    @hybrid_command()
+    @describe(server="The Minecraft: Bedrock Edition server to query.")
     async def bedrockserver(
             self,
             ctx: CustomContext,
             *,
-            server: Optional[str] = commands.Option(
-                "play.regulad.xyz",
-                description="The Minecraft: Bedrock Edition server to query.",
-            ),
+            server: Optional[str] = "play.regulad.xyz",
     ) -> None:
         """Gets the status of a Minecraft: Bedrock Edition server."""
         await ctx.defer(ephemeral=True)
@@ -172,5 +170,5 @@ class Minecraft(commands.Cog):
         await ctx.send(embed=embed, ephemeral=True)
 
 
-def setup(bot: BOT_TYPES):
-    bot.add_cog(Minecraft(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Minecraft(bot))

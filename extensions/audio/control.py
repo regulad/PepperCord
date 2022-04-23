@@ -1,5 +1,5 @@
 from discord import Embed, Message
-from discord.ext.commands import command, Cog
+from discord.ext.commands import hybrid_command, Cog
 from discord.ext.menus import ViewMenuPages, ListPageSource, ViewMenu
 
 from utils.bots import BOT_TYPES, CustomContext, EnhancedSource, CustomVoiceClient
@@ -13,7 +13,9 @@ COUNT: int = 11
 
 
 class QueueMenuSource(ListPageSource):
-    def __init__(self, entries: list[EnhancedSource], client: CustomVoiceClient, msg: str):
+    def __init__(
+            self, entries: list[EnhancedSource], client: CustomVoiceClient, msg: str
+    ):
         self.msg: str = msg
         self.client: CustomVoiceClient = client
         super().__init__(entries, per_page=10)
@@ -23,7 +25,9 @@ class QueueMenuSource(ListPageSource):
         base_embed = Embed(
             title=self.msg, description=f"{len(self.entries)} total tracks"
         )
-        base_embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        base_embed.set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
+        )
 
         if self.client.source is not None and self.client.source.duration is not None:
             time_until: float = self.client.source.duration - self.client.ms_read
@@ -50,7 +54,9 @@ class QueueMenuSource(ListPageSource):
 class AudioSourceMenu(ViewMenu):
     """An embed menu that makes displaying a source fancy."""
 
-    def __init__(self, source: EnhancedSource, client: CustomVoiceClient, **kwargs) -> None:
+    def __init__(
+            self, source: EnhancedSource, client: CustomVoiceClient, **kwargs
+    ) -> None:
         self.source: EnhancedSource = source
         self.client: CustomVoiceClient = client
 
@@ -60,7 +66,9 @@ class AudioSourceMenu(ViewMenu):
         if self.source is None:
             await ctx.send("There is no source.")
         else:
-            embed: Embed = Embed(title=self.source.name, description=self.source.description)
+            embed: Embed = Embed(
+                title=self.source.name, description=self.source.description
+            )
             if isinstance(self.source, YTDLSource):
                 info = self.source.info
 
@@ -80,11 +88,15 @@ class AudioSourceMenu(ViewMenu):
                 if self.client.source == self.source:
                     squares: list[str] = []
                     for i in range(1, COUNT + 1):
-                        squares.append(PROGRESS if (self.client.progress > (1 / COUNT) * i) else VOID)
+                        squares.append(
+                            PROGRESS
+                            if (self.client.progress > (1 / COUNT) * i)
+                            else VOID
+                        )
                     embed.add_field(
                         name="Left:",
                         value=f"{duration_to_str(int((self.source.duration - self.client.ms_read) / 1000))}\n"
-                              f"{''.join(squares)}"
+                              f"{''.join(squares)}",
                     )
             embed.add_field(name="Added by:", value=self.source.invoker.display_name)
             return await channel.send(embed=embed, **self._get_kwargs())
@@ -99,7 +111,7 @@ class Audio(Cog):
     async def cog_check(self, ctx: CustomContext) -> bool:
         return await check_voice_client_predicate(ctx)
 
-    @command(aliases=["q"])
+    @hybrid_command(aliases=["q"])
     async def queue(self, ctx: CustomContext) -> None:
         """Displays information the upcoming tracks."""
         maybe_source: EnhancedSource = ctx.voice_client.source
@@ -110,11 +122,13 @@ class Audio(Cog):
                 QueueMenuSource(
                     list(ctx.voice_client.queue.deque),
                     ctx.voice_client,
-                    "Tracks on queue (Loop is on):" if ctx.voice_client.should_loop else "Tracks on queue:"
+                    "Tracks on queue (Loop is on):"
+                    if ctx.voice_client.should_loop
+                    else "Tracks on queue:",
                 )
             ).start(ctx, ephemeral=False)
 
-    @command(aliases=["np"])
+    @hybrid_command(aliases=["np"])
     async def nowplaying(self, ctx: CustomContext) -> None:
         """Displays information for the currently playing track, including how much time is left."""
         maybe_source: EnhancedSource = ctx.voice_client.source
@@ -123,36 +137,39 @@ class Audio(Cog):
         else:
             await AudioSourceMenu(maybe_source, ctx.voice_client).start(ctx)
 
-    @command()
+    @hybrid_command()
     async def pause(self, ctx: CustomContext) -> None:
         """Pauses the audio player."""
         ctx.voice_client.pause()
         await ctx.send("Paused the audio player.", ephemeral=True)
 
-    @command()
+    @hybrid_command()
     async def resume(self, ctx: CustomContext) -> None:
         """Resumes the audio player."""
         ctx.voice_client.resume()
         await ctx.send("Resumed the audio player.", ephemeral=True)
 
-    @command(aliases=["s"])
+    @hybrid_command(aliases=["s"])
     async def skip(self, ctx: CustomContext) -> None:
         """Stops the currently playing track."""
         ctx.voice_client.stop()
         await ctx.send("Stopped the currently playing track.", ephemeral=True)
 
-    @command(aliases=["dc", "fuckoff"])
+    @hybrid_command(aliases=["dc", "fuckoff"])
     async def disconnect(self, ctx: CustomContext) -> None:
         """Disconnects the audio player."""
         await ctx.voice_client.disconnect(force=True)
         await ctx.send("Disconnected from the voice channel.", ephemeral=True)
 
-    @command(aliases=["l"])
+    @hybrid_command(aliases=["l"])
     async def loop(self, ctx: CustomContext) -> None:
         """Toggles loop."""
         ctx.voice_client.should_loop = not ctx.voice_client.should_loop
-        await ctx.send(f"Toggled loop {'on' if ctx.voice_client.should_loop else 'off'}.", ephemeral=True)
+        await ctx.send(
+            f"Toggled loop {'on' if ctx.voice_client.should_loop else 'off'}.",
+            ephemeral=True,
+        )
 
 
-def setup(bot: BOT_TYPES) -> None:
-    bot.add_cog(Audio(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Audio(bot))

@@ -36,15 +36,10 @@ def random_string(
     return "".join(
         random.choices(
             (
-                string.ascii_uppercase
-                if upper
-                else "" + string.digits
-                if numbers
-                else "" + string.ascii_lowercase
-                if lower
-                else "" + string.punctuation
-                if symbols
-                else ""
+                    (string.ascii_uppercase if upper else "")
+                    + (string.digits if numbers else "")
+                    + (string.ascii_lowercase if lower else "")
+                    + (string.punctuation if symbols else "")
             ),
             k=length,
         )

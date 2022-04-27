@@ -12,12 +12,14 @@ from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
 
 from utils import bots
+from utils.bots import CustomContext
 
 WHOIS_CM_NAME: str = "Get User Information"
 
 
 @context_menu(name=WHOIS_CM_NAME)
 async def whois_cm(interaction: Interaction, user: Member | User) -> None:
+    ctx: CustomContext = await CustomContext.from_interaction(interaction)
     embed = (
         discord.Embed(
             colour=user.colour,
@@ -43,7 +45,7 @@ async def whois_cm(interaction: Interaction, user: Member | User) -> None:
                 name="Server boosting since:",
                 value=f"<t:{user.premium_since.timestamp():.0f}:R>",
             )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await ctx.send(embed=embed, ephemeral=True)
 
 
 class DiscordInfo(commands.Cog):

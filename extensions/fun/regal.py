@@ -98,8 +98,6 @@ class Regal(Cog):
                 )
             except Forbidden:
                 continue
-            except Exception:
-                raise
         await ctx.send("Done!", ephemeral=True)
 
 

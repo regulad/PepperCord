@@ -138,7 +138,7 @@ class CustomVoiceClient(VoiceClient):
 
     @property
     def progress(self) -> Optional[float]:
-        """Returns an int 0-1 representing the distance through the track."""
+        """Returns a float 0-1 representing the distance through the track."""
         if self.source is None:
             return None
         elif self.source.duration is None:

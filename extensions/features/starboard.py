@@ -80,18 +80,16 @@ async def pin_cm(interaction: Interaction, message: Message) -> None:
         message: discord.Message = await send_star(
             ctx["guild_document"], message, ctx.bot
         )
-        await interaction.response.send_message(
+        await ctx.send(
             f"Your pinned message can now be found at {message.jump_url}",
             ephemeral=True,
         )
     except AlreadyPinned:
-        await interaction.response.send_message(
+        await ctx.send(
             "This message is already pinned to the starboard.", ephemeral=True
         )
     except bots.NotConfigured:
-        await interaction.response.send_message(
-            "This server has not configured the starboard.", ephemeral=True
-        )
+        await ctx.send("This server has not configured the starboard.", ephemeral=True)
 
 
 class Starboard(commands.Cog):
@@ -151,8 +149,6 @@ class Starboard(commands.Cog):
                 await send_star(ctx["guild_document"], ctx.message, self.bot)
             except bots.NotConfigured:
                 pass
-            except Exception:
-                raise
         else:
             return
 
@@ -186,7 +182,7 @@ class Starboard(commands.Cog):
 
         await ctx.send(embed=embed, ephemeral=True)
 
-    @hybrid_group(fallback="status", aliases=["sbconf"])
+    @starboard.group(fallback="status", aliases=["sbconf"])
     @commands.has_permissions(administrator=True)
     async def sbconfig(self, ctx: bots.CustomContext) -> None:
         """

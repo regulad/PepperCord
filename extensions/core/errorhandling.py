@@ -3,6 +3,7 @@ from typing import Optional, cast, Type
 
 import discord
 from asyncgTTS import LibraryException as TtsException
+from discord.app_commands import CommandInvokeError as AppCommandInvokeError
 from discord.ext import commands, menus
 from evb import LibraryException as EvbException
 
@@ -45,7 +46,10 @@ def find_error(error: Exception) -> Optional[str]:
 
 class ErrorMenu(menus.ViewMenu):
     def __init__(self, error: Exception, **kwargs):
-        if isinstance(error, commands.CommandInvokeError):
+        if isinstance(error, commands.HybridCommandError):
+            error = error.original
+
+        if isinstance(error, (commands.CommandInvokeError, AppCommandInvokeError)):
             error = error.original
 
         self.error = error

@@ -5,8 +5,8 @@ from typing import Optional, Any
 
 from aiohttp import ClientSession
 from discord import Embed, User, HTTPException
-from discord.app_commands import describe
-from discord.ext.commands import Cog, Context, hybrid_command
+from discord.app_commands import describe, rename
+from discord.ext.commands import Cog, Context, hybrid_group
 from discord.ext.menus import ListPageSource, ViewMenuPages
 from discord.ext.tasks import loop
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -226,35 +226,8 @@ class Redirector(Cog):
 
             await listening_user.send("An IP address has been grabbed!", embed=embed)
 
-    @hybrid_command()
-    @describe(link_id="The campaign ID to stop listening to.")
-    async def stopgrabbing(
-            self,
-            ctx: CustomContext,
-            link_id: str,
-    ) -> None:
-        """Stops listening to a campaign ID."""
-
-        await ctx.defer(ephemeral=True)
-
-        listening_document: Document = await get_listen_doc(
-            get_collection(self.bot), link_id
-        )
-
-        if listening_document.get("listening_user") is None:
-            await ctx.send("That campaign ID is not being listened to.", ephemeral=True)
-            return
-
-        if listening_document["listening_user"] != ctx.author.id:
-            await ctx.send("You are not listening to that campaign ID.", ephemeral=True)
-            return
-
-        await listening_document.delete_db()
-        await ctx.send(
-            "You are no longer listening to that campaign ID.", ephemeral=True
-        )
-
-    @hybrid_command(aliases=["register_listener", "make_campaign"])
+    @hybrid_group(aliases=["register_listener", "make_campaign", "r"], fallback="grab")
+    @rename(link_id="campaign_id")
     @describe(
         destination="The URL to redirect the victim to.",
         link_id="The campaign ID to register.",
@@ -302,7 +275,7 @@ class Redirector(Cog):
             ephemeral=True,
         )
 
-    @hybrid_command()
+    @ipgrab.command()
     async def all_campaigns(self, ctx: CustomContext) -> None:
         """Lists all the redirector campaigns you are listening to."""
 
@@ -319,7 +292,8 @@ class Redirector(Cog):
 
         await ViewMenuPages(source).start(ctx, ephemeral=True)
 
-    @hybrid_command()
+    @ipgrab.command()
+    @rename(link_id="campaign_id")
     @describe(link_id="The campaign ID to summarize.")
     async def summarize_campaign(
             self,
@@ -354,6 +328,35 @@ class Redirector(Cog):
         source: HitSource = HitSource(all_hits, link_id)
 
         await ViewMenuPages(source).start(ctx, ephemeral=True)
+
+    @ipgrab.command()
+    @describe(link_id="The campaign ID to stop listening to.")
+    @rename(link_id="campaign_id")
+    async def stopgrabbing(
+            self,
+            ctx: CustomContext,
+            link_id: str,
+    ) -> None:
+        """Stops listening to a campaign ID."""
+
+        await ctx.defer(ephemeral=True)
+
+        listening_document: Document = await get_listen_doc(
+            get_collection(self.bot), link_id
+        )
+
+        if listening_document.get("listening_user") is None:
+            await ctx.send("That campaign ID is not being listened to.", ephemeral=True)
+            return
+
+        if listening_document["listening_user"] != ctx.author.id:
+            await ctx.send("You are not listening to that campaign ID.", ephemeral=True)
+            return
+
+        await listening_document.delete_db()
+        await ctx.send(
+            "You are no longer listening to that campaign ID.", ephemeral=True
+        )
 
 
 async def setup(bot: BOT_TYPES) -> None:

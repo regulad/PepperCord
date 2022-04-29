@@ -3,7 +3,9 @@ from collections import deque
 from typing import Union, Type, MutableMapping
 
 import discord
+from discord import Member
 from discord.ext import commands
+from discord.user import BaseUser, User
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.database import Document
@@ -29,7 +31,7 @@ class CustomBotBase(commands.bot.BotBase):
         self._context_cache: deque[tuple[discord.Message, commands.Context]] = deque(
             maxlen=10
         )
-        self._user_doc_cache: deque[tuple[discord.abc.User, Document]] = deque(
+        self._user_doc_cache: deque[tuple[BaseUser | Member, Document]] = deque(
             maxlen=30
         )
         self._guild_doc_cache: deque[tuple[discord.Guild, Document]] = deque(maxlen=30)
@@ -87,7 +89,7 @@ class CustomBotBase(commands.bot.BotBase):
             self._guild_doc_cache.appendleft((model, document))
             return document
 
-    async def get_user_document(self, model: discord.abc.User) -> Document:
+    async def get_user_document(self, model: Member | BaseUser) -> Document:
         """Gets a user's document from the database."""
 
         for other, document in self._user_doc_cache:

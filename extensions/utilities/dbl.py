@@ -64,17 +64,20 @@ class TopGGWebhook(commands.Cog, name="Voting"):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
-        self.webhook_manager = WebhookManager(bot)
+        self.webhook_manager: WebhookManager | None = None
+
+    async def cog_load(self) -> None:
+        self.webhook_manager = WebhookManager(self.bot)
 
         self.webhook_manager.dbl_webhook(
-            bot.config.get("PEPPERCORD_TOPGG_WH_ROUTE", "/topgg"),
-            bot.config["PEPPERCORD_TOPGG_WH_SECRET"],
+            self.bot.config.get("PEPPERCORD_TOPGG_WH_ROUTE", "/topgg"),
+            self.bot.config["PEPPERCORD_TOPGG_WH_SECRET"],
         )
 
-        self.webhook_manager.run(int(bot.config.get("PEPPERCORD_TOPGG_WH", "5000")))
+        self.webhook_manager.run(int(self.bot.config.get("PEPPERCORD_TOPGG_WH", "5000")))
 
-    def cog_unload(self) -> None:
-        self.bot.loop.create_task(self.webhook_manager.close())
+    async def cog_unload(self) -> None:
+        await self.webhook_manager.close()
 
     @commands.Cog.listener()
     async def on_dbl_vote(self, data: BotVoteData) -> None:
@@ -165,19 +168,21 @@ class TopGG(commands.Cog):
 
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
+        self.topggpy: DBLClient | None = None
 
-        if isinstance(bot, bots.CustomAutoShardedBot):
+    async def cog_load(self) -> None:
+        if isinstance(self.bot, bots.CustomAutoShardedBot):
             self.topggpy = DBLClient(
-                bot,
-                bot.config["PEPPERCORD_TOPGG"],
+                self.bot,
+                self.bot.config["PEPPERCORD_TOPGG"],
                 autopost=True,
                 post_shard_count=True,
             )
         else:
-            self.topggpy = DBLClient(bot, bot.config["PEPPERCORD_TOPGG"], autopost=True)
+            self.topggpy = DBLClient(self.bot, self.bot.config["PEPPERCORD_TOPGG"], autopost=True)
 
-    def cog_unload(self) -> None:
-        self.bot.loop.create_task(self.topggpy.close())
+    async def cog_unload(self) -> None:
+        await self.topggpy.close()
 
     @hybrid_group(fallback="link")
     async def topgg(self, ctx: bots.CustomContext) -> None:

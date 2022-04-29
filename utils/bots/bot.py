@@ -51,18 +51,6 @@ class CustomBotBase(commands.bot.BotBase):
     def config(self) -> CONFIGURATION_PROVIDERS:
         return self._config
 
-    @property
-    def home_guild(self) -> discord.Guild:
-        return super().get_guild(
-            int(self.config.get("PEPPERCORD_HOME_GUILD", "730908012851757078"))
-        )
-
-    @property
-    def scratch_channel(self) -> discord.TextChannel:
-        return self.home_guild.get_channel(
-            int(self.config.get("PEPPERCORD_SCRATCH_CHANNEL", "933823355231031386"))
-        )
-
     async def get_command_document(self, command: commands.Command):
         """Gets a command's document from the database."""
 

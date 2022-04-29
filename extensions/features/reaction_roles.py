@@ -20,8 +20,8 @@ class ReactionRoles(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx: bots.CustomContext):
-        if not ctx.author.guild_permissions.admin:
-            raise commands.MissingPermissions(["admin"])
+        if not ctx.author.guild_permissions.administrator:
+            raise commands.MissingPermissions(["administrator"])
         else:
             return True
 

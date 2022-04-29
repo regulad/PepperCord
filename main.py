@@ -15,10 +15,10 @@ from discord import Object, Game
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-# from pretty_help import PrettyHelp
-from replutil import ReplKeepAlive, in_repl
+from pretty_help import PrettyHelp
 
 from utils import bots, misc
+from utils.help import BetterMenu
 
 default_log_level: int = logging.INFO
 
@@ -74,10 +74,10 @@ async def async_main() -> None:
     bot: bots.BOT_TYPES = bot_class(
         command_prefix=config_source.get("PEPPERCORD_PREFIX", "?"),
         case_insensitive=True,
-        #        help_command=PrettyHelp(
-        #            color=discord.Colour.orange(),
-        #            menu=help.BetterMenu(),
-        #        ),
+        help_command=PrettyHelp(
+            color=discord.Colour.orange(),
+            menu=BetterMenu(),
+        ),
         intents=discord.Intents.all(),
         database=db,
         config=os.environ,
@@ -129,15 +129,11 @@ async def async_main() -> None:
                 logging.info("Finished syncing guild commands.")
             elif bot.config.get("PEPPERCORD_SLASH_COMMANDS") is None:
                 await bot.tree.sync()
-                for guild in bot.guilds:
+                for guild in bot.guilds:  # THIS is the reason this cannot be a setup hook. It must be after the bot is ready, and the guilds are populated.
                     await bot.tree.sync(guild=guild)
                 logging.info("Synced global commands.")
 
-        if in_repl() and config_source.get("PEPPERCORD_UPTIMEROBOT") is not None:
-            with ReplKeepAlive(config_source["PEPPERCORD_UPTIMEROBOT"]):
-                await bot.start(config_source["PEPPERCORD_TOKEN"])
-        else:
-            await bot.start(config_source["PEPPERCORD_TOKEN"])
+        await bot.start(config_source["PEPPERCORD_TOKEN"])
 
 
 if __name__ == "__main__":

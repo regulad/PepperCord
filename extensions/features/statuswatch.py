@@ -1,6 +1,6 @@
 from typing import cast
 
-from discord import Member, Guild, User, HTTPException, Status, Interaction, AppCommandType
+from discord import Member, Guild, HTTPException, Status, Interaction, AppCommandType
 from discord.app_commands import describe, context_menu
 from discord.ext.commands import Cog, guild_only, hybrid_group, Greedy, Command
 from discord.utils import escape_markdown
@@ -66,18 +66,17 @@ class StatusWatch(Cog):
                     in [(int(scope.split("-")[0]), int(scope.split("-")[-1])) for scope in
                         document.get("watchers", [])]:
                 try:
-                    guild: Guild = self.bot.get_guild(guild_id) or await self.bot.fetch_guild(guild_id)
-                    user: User = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
+                    if guild_id == after.guild.id:
+                        guild: Guild = self.bot.get_guild(guild_id) or await self.bot.fetch_guild(guild_id)
 
-                    await user.send(
-                        f"Update from {escape_markdown(guild.name)}: "
-                        f"{after.mention}'s ({escape_markdown(after.display_name)}) status has changed to "
-                        f"`{str(after.status).title()}`{f' ({after_breakdown}' if after_breakdown else ''}\n"
-                        f"(from `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''})"
-                    )
+                        await (self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)).send(
+                            f"Update from {escape_markdown(guild.name)}: "
+                            f"{after.mention}'s ({escape_markdown(after.display_name)}) status has changed to "
+                            f"`{str(after.status).title()}`{f' ({after_breakdown}' if after_breakdown else ''}\n"
+                            f"(from `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''})"
+                        )
                 except HTTPException:
                     continue
-
 
     @hybrid_group(name="watch", aliases=("w", "sw"), fallback="start")
     @guild_only()

@@ -105,7 +105,9 @@ class OwnerUtils(commands.Cog):
     @commands.command()
     async def guilds(self, ctx: bots.CustomContext) -> None:
         """List all the guilds the bot is in."""
-        await menus.ViewMenuPages(GuildsMenuList(ctx.bot.guilds, per_page=10)).start(
+        await menus.ViewMenuPages(
+            GuildsMenuList(sorted(ctx.bot.guilds, key=lambda g: g.me.joined_at), per_page=10)
+        ).start(
             ctx, ephemeral=True
         )
 

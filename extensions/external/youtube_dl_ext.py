@@ -61,7 +61,8 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
     def assemble_downloader(self) -> None:
         self.ytdl = YoutubeDL(YTDL_FORMAT_OPTIONS)
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
+        await self.downloader.close()
         self.reassemble_downloader.cancel()
 
     @tasks.loop(hours=6)

@@ -44,9 +44,9 @@ class SpiceBot(commands.Cog):
                 spice_bot_webhook, spice_bot_user
             )
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         if self.client is not None:
-            self.bot.loop.create_task(self.client.close())
+            await self.client.close()
 
     @commands.command(aliases=["inspire"])
     async def quote(self, ctx: bots.CustomContext) -> None:

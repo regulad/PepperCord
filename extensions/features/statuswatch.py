@@ -18,7 +18,7 @@ def status_breakdown(desktop_status: Status, mobile_status: Status, web_status: 
     if mobile_status is not Status.offline:
         strings.append(f"Mobile: `{str(mobile_status).title()}`")
 
-    if desktop_status is not Status.offline:
+    if web_status is not Status.offline:
         strings.append(f"Web: `{str(web_status).title()}`")
 
     return ", ".join(strings) if strings else None
@@ -72,7 +72,7 @@ class StatusWatch(Cog):
                         await (self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)).send(
                             f"Update from {escape_markdown(guild.name)}: "
                             f"{after.mention}'s ({escape_markdown(after.display_name)}) status has changed to "
-                            f"`{str(after.status).title()}`{f' ({after_breakdown}' if after_breakdown else ''}\n"
+                            f"`{str(after.status).title()}`{f' ({after_breakdown})' if after_breakdown else ''}\n"
                             f"(from `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''})"
                         )
                 except HTTPException:

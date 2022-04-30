@@ -96,22 +96,15 @@ class TextToSpeech(Cog):
         self._service_account: ServiceAccount = service_account
         self.bot: bots.BOT_TYPES = bot
 
-    async def secure_sesion(self) -> None:
+    async def cog_load(self) -> None:
         if self._async_gtts_session is None:
             self._async_gtts_session = AsyncGTTSSession.from_service_account(
                 self._service_account, client_session=ClientSession()
             )
 
-    async def cog_before_invoke(self, ctx: Context) -> None:
-        await self.secure_sesion()
-
-    @Cog.listener()
-    async def on_ready(self) -> None:
-        await self.secure_sesion()
-
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         if self._async_gtts_session is not None:
-            self.bot.loop.create_task(self._async_gtts_session.client_session.close())
+            await self._async_gtts_session.client_session.close()
 
     @hybrid_command(aliases=["tts"])
     @cooldown(10, 2, BucketType.user)

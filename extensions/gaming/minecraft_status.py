@@ -37,8 +37,8 @@ class Minecraft(commands.Cog):
         self.bot: BOT_TYPES = bot
         self.aiohttp_cs: ClientSession = ClientSession()
 
-    def cog_unload(self) -> None:
-        self.bot.loop.create_task(self.aiohttp_cs.close())
+    async def cog_unload(self) -> None:
+        await self.aiohttp_cs.close()
 
     @hybrid_command()
     @describe(server="The Minecraft: Java Edition server to query.")

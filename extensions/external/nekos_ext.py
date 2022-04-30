@@ -103,6 +103,9 @@ class Nekos(commands.Cog):
         self.nekos_http_client = ClientSession()
         self.nekos_life_client = NekosLifeClient(session=self.nekos_http_client)
 
+    async def cog_unload(self) -> None:
+        await self.nekos_http_client.close()
+
     async def owo_filter(self, owoify: str) -> str:
         return "".join(
             [

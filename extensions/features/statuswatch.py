@@ -1,6 +1,8 @@
-from discord import Member, Guild, User, HTTPException, Status
-from discord.app_commands import describe
-from discord.ext.commands import Cog, guild_only, hybrid_group
+from typing import cast
+
+from discord import Member, Guild, User, HTTPException, Status, Interaction, AppCommandType
+from discord.app_commands import describe, context_menu
+from discord.ext.commands import Cog, guild_only, hybrid_group, Greedy, Command
 from discord.utils import escape_markdown
 
 from utils.bots import BOT_TYPES, CustomContext
@@ -22,11 +24,35 @@ def status_breakdown(desktop_status: Status, mobile_status: Status, web_status: 
     return ", ".join(strings) if strings else None
 
 
+WATCH_CM: str = "Watch Status"
+UNWATCH_CM: str = "Stop Watching Status"
+
+
+@context_menu(name=WATCH_CM)
+async def watch_cm_pred(interaction: Interaction, member: Member) -> None:
+    ctx: CustomContext = await CustomContext.from_interaction(interaction)
+    await ctx.invoke(cast(Command, cast(StatusWatch, ctx.bot.get_cog(StatusWatch.__name__)).statuswatch), member)
+
+
+@context_menu(name=UNWATCH_CM)
+async def unwatch_cm_pred(interaction: Interaction, member: Member) -> None:
+    ctx: CustomContext = await CustomContext.from_interaction(interaction)
+    await ctx.invoke(cast(Command, cast(StatusWatch, ctx.bot.get_cog(StatusWatch.__name__)).statuswatch_stop), member)
+
+
 class StatusWatch(Cog):
     """A set of tools that allows you to watch the status of another user and get notified when it changes."""
 
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
+
+    def cog_load(self) -> None:
+        self.bot.tree.add_command(watch_cm_pred)
+        self.bot.tree.add_command(unwatch_cm_pred)
+
+    def cog_unload(self) -> None:
+        self.bot.tree.remove_command(WATCH_CM, type=AppCommandType.user)
+        self.bot.tree.remove_command(UNWATCH_CM, type=AppCommandType.user)
 
     @Cog.listener()
     async def on_presence_update(self, before: Member, after: Member) -> None:
@@ -44,6 +70,7 @@ class StatusWatch(Cog):
                     user: User = self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)
 
                     await user.send(
+                        f"Update from {escape_markdown(guild.name)}: "
                         f"{after.mention}'s ({escape_markdown(after.display_name)}) status has changed to "
                         f"`{str(after.status).title()}`{f' ({after_breakdown}' if after_breakdown else ''}\n"
                         f"(from `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''})"
@@ -58,8 +85,20 @@ class StatusWatch(Cog):
     async def statuswatch(self, ctx: CustomContext, member: Member) -> None:
         """Watch a member's status. You'll receive updates in a DM."""
         document: Document = await ctx.bot.get_user_document(member)
-        await document.update_db({"$push": {"watchers": f"{ctx.guild.id}-{member.id}"}})
+        await document.update_db({"$push": {"watchers": f"{ctx.guild.id}-{ctx.author.id}"}})
         await ctx.send(f"{member.mention} is now being watched.", ephemeral=True)
+
+    @statuswatch.command(name="bulk")
+    @guild_only()
+    @describe(
+        members="The members to watch. This will be in the context of server this command is executed in.\n"
+                "This can be in any format, comma seperated."
+    )
+    async def statuswatch_bulk(self, ctx: CustomContext, members: Greedy[Member]) -> None:
+        """Watch a list of members' status. You'll receive updates in a DM."""
+        await ctx.send(f"Registering {len(members)}...", ephemeral=True)
+        for member in members:
+            await ctx.invoke(self.statuswatch, member=member)
 
     @statuswatch.command(name="stop")
     @guild_only()
@@ -67,7 +106,7 @@ class StatusWatch(Cog):
     async def statuswatch_stop(self, ctx: CustomContext, member: Member) -> None:
         """Stop watching a member's status."""
         document: Document = await ctx.bot.get_user_document(member)
-        await document.update_db({"$pull": {"watchers": f"{ctx.guild.id}-{member.id}"}})
+        await document.update_db({"$pull": {"watchers": f"{ctx.guild.id}-{ctx.author.id}"}})
         await ctx.send(f"{member.mention} is no longer being watched.", ephemeral=True)
 
 

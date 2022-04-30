@@ -137,8 +137,6 @@ class Redirector(Cog):
 
     @loop(seconds=60)
     async def check_for_redirections(self) -> None:
-        await self.get_client()
-
         async for raw_document in get_collection(self.bot).find({}):
             document: Document = Document(
                 raw_document,
@@ -179,16 +177,13 @@ class Redirector(Cog):
                             f"Failed to get redirections for {document['_id']}"
                         )
 
-    async def get_client(self) -> None:
+    async def cog_load(self) -> None:
         if self.client_session is None:
             self.client_session = ClientSession()
 
-    async def cog_before_invoke(self, ctx: Context) -> None:
-        await self.get_client()
-
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         if self.client_session is not None:
-            self.bot.loop.create_task(self.client_session.close())
+            await self.client_session.close()
         if self.check_for_redirections.is_running():
             self.check_for_redirections.stop()
 

@@ -4,6 +4,7 @@ from os.path import splitext
 import discord
 import evb
 from aiohttp import ClientSession
+from discord.app_commands import describe
 from discord.ext import commands
 from discord.ext.commands import hybrid_command
 from evb import AsyncEditVideoBotSession, StatsResponse

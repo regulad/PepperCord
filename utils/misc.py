@@ -1,9 +1,12 @@
 import os
+import random
+import string
+from datetime import timedelta, datetime
 from typing import Mapping
 
 
 def split_string_chunks(string: str, chunk_size: int = 2000) -> list[str]:
-    return [string[i:i + chunk_size] for i in range(0, len(string), chunk_size)]
+    return [string[i: i + chunk_size] for i in range(0, len(string), chunk_size)]
 
 
 def get_list_of_files_in_base(basedir: str) -> list[str]:
@@ -21,13 +24,34 @@ def get_list_of_files_in_base(basedir: str) -> list[str]:
     return all_files
 
 
+def random_string(
+        length: int = 6,
+        *,
+        upper: bool = True,
+        lower: bool = True,
+        numbers: bool = True,
+        symbols: bool = False
+) -> str:
+    """Get a random string of the specified length. Will error if all keyword parameters are set to False"""
+    return "".join(
+        random.choices(
+            (
+                    (string.ascii_uppercase if upper else "")
+                    + (string.digits if numbers else "")
+                    + (string.ascii_lowercase if lower else "")
+                    + (string.punctuation if symbols else "")
+            ),
+            k=length,
+        )
+    )
+
+
 def is_module(file_or_directory: str) -> bool:
     if os.path.isdir(file_or_directory):
         return "__init__.py" in os.listdir(file_or_directory)
     else:
-        return (
-                file_or_directory.endswith(".py")
-                and not ("__init__.py" in os.listdir(os.path.split(file_or_directory)[0]))
+        return file_or_directory.endswith(".py") and not (
+                "__init__.py" in os.listdir(os.path.split(file_or_directory)[0])
         )
 
 
@@ -67,10 +91,14 @@ class FrozenDict(Mapping):
         return self._hash
 
 
+UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()
+
 __all__: list[str] = [
     "split_string_chunks",
     "FrozenDict",
     "is_module",
     "get_list_of_files_in_base",
     "get_python_modules",
+    "random_string",
+    "UTC_OFFSET",
 ]

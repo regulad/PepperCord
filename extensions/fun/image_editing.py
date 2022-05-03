@@ -1,9 +1,12 @@
+from functools import partial
 from io import BytesIO
 from typing import Optional
 
 import discord
 from PIL import Image, ImageDraw, ImageFont
+from discord.app_commands import describe
 from discord.ext import commands
+from discord.ext.commands import hybrid_command
 
 from utils.bots import CustomContext, BOT_TYPES
 
@@ -33,27 +36,25 @@ class Images(commands.Cog):
     def __init__(self, bot: BOT_TYPES):
         self.bot: BOT_TYPES = bot
 
-    @commands.command()
+    @hybrid_command()
     @commands.cooldown(1, 40, commands.BucketType.channel)
+    @describe(channel="The channel that will have it's pins displayed. ")
     async def pinsleft(
             self,
             ctx: CustomContext,
             *,
-            channel: Optional[discord.TextChannel] = commands.Option(
-                description="The channel that will have it's pins displayed. "
-            ),
+            channel: Optional[discord.TextChannel],
     ) -> None:
         """Shows how many pins are left in a channel in a wonderfully flashy way."""
-        channel = channel or ctx.channel
+        channel: discord.TextChannel = channel or ctx.channel
         await ctx.defer()
 
         pins_left = 50 - len(await channel.pins())
-        buffer = await ctx.bot.loop.run_in_executor(
-            None, lambda: pins_left_executor(pins_left)
-        )
-        file = discord.File(buffer, "majora.png")
-        await ctx.send(file=file)
+        with await ctx.bot.loop.run_in_executor(
+                None, partial(pins_left_executor, pins_left)
+        ) as buffer:
+            await ctx.send(file=discord.File(buffer, "pinsleft.png"))
 
 
-def setup(bot: BOT_TYPES):
-    bot.add_cog(Images(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Images(bot))

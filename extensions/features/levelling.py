@@ -5,7 +5,10 @@ import random
 from typing import Union, Optional
 
 import discord
+from discord import Interaction, Member, AppCommandType
+from discord.app_commands import describe, context_menu
 from discord.ext import commands, menus
+from discord.ext.commands import hybrid_group, hybrid_command
 
 from utils import checks, database
 from utils.bots import CustomContext, BOT_TYPES
@@ -87,9 +90,12 @@ class LevelSource(menus.ListPageSource):
 
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
-        base_embed = discord.Embed(
-            title=f"{self.guild.name}'s Leaderboard"
-        ).set_thumbnail(url=self.guild.icon.url)
+        base_embed = discord.Embed(title=f"{self.guild.name}'s Leaderboard")
+        if self.guild.icon is not None:
+            base_embed.set_thumbnail(url=self.guild.icon.url)
+        base_embed.set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
+        )
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {value.user.display_name}",
@@ -130,6 +136,21 @@ class UserLevelMenu(menus.Menu):
             return await channel.send(embed=embed, **self._get_kwargs())
 
 
+RANK_CM_NAME: str = "Get Rank"
+
+
+@context_menu(name=RANK_CM_NAME)
+async def rank_cm(interaction: Interaction, user: Member) -> None:
+    """Displays a user's current rank."""
+
+    ctx: CustomContext = await CustomContext.from_interaction(interaction)
+    user_level: Optional[UserLevel] = await UserLevel.get_user(interaction.client, user)
+    if user_level is None:
+        await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
+    else:
+        await UserLevelMenu(user_level).start(ctx, ephemeral=True)
+
+
 class Levels(commands.Cog):
     """Each member can "level up" and raise their point on the server's leaderboard."""
 
@@ -138,6 +159,12 @@ class Levels(commands.Cog):
         self.cooldown: commands.CooldownMapping = (
             commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.user)
         )
+
+    async def cog_load(self) -> None:
+        self.bot.tree.add_command(rank_cm)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(RANK_CM_NAME, type=AppCommandType.user)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -175,7 +202,7 @@ class Levels(commands.Cog):
 
             await UserLevelMenu(user_level, True).start(ctx, channel=channel)
 
-    @commands.group()
+    @hybrid_group()
     async def levelsettings(self, ctx: CustomContext) -> None:
         pass
 
@@ -183,14 +210,13 @@ class Levels(commands.Cog):
         name="redirect",
         usage="[Channel]",
     )
-    @commands.has_permissions(admin=True)
+    @commands.has_permissions(administrator=True)
+    @describe(channel="The channel all level-up notofications will be redirected to.")
     async def redirect(
             self,
             ctx: CustomContext,
             *,
-            channel: discord.TextChannel = commands.Option(
-                description="The channel all level-up notofications will be redirected to."
-            ),
+            channel: discord.TextChannel,
     ) -> None:
         """
         Sets the channel level-up alerts will go to.
@@ -202,7 +228,7 @@ class Levels(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @levelsettings.command()
-    @commands.has_permissions(admin=True)
+    @commands.has_permissions(administrator=True)
     async def disablexp(
             self, ctx: CustomContext, *, enabled: Optional[bool] = False
     ) -> None:
@@ -212,7 +238,7 @@ class Levels(commands.Cog):
         )
         await ctx.send("Settings updated.", ephemeral=True)
 
-    @commands.command()
+    @hybrid_command()
     async def rank(self, ctx: CustomContext, *, user: Optional[discord.Member]) -> None:
         """Displays your current rank."""
         await ctx.defer(ephemeral=True)
@@ -224,7 +250,7 @@ class Levels(commands.Cog):
         else:
             await UserLevelMenu(user_level).start(ctx, ephemeral=True)
 
-    @commands.command()
+    @hybrid_command()
     async def leaderboard(self, ctx: CustomContext) -> None:
         """Displays the level of all members of the server relative to each other."""
         await ctx.defer()
@@ -244,5 +270,5 @@ class Levels(commands.Cog):
         await menus.ViewMenuPages(source=source).start(ctx)
 
 
-def setup(bot: BOT_TYPES):
-    bot.add_cog(Levels(bot))
+async def setup(bot: BOT_TYPES) -> None:
+    await bot.add_cog(Levels(bot))

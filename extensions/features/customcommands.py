@@ -3,7 +3,9 @@ from enum import Enum
 from typing import Optional, List, cast
 
 import discord
+from discord.app_commands import describe
 from discord.ext import commands, menus
+from discord.ext.commands import hybrid_group
 
 from utils import bots
 from utils.attachments import find_url_recurse
@@ -85,8 +87,9 @@ class CustomCommandSource(menus.ListPageSource):
 
     async def format_page(self, menu, page_entries):
         offset = menu.current_page * self.per_page
-        base_embed = discord.Embed(
-            title=f"{self.guild.name}'s Custom Commands"
+        base_embed = discord.Embed(title=f"{self.guild.name}'s Custom Commands")
+        base_embed.set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
         )
         if self.guild.icon is not None:
             base_embed.set_thumbnail(url=self.guild.icon.url)
@@ -254,12 +257,8 @@ class CustomCommands(commands.Cog):
                 else:
                     ctx.bot.dispatch("custom_command_success", custom_command, ctx)
 
-    @commands.group(aliases=["cc"])
+    @hybrid_group(aliases=["cc"], fallback="list")
     async def customcommands(self, ctx: bots.CustomContext) -> None:
-        pass
-
-    @customcommands.command()
-    async def cclist(self, ctx: bots.CustomContext) -> None:
         """Lists all custom commands currently on the server."""
         commands_dict = ctx["guild_document"].get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
@@ -268,7 +267,7 @@ class CustomCommands(commands.Cog):
         await pages.start(ctx)
 
     @customcommands.command()
-    @commands.has_permissions(admin=True)
+    @commands.has_permissions(administrator=True)
     async def find(
             self, ctx: bots.CustomContext, *, query: CustomCommandConverter
     ) -> None:
@@ -279,8 +278,8 @@ class CustomCommands(commands.Cog):
             ephemeral=True,
         )
 
-    @customcommands.group()
-    @commands.has_permissions(admin=True)
+    @customcommands.group(aliases=["m"], invoke_without_command=True)
+    @commands.has_permissions(administrator=True)
     async def match(self, ctx: bots.CustomContext) -> None:
         pass
 
@@ -319,16 +318,17 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @customcommands.command()
-    @commands.has_permissions(admin=True)
+    @commands.has_permissions(administrator=True)
+    @describe(
+        command="The command that must be sent.",
+        message="The message that the bot will respond with. Defaults to the most recently sent image.",
+    )
     async def add(
             self,
             ctx: bots.CustomContext,
-            command: str = commands.Option(description="The command that must be sent."),
+            command: str,
             *,
-            message: Optional[str] = commands.Option(
-                None,
-                description="The message that the bot will respond with. Defaults to the most recently sent image.",
-            ),
+            message: Optional[str] = None,
     ) -> None:
         """
         Adds a custom command to the guild.
@@ -350,12 +350,13 @@ class CustomCommands(commands.Cog):
         await ctx.send("Custom command added.", ephemeral=True)
 
     @customcommands.command()
-    @commands.has_permissions(admin=True)
+    @commands.has_permissions(administrator=True)
+    @describe(command="The command to be removed.")
     async def delete(
             self,
             ctx: bots.CustomContext,
             *,
-            command: str = commands.Option(description="The command to be removed."),
+            command: str,
     ) -> None:
         """Deletes a custom command from the guild."""
         if (
@@ -370,5 +371,5 @@ class CustomCommands(commands.Cog):
             raise commands.CommandNotFound(f"{command} is not registered.")
 
 
-def setup(bot: bots.BOT_TYPES):
-    bot.add_cog(CustomCommands(bot))
+async def setup(bot: bots.BOT_TYPES) -> None:
+    await bot.add_cog(CustomCommands(bot))

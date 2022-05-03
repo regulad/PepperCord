@@ -23,16 +23,25 @@ class OfficeImage(Enum):
 
     @classmethod
     def of(cls, game_state: GameState) -> Optional["OfficeImage"]:
-        if game_state.power_left <= 0 and game_state.room_of(Animatronic.FREDDY) is Room.CAM_4_B:
+        if (
+                game_state.power_left <= 0
+                and game_state.room_of(Animatronic.FREDDY) is Room.CAM_4_B
+        ):
             return cls.FREDDY
         elif game_state.power_left <= 0:
             return cls.POWER_OUT
-        elif game_state.animatronics_in(Room.LEFT_DOOR) and game_state.light_state.left_light_on:
+        elif (
+                game_state.animatronics_in(Room.LEFT_DOOR)
+                and game_state.light_state.left_light_on
+        ):
             return cls.BONNIE_AT_DOOR
         elif game_state.light_state.left_light_on:
             return cls.LEFT_HALL_LIGHT
-        elif game_state.animatronics_in(Room.RIGHT_DOOR) and game_state.light_state.right_light_on:
-            return cls.BONNIE_AT_DOOR
+        elif (
+                game_state.animatronics_in(Room.RIGHT_DOOR)
+                and game_state.light_state.right_light_on
+        ):
+            return cls.CHICA_AT_DOOR
         elif game_state.light_state.right_light_on:
             return cls.RIGHT_HALL_LIGHT
         else:
@@ -41,12 +50,9 @@ class OfficeImage(Enum):
     @property
     def offset(self) -> Literal[-1, 1, 0]:
         match self:
-            case OfficeImage.BONNIE_AT_DOOR \
-                 | OfficeImage.LEFT_HALL_LIGHT \
-                 | OfficeImage.FREDDY:
+            case OfficeImage.BONNIE_AT_DOOR | OfficeImage.LEFT_HALL_LIGHT | OfficeImage.FREDDY:
                 return -1
-            case OfficeImage.RIGHT_HALL_LIGHT \
-                 | OfficeImage.CHICA_AT_DOOR:
+            case OfficeImage.RIGHT_HALL_LIGHT | OfficeImage.CHICA_AT_DOOR:
                 return 1
             case _:
                 return 0
@@ -101,13 +107,21 @@ class CameraImage(Enum):
         animatronics: list[Animatronic] = game_state.animatronics_in(room)
         match room:
             case Room.CAM_1_A:
-                if Animatronic.FREDDY in animatronics \
-                        and Animatronic.BONNIE in animatronics \
-                        and Animatronic.CHICA in animatronics:
+                if (
+                        Animatronic.FREDDY in animatronics
+                        and Animatronic.BONNIE in animatronics
+                        and Animatronic.CHICA in animatronics
+                ):
                     return cls.STAGE_ALL
-                elif Animatronic.FREDDY in animatronics and Animatronic.CHICA in animatronics:
+                elif (
+                        Animatronic.FREDDY in animatronics
+                        and Animatronic.CHICA in animatronics
+                ):
                     return cls.STAGE_CHICA_FREDDY
-                elif Animatronic.FREDDY in animatronics and Animatronic.BONNIE in animatronics:
+                elif (
+                        Animatronic.FREDDY in animatronics
+                        and Animatronic.BONNIE in animatronics
+                ):
                     return cls.STAGE_BONNIE_FREDDY
                 elif Animatronic.FREDDY in animatronics:
                     return cls.STAGE_FREDDY
@@ -207,9 +221,7 @@ def canvas(color: float | tuple[float, float, float, float] | str = "grey") -> I
 
 
 def font(size: int = 72) -> ImageFont:
-    return ImageFont.truetype(
-        "resources/images/fnaf/five-nights-at-freddys.ttf", size
-    )
+    return ImageFont.truetype("resources/images/fnaf/five-nights-at-freddys.ttf", size)
 
 
 def fits(image: ImageType) -> bool:
@@ -237,8 +249,12 @@ def resize_until(image: ImageType) -> ImageType:
 
 
 def camera(game_state: GameState) -> Optional[ImageType]:
-    camera_image: Optional[CameraImage] = CameraImage.of(game_state, game_state.camera_state.looking_at)
-    maybe_file_name: Optional[str] = camera_image.get_png() if camera_image is not None else None
+    camera_image: Optional[CameraImage] = CameraImage.of(
+        game_state, game_state.camera_state.looking_at
+    )
+    maybe_file_name: Optional[str] = (
+        camera_image.get_png() if camera_image is not None else None
+    )
     if maybe_file_name is not None:
         image: ImageType = Image.open(maybe_file_name)
         if not fits(image):
@@ -248,14 +264,23 @@ def camera(game_state: GameState) -> Optional[ImageType]:
         width_buffer: int = int((width - MAX_WIDTH) / 2)
         height_buffer: int = int((height - MAX_HEIGHT) / 2)
         offset: int = random.randint(-300, 300)
-        return image.crop((width_buffer + offset, height_buffer, width - width_buffer + offset, height - height_buffer))
+        return image.crop(
+            (
+                width_buffer + offset,
+                height_buffer,
+                width - width_buffer + offset,
+                height - height_buffer,
+            )
+        )
     else:
         return None
 
 
 def office(game_state: GameState) -> Optional[ImageType]:
     office_image: Optional[OfficeImage] = OfficeImage.of(game_state)
-    maybe_file_name: Optional[str] = office_image.filename if office_image is not None else None
+    maybe_file_name: Optional[str] = (
+        office_image.filename if office_image is not None else None
+    )
     if maybe_file_name is not None:
         image: ImageType = Image.open(maybe_file_name)
         if not fits(image):
@@ -265,20 +290,31 @@ def office(game_state: GameState) -> Optional[ImageType]:
         width_buffer: int = int((width - MAX_WIDTH) / 2)
         height_buffer: int = int((height - MAX_HEIGHT) / 2)
         offset: int = int(office_image.offset * (width / 4))
-        return image.crop((width_buffer + offset, height_buffer, width - width_buffer + offset, height - height_buffer))
+        return image.crop(
+            (
+                width_buffer + offset,
+                height_buffer,
+                width - width_buffer + offset,
+                height - height_buffer,
+            )
+        )
     else:
         return None
 
 
 def base_map(odd: bool = False) -> ImageType:
-    return Image.open(f"resources/images/fnaf/map/{'Cam_Map' if odd else 'Cam_Map2'}.png")
+    return Image.open(
+        f"resources/images/fnaf/map/{'Cam_Map' if odd else 'Cam_Map2'}.png"
+    )
 
 
 def static() -> ImageType:
     opened_image: ImageType = Image.open("resources/images/fnaf/static2.png")
     left_offset: int = random.randint(0, 1000)
     top_offset: int = random.randint(0, 1000)
-    return opened_image.crop((left_offset, top_offset, MAX_WIDTH + left_offset, MAX_HEIGHT + top_offset))
+    return opened_image.crop(
+        (left_offset, top_offset, MAX_WIDTH + left_offset, MAX_HEIGHT + top_offset)
+    )
 
 
 def camera_xy(room: Room) -> tuple[int, int, int, int]:
@@ -313,7 +349,9 @@ def camera_xy(room: Room) -> tuple[int, int, int, int]:
 def render(game_state: GameState) -> ImageType:
     power_on: bool = game_state.power_left > 0
     even_frame: bool = game_state.game_time.millis % 2 == 0
-    drawing_canvas: ImageType = canvas(color=(52, 52, 52, 255) if not power_on else (75, 75, 75, 255))
+    drawing_canvas: ImageType = canvas(
+        color=(52, 52, 52, 255) if not power_on else (75, 75, 75, 255)
+    )
     image_draw: ImageDrawType = ImageDraw.Draw(drawing_canvas)
     # Background processing (static)
     can_draw_summary: bool = True
@@ -365,20 +403,26 @@ def render(game_state: GameState) -> ImageType:
                 anchor="ld",
             )
         # Outline
-        image_draw.rectangle((7, 7, MAX_WIDTH - 8, MAX_HEIGHT - 8), outline="white", width=4)
+        image_draw.rectangle(
+            (7, 7, MAX_WIDTH - 8, MAX_HEIGHT - 8), outline="white", width=4
+        )
         # Recording dot (random chance)
         if game_state.camera_state.camera_up and even_frame:
-            image_draw.ellipse((MAX_WIDTH / 20, 50, (MAX_WIDTH / 20) + 70, 120), fill="red")
+            image_draw.ellipse(
+                (MAX_WIDTH / 20, 50, (MAX_WIDTH / 20) + 70, 120), fill="red"
+            )
     else:
         office_image: Optional[Image] = office(game_state)
         if office_image is not None:
             drawing_canvas.paste(office_image)
             can_draw_summary = False
-            if game_state.door_state.left_door_closed or game_state.door_state.right_door_closed:
+            if (
+                    game_state.door_state.left_door_closed
+                    or game_state.door_state.right_door_closed
+            ):
                 doors_closed: list[str] = [
                     door_name.title()
-                    for door_name
-                    in [
+                    for door_name in [
                         "Left" if game_state.door_state.left_door_closed else None,
                         "Right" if game_state.door_state.right_door_closed else None,
                     ]
@@ -390,7 +434,7 @@ def render(game_state: GameState) -> ImageType:
                     stroke_fill="#FFFFFF",
                     font=font(90),
                     anchor="ma",
-                    align="center"
+                    align="center",
                 )
     # Start HUD (time and power)
     if power_on:
@@ -401,7 +445,7 @@ def render(game_state: GameState) -> ImageType:
                 stroke_fill="#FFFFFF",
                 font=font(90),
                 anchor="ma",
-                align="center"
+                align="center",
             )
         # Time
         image_draw.text(
@@ -410,7 +454,7 @@ def render(game_state: GameState) -> ImageType:
             stroke_fill="#FFFFFF",
             font=font(98),
             anchor="ra",
-            align="right"
+            align="right",
         )
         # Night text
         image_draw.text(
@@ -419,7 +463,7 @@ def render(game_state: GameState) -> ImageType:
             stroke_fill="#FFFFFF",
             font=font(48),
             anchor="ra",
-            align="right"
+            align="right",
         )
         # Power left
         image_draw.text(
@@ -448,7 +492,7 @@ def render(game_state: GameState) -> ImageType:
             image_draw.rectangle(
                 (105 + (i * 30), MAX_HEIGHT - 65, 105 + 25 + (i * 30), MAX_HEIGHT - 25),
                 fill="green" if (i < 3) else ("yellow" if (i < 4) else "red"),
-                width=3
+                width=3,
             )
     return drawing_canvas.resize((OUTPUT_WIDTH, OUTPUT_HEIGHT))
 

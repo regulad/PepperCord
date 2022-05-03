@@ -17,6 +17,7 @@ MAX_STEP: int = int(MAX_TIME / 6)
 
 class DisplayTime(Enum):
     """Represents a time displayed to the player."""
+
     TWELVE_AM = 0
     ONE_AM = 1
     TWO_AM = 2
@@ -123,6 +124,7 @@ class GameTime:
 
 class Animatronic(Enum):
     """Represents an animatronic."""
+
     FREDDY = auto()
     BONNIE = auto()
     CHICA = auto()
@@ -187,6 +189,7 @@ class Animatronic(Enum):
 
 class Room(Enum):
     """Represents a camera on the map, or implicit place where an animatronic could be."""
+
     CAM_1_A = auto()
     CAM_1_B = auto()
     CAM_1_C = auto()
@@ -206,7 +209,9 @@ class Room(Enum):
     FOXY_2 = auto()
     FOXY_3 = auto()
     # After this, he will dash down the hall.
-    FOXY_SAFE = auto()  # Represents where foxy is placed after he bangs on the office door
+    FOXY_SAFE = (
+        auto()
+    )  # Represents where foxy is placed after he bangs on the office door
 
     @classmethod
     def rooms(cls) -> ValuesView["Room"]:
@@ -218,26 +223,24 @@ class Room(Enum):
 
     def possible(self, animatronic: Animatronic) -> bool:
         match self:
-            case Room.CAM_1_A \
-                 | Room.CAM_1_B:
+            case Room.CAM_1_A | Room.CAM_1_B:
                 return animatronic is not Animatronic.FOXY
             case Room.CAM_1_C:
                 return animatronic is Animatronic.FOXY
             case Room.CAM_2_A:
-                return animatronic is Animatronic.FOXY or animatronic is Animatronic.BONNIE
+                return (
+                        animatronic is Animatronic.FOXY or animatronic is Animatronic.BONNIE
+                )
 
-            case Room.CAM_6 \
-                 | Room.CAM_4_B \
-                 | Room.CAM_4_A \
-                 | Room.CAM_7:
-                return animatronic is Animatronic.FREDDY or animatronic is Animatronic.CHICA
+            case Room.CAM_6 | Room.CAM_4_B | Room.CAM_4_A | Room.CAM_7:
+                return (
+                        animatronic is Animatronic.FREDDY
+                        or animatronic is Animatronic.CHICA
+                )
 
             # Below has had logic implemented
 
-            case Room.CAM_2_B \
-                 | Room.CAM_3 \
-                 | Room.CAM_5 \
-                 | Room.LEFT_DOOR:
+            case Room.CAM_2_B | Room.CAM_3 | Room.CAM_5 | Room.LEFT_DOOR:
                 return animatronic is Animatronic.BONNIE
 
             case Room.RIGHT_DOOR:
@@ -246,20 +249,20 @@ class Room(Enum):
             case Room.OFFICE:
                 return True
 
-            case Room.FOXY_3 \
-                 | Room.FOXY_2 \
-                 | Room.FOXY_1 \
-                 | Room.FOXY_SAFE:
+            case Room.FOXY_3 | Room.FOXY_2 | Room.FOXY_1 | Room.FOXY_SAFE:
                 return animatronic is Animatronic.FOXY
 
-    def can_move(self, other: "Room", animatronic: Animatronic, door_state: DoorState) -> bool:
+    def can_move(
+            self, other: "Room", animatronic: Animatronic, door_state: DoorState
+    ) -> bool:
         accessible: bool = self.is_immediately_accessible(other, animatronic)
         if not accessible:
             return False
         match animatronic:
-            case Animatronic.FREDDY \
-                 | Animatronic.CHICA:
-                return not door_state.right_door_closed if other is Room.OFFICE else True
+            case Animatronic.FREDDY | Animatronic.CHICA:
+                return (
+                    not door_state.right_door_closed if other is Room.OFFICE else True
+                )
             case Animatronic.BONNIE:
                 return not door_state.left_door_closed if other is Room.OFFICE else True
             case Animatronic.FOXY:
@@ -273,7 +276,9 @@ class Room(Enum):
             case _:
                 return True
 
-    def is_immediately_accessible(self, other: "Room", animatronic: Animatronic) -> bool:
+    def is_immediately_accessible(
+            self, other: "Room", animatronic: Animatronic
+    ) -> bool:
         if not self.possible(animatronic):
             raise RuntimeError("Bad room for this animatronic.")
         match other:
@@ -292,7 +297,9 @@ class Room(Enum):
             case Room.LEFT_DOOR:
                 return self is Room.CAM_2_A or self is Room.CAM_2_B
             case Room.CAM_2_B:
-                return self is Room.LEFT_DOOR or self is Room.CAM_2_A or self is Room.CAM_3
+                return (
+                        self is Room.LEFT_DOOR or self is Room.CAM_2_A or self is Room.CAM_3
+                )
             case Room.CAM_3:
                 return self is Room.CAM_5 or self is Room.CAM_2_A
             case Room.CAM_5:
@@ -312,17 +319,21 @@ class Room(Enum):
             case Room.FOXY_1:
                 return self is Room.CAM_1_C
             case Room.CAM_2_A:
-                return self is Room.CAM_3 or self is Room.LEFT_DOOR or self is Room.FOXY_3
+                return (
+                        self is Room.CAM_3 or self is Room.LEFT_DOOR or self is Room.FOXY_3
+                )
             case Room.CAM_1_C:
                 return self is Room.FOXY_SAFE
             case Room.FOXY_SAFE:
                 return self is Room.CAM_2_A
             case Room.CAM_1_B:
-                return self is Room.CAM_1_A \
-                       or self is Room.CAM_5 \
-                       or self is Room.LEFT_DOOR \
-                       or self is Room.RIGHT_DOOR \
-                       or self is Room.CAM_6  # Maybe?
+                return (
+                        self is Room.CAM_1_A
+                        or self is Room.CAM_5
+                        or self is Room.LEFT_DOOR
+                        or self is Room.RIGHT_DOOR
+                        or self is Room.CAM_6
+                )  # Maybe?
             case Room.CAM_1_A:
                 return False  # Animatronics can only move from the stage, not to it.
             case _:
@@ -337,7 +348,11 @@ class Room(Enum):
         if camera_state is not None:
             if camera_state.camera_up and animatronic is Animatronic.FOXY:
                 return self
-            elif camera_state.camera_up and animatronic is Animatronic.FREDDY and camera_state.looking_at is self:
+            elif (
+                    camera_state.camera_up
+                    and animatronic is Animatronic.FREDDY
+                    and camera_state.looking_at is self
+            ):
                 return self
         all_rooms_copy: list[Room] = list(self.possible_rooms(animatronic))
         random.shuffle(all_rooms_copy)
@@ -354,17 +369,7 @@ class Room(Enum):
     @property
     def has_camera(self) -> bool:
         match self:
-            case Room.CAM_6 \
-                 | Room.CAM_5 \
-                 | Room.CAM_4_B \
-                 | Room.CAM_4_A \
-                 | Room.CAM_3 \
-                 | Room.CAM_2_B \
-                 | Room.CAM_2_A \
-                 | Room.CAM_1_C \
-                 | Room.CAM_1_A \
-                 | Room.CAM_1_B \
-                 | Room.CAM_7:
+            case Room.CAM_6 | Room.CAM_5 | Room.CAM_4_B | Room.CAM_4_A | Room.CAM_3 | Room.CAM_2_B | Room.CAM_2_A | Room.CAM_1_C | Room.CAM_1_A | Room.CAM_1_B | Room.CAM_7:
                 return True
             case _:
                 return False
@@ -414,16 +419,11 @@ class Room(Enum):
         match self:
             case Room.CAM_1_A:
                 return "🎤"
-            case Room.CAM_4_A \
-                 | Room.CAM_2_B \
-                 | Room.CAM_2_A \
-                 | Room.CAM_4_B:
+            case Room.CAM_4_A | Room.CAM_2_B | Room.CAM_2_A | Room.CAM_4_B:
                 return "🚪"
-            case Room.CAM_3 \
-                 | Room.CAM_5:
+            case Room.CAM_3 | Room.CAM_5:
                 return "🧹"
-            case Room.CAM_1_B \
-                 | Room.CAM_6:
+            case Room.CAM_1_B | Room.CAM_6:
                 return "🍕"
             case Room.CAM_1_C:
                 return "🪝"
@@ -448,16 +448,10 @@ class CameraState:
         return cls()
 
     def change_camera(self, camera: Room):
-        return self.__class__(
-            camera,
-            self.camera_up
-        )
+        return self.__class__(camera, self.camera_up)
 
     def change_position(self, camera_up: bool = False):
-        return self.__class__(
-            self.looking_at,
-            camera_up
-        )
+        return self.__class__(self.looking_at, camera_up)
 
     @property
     def camera_up(self) -> bool:
@@ -472,12 +466,14 @@ class AnimatronicDifficulty:
     def __init__(
             self,
             night: int = 7,
-            diffs: Mapping[Animatronic, int] = misc.FrozenDict({
-                Animatronic.FOXY: Animatronic.FOXY.default_diff,
-                Animatronic.BONNIE: Animatronic.BONNIE.default_diff,
-                Animatronic.FREDDY: Animatronic.FREDDY.default_diff,
-                Animatronic.CHICA: Animatronic.CHICA.default_diff
-            }),
+            diffs: Mapping[Animatronic, int] = misc.FrozenDict(
+                {
+                    Animatronic.FOXY: Animatronic.FOXY.default_diff,
+                    Animatronic.BONNIE: Animatronic.BONNIE.default_diff,
+                    Animatronic.FREDDY: Animatronic.FREDDY.default_diff,
+                    Animatronic.CHICA: Animatronic.CHICA.default_diff,
+                }
+            ),
             use_hour_offset: bool = True,
     ) -> None:
         self._night: int = night
@@ -556,12 +552,14 @@ class LightState:
 class GameState:
     def __init__(
             self,
-            animatronic_positions: Mapping[Animatronic, Room] = misc.FrozenDict({
-                Animatronic.FOXY: Room.CAM_1_C,
-                Animatronic.BONNIE: Room.CAM_1_A,
-                Animatronic.FREDDY: Room.CAM_1_A,
-                Animatronic.CHICA: Room.CAM_1_A
-            }),
+            animatronic_positions: Mapping[Animatronic, Room] = misc.FrozenDict(
+                {
+                    Animatronic.FOXY: Room.CAM_1_C,
+                    Animatronic.BONNIE: Room.CAM_1_A,
+                    Animatronic.FREDDY: Room.CAM_1_A,
+                    Animatronic.CHICA: Room.CAM_1_A,
+                }
+            ),
             door_state: DoorState = DoorState.empty(),
             light_state: LightState = LightState.empty(),
             camera_state: CameraState = CameraState.empty(),
@@ -603,14 +601,20 @@ class GameState:
             # Cameras
             room: Room = self.camera_state.looking_at
             if room is Room.CAM_1_C:
-                if self.animatronics_in(Room.FOXY_1) \
-                        or self.animatronics_in(Room.FOXY_2) \
-                        or self.animatronics_in(Room.FOXY_3):
-                    content = self._build_summary(f"{Animatronic.FOXY.friendly_name} is here.", content)
+                if (
+                        self.animatronics_in(Room.FOXY_1)
+                        or self.animatronics_in(Room.FOXY_2)
+                        or self.animatronics_in(Room.FOXY_3)
+                ):
+                    content = self._build_summary(
+                        f"{Animatronic.FOXY.friendly_name} is here.", content
+                    )
             elif room is Room.CAM_6:
                 content = self._build_summary(f"-CAMERA DISABLED-\nTEXT ONLY")
             for animatronic in self.animatronics_in(room):
-                content = self._build_summary(f"{animatronic.friendly_name} is here.", content)
+                content = self._build_summary(
+                    f"{animatronic.friendly_name} is here.", content
+                )
         else:
             # Office
             if self.door_state.left_door_closed:
@@ -652,15 +656,19 @@ class GameState:
 
     @property
     def lost(self) -> bool:
-        return (not self.camera_state.camera_up or Animatronic.FOXY in self.animatronics_in(Room.OFFICE)) \
-               and (Room.OFFICE in self.animatronic_positions.values())
+        return (
+                       not self.camera_state.camera_up
+                       or Animatronic.FOXY in self.animatronics_in(Room.OFFICE)
+               ) and (Room.OFFICE in self.animatronic_positions.values())
 
     @property
     def done(self) -> bool:
         return self.won or self.lost
 
     @classmethod
-    def initialize(cls, difficulty: Optional[AnimatronicDifficulty] = None) -> "GameState":
+    def initialize(
+            cls, difficulty: Optional[AnimatronicDifficulty] = None
+    ) -> "GameState":
         return cls(difficulty=difficulty) if difficulty is not None else cls.empty()
 
     @property
@@ -710,17 +718,12 @@ class GameState:
             self.camera_state,
             self.difficulty,
             self.power_left - self.usage,
-            self.game_time
+            self.game_time,
         )
 
     def full_tick(self) -> "GameState":
         if not self.done:
-            return (
-                self
-                    .tick_power()
-                    .move_animatronics()
-                    .tick_time()
-            )
+            return self.tick_power().move_animatronics().tick_time()
         else:
             return self
 
@@ -734,7 +737,9 @@ class GameState:
         return self.__class__(
             self.animatronic_positions,
             door_state or self.door_state,
-            light_state or (LightState.empty() if camera_state is not None else None) or self.light_state,
+            light_state
+            or (LightState.empty() if camera_state is not None else None)
+            or self.light_state,
             camera_state or self.camera_state,
             self.difficulty,
             self.power_left,
@@ -756,12 +761,19 @@ class GameState:
         mutable_pos: dict[Animatronic, Room] = dict(self.animatronic_positions)
 
         if self.power_left <= 0:
-            mutable_pos[Animatronic.FREDDY] = mutable_pos[Animatronic.FREDDY] \
-                .get_room(Animatronic.FREDDY, DoorState.empty(), CameraState.empty())
+            mutable_pos[Animatronic.FREDDY] = mutable_pos[Animatronic.FREDDY].get_room(
+                Animatronic.FREDDY, DoorState.empty(), CameraState.empty()
+            )
         else:
             for animatronic, room in self.animatronic_positions.items():
-                if AnimatronicDifficulty.roll(self.difficulty.fixed_or_calc(animatronic, self.game_time.display_time)):
-                    mutable_pos[animatronic] = room.get_room(animatronic, self.door_state, self.camera_state)
+                if AnimatronicDifficulty.roll(
+                        self.difficulty.fixed_or_calc(
+                            animatronic, self.game_time.display_time
+                        )
+                ):
+                    mutable_pos[animatronic] = room.get_room(
+                        animatronic, self.door_state, self.camera_state
+                    )
 
         return self.__class__(
             misc.FrozenDict(mutable_pos),
@@ -770,7 +782,7 @@ class GameState:
             self.camera_state,
             self.difficulty,
             self.power_left,
-            self.game_time
+            self.game_time,
         )
 
 
@@ -785,5 +797,5 @@ __all__: list[str] = [
     "LightState",
     "GameState",
     "MAX_STEP",
-    "MAX_TIME"
+    "MAX_TIME",
 ]

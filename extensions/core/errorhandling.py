@@ -3,6 +3,7 @@ from typing import Optional, cast, Type
 
 import discord
 from asyncgTTS import LibraryException as TtsException
+from discord.app_commands import CommandInvokeError as AppCommandInvokeError
 from discord.ext import commands, menus
 from evb import LibraryException as EvbException
 
@@ -28,7 +29,7 @@ known_errors: dict[Type, str] = {
     TtsException: "Something went wrong while trying to use text_to_speech.",
     checks.Blacklisted: "You have been blacklisted from using this bot.",
     attachments.MediaTooLong: "You can't download media this long.",
-    attachments.MediaTooLarge: "This media is too large to be uploaded to discord."
+    attachments.MediaTooLarge: "This media is too large to be uploaded to discord.",
 }
 
 
@@ -45,7 +46,10 @@ def find_error(error: Exception) -> Optional[str]:
 
 class ErrorMenu(menus.ViewMenu):
     def __init__(self, error: Exception, **kwargs):
-        if isinstance(error, commands.CommandInvokeError):
+        if isinstance(error, commands.HybridCommandError):
+            error = error.original
+
+        if isinstance(error, (commands.CommandInvokeError, AppCommandInvokeError)):
             error = error.original
 
         self.error = error
@@ -114,13 +118,14 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_completion")
     async def affirm_working(self, ctx: bots.CustomContext) -> None:
-        if isinstance(ctx.message, discord.Message):
+        if ctx.interaction is None:
             await ctx.message.add_reaction("✅")
 
     @commands.Cog.listener("on_command_error")
-    async def soft_affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
-        if isinstance(ctx.message, discord.Message) \
-                and not isinstance(error, (commands.DisabledCommand, commands.CommandNotFound)):
+    async def soft_affirm_error(
+            self, ctx: bots.CustomContext, error: Exception
+    ) -> None:
+        if ctx.interaction is None:
             await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener("on_command_error")
@@ -171,6 +176,6 @@ class ErrorHandling(commands.Cog):
             await ctx.bot.on_error("on_critical_error", error)  # Expects a traceback
 
 
-def setup(bot: bots.BOT_TYPES):
-    bot.add_cog(ErrorHandling(bot))
-    bot.add_cog(ErrorLogging(bot))
+async def setup(bot: bots.BOT_TYPES) -> None:
+    await bot.add_cog(ErrorHandling(bot))
+    await bot.add_cog(ErrorLogging(bot))

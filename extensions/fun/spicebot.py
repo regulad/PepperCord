@@ -19,34 +19,34 @@ class SpiceBot(commands.Cog):
         self.bot: bots.BOT_TYPES = bot
         self.client: Optional[aiohttp.ClientSession] = None
 
-    async def secure_client(self) -> None:
-        if self.client is None:
-            self.client = aiohttp.ClientSession()
-
-    def cog_unload(self) -> None:
-        if self.client is not None:
-            self.bot.loop.create_task(self.client.close())
-
-    @commands.Cog.listener()
-    async def on_ready(self) -> None:
-        await self.secure_client()
+    async def cog_load(self) -> None:
+        self.client = aiohttp.ClientSession()
 
     async def cog_before_invoke(self, ctx: bots.CustomContext) -> None:
-        await self.secure_client()
         if ctx.interaction is not None:
-            raise commands.CommandError("SpiceBot commands can only be run as a message command.")
-        else:
-            spice_bot_user: discord.abc.User = \
-                ctx.guild.get_member(SPICE_BOT_ID) \
-                or await ctx.bot.fetch_user(SPICE_BOT_ID)
-            spice_bot_webhook: discord.Webhook = await webhook.get_or_create_namespaced_webhook(
-                "spicebot",
-                ctx.bot,
-                ctx.channel,
-                avatar=await spice_bot_user.avatar.read(),
-                name=spice_bot_user.display_name,
+            raise commands.CommandError(
+                "SpiceBot commands can only be run as a message command."
             )
-            ctx.send_handler = webhook.ImpersonateSendHandler(spice_bot_webhook, spice_bot_user)
+        else:
+            spice_bot_user: discord.abc.User = ctx.guild.get_member(
+                SPICE_BOT_ID
+            ) or await ctx.bot.fetch_user(SPICE_BOT_ID)
+            spice_bot_webhook: discord.Webhook = (
+                await webhook.get_or_create_namespaced_webhook(
+                    "spicebot",
+                    ctx.bot,
+                    ctx.channel,
+                    avatar=await spice_bot_user.avatar.read(),
+                    name=spice_bot_user.display_name,
+                )
+            )
+            ctx.send_handler = webhook.ImpersonateSendHandler(
+                spice_bot_webhook, spice_bot_user
+            )
+
+    async def cog_unload(self) -> None:
+        if self.client is not None:
+            await self.client.close()
 
     @commands.command(aliases=["inspire"])
     async def quote(self, ctx: bots.CustomContext) -> None:
@@ -96,5 +96,5 @@ class SpiceBot(commands.Cog):
         )
 
 
-def setup(bot: bots.BOT_TYPES) -> None:
-    bot.add_cog(SpiceBot(bot))
+async def setup(bot: bots.BOT_TYPES) -> None:
+    await bot.add_cog(SpiceBot(bot))

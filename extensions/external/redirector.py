@@ -6,7 +6,7 @@ from typing import Optional, Any
 from aiohttp import ClientSession
 from discord import Embed, User, HTTPException
 from discord.app_commands import describe, rename
-from discord.ext.commands import Cog, Context, hybrid_group
+from discord.ext.commands import Cog, hybrid_group
 from discord.ext.menus import ListPageSource, ViewMenuPages
 from discord.ext.tasks import loop
 from motor.motor_asyncio import AsyncIOMotorCollection

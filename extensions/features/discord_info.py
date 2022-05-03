@@ -4,12 +4,12 @@ from sys import version
 from typing import Union, Optional
 
 import discord
-import git
 import psutil
 from discord import Guild, Interaction, Member, User, AppCommandType
 from discord.app_commands import describe, context_menu
 from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
+from git import Repo
 
 from utils import bots
 from utils.bots import CustomContext
@@ -46,6 +46,9 @@ async def whois_cm(interaction: Interaction, user: Member | User) -> None:
                 value=f"<t:{user.premium_since.timestamp():.0f}:R>",
             )
     await ctx.send(embed=embed, ephemeral=True)
+
+
+GIT_REPO: Repo = Repo()
 
 
 class DiscordInfo(commands.Cog):
@@ -213,14 +216,13 @@ class DiscordInfo(commands.Cog):
                           f"{psutil.cpu_count(logical=False)} physical cores",
                 )
             )
-            repo: git.Repo = git.Repo()
-            if repo.active_branch is not None:
+            if GIT_REPO.active_branch is not None:
                 embed.add_field(
                     name="Versions:",
                     value=f"OS: {platform.system()} (`{platform.release()}`)"
                           f"\nPython: `{version}`"
                           f"\ndiscord.py: `{discord.__version__}`"
-                          f"\nBot Version: `{repo.active_branch.name}` (`{repo.active_branch.commit}`)",
+                          f"\nBot Version: `{GIT_REPO.active_branch.name}` (`{GIT_REPO.active_branch.commit}`)",
                     inline=False,
                 )
         except psutil.Error:

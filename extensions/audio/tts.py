@@ -13,7 +13,6 @@ from asyncgTTS import (
 )
 from discord.app_commands import describe
 from discord.ext.commands import (
-    Context,
     hybrid_command,
     Cog,
     cooldown,

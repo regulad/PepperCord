@@ -3,10 +3,10 @@ from os.path import splitext
 
 import discord
 import evb
-from discord.app_commands import describe
+from aiohttp import ClientSession
 from discord.ext import commands
 from discord.ext.commands import hybrid_command
-from evb import AsyncEditVideoBotSession
+from evb import AsyncEditVideoBotSession, StatsResponse
 
 from utils.attachments import find_url_recurse
 from utils.bots import CustomContext, BOT_TYPES
@@ -16,7 +16,7 @@ class EditVideoBot(commands.Cog):
     """Commands for editing media using the EditVideoBot API."""
 
     def __init__(self, bot: BOT_TYPES):
-        self.bot = bot
+        self.bot: BOT_TYPES = bot
 
         self.evb_session: AsyncEditVideoBotSession = (
             AsyncEditVideoBotSession.from_api_key(self.bot.config.get("PEPPERCORD_EVB"))
@@ -26,8 +26,11 @@ class EditVideoBot(commands.Cog):
             30, 86400, commands.BucketType.default
         )
 
+        self.client_session: ClientSession | None = None
+
     async def cog_load(self) -> None:
-        await self.evb_session.open()
+        self.client_session = ClientSession()
+        await self.evb_session.open(client_session=self.client_session)
 
     async def cog_unload(self) -> None:
         await self.evb_session.close()
@@ -77,7 +80,7 @@ class EditVideoBot(commands.Cog):
         """Shows the number of remaining EditVideoBot edits."""
         await ctx.defer(ephemeral=True)
 
-        stats = await self.evb_session.stats()
+        stats: StatsResponse = await self.evb_session.stats()
 
         await ctx.send(stats.remaining_daily_requests, ephemeral=True)
 

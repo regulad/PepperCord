@@ -5,7 +5,7 @@ from typing import Union, Type, MutableMapping
 import discord
 from discord import Member
 from discord.ext import commands
-from discord.user import BaseUser, User
+from discord.user import BaseUser
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.database import Document

@@ -64,7 +64,6 @@ class GameStateHolder:
     def __init__(
             self,
             message: discord.Message,
-            scratch_channel: discord.TextChannel,
             bot: bots.BOT_TYPES,
             view: Optional[discord.ui.View] = None,
             game_state: GameState = GameState.initialize(),
@@ -78,7 +77,6 @@ class GameStateHolder:
         self._message: discord.Message = message
         self._bot: bots.BOT_TYPES = bot
         self._invoker: Optional[discord.abc.User] = invoker
-        self._scratch_channel: discord.TextChannel = scratch_channel
         self._game_state: GameState = game_state
         self._initial_fazpoints: int = initial_fazpoints
         self.loop: AbstractEventLoop = loop or get_event_loop()
@@ -295,7 +293,7 @@ class CameraSelectionView(discord.ui.View):
 
     @discord.ui.button(emoji="⏬", label="Exit", style=discord.ButtonStyle.grey)
     async def on_exit(
-            self, button: discord.ui.Button, interaction: discord.Interaction
+            self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         self._game_state_holder.game_state = self._game_state_holder.game_state.process_input_changes(
             camera_state=self._game_state_holder.game_state.camera_state.change_position(
@@ -303,6 +301,7 @@ class CameraSelectionView(discord.ui.View):
             )
         )
         await self._game_state_holder.on_update(interaction)
+        await interaction.response.defer()
         self.stop()
 
 
@@ -389,7 +388,6 @@ class FiveNightsAtFreddys(commands.Cog):
         )
         holder: GameStateHolder = GameStateHolder(
             response_message,
-            ctx.bot.scratch_channel,
             ctx.bot,
             initial_fazpoints=initial_state.fazpoints,
             invoker=ctx.author,

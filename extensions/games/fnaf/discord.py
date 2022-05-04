@@ -9,7 +9,7 @@ from PIL.Image import Image as ImageType
 from discord import Interaction
 from discord.app_commands import describe
 from discord.ext import commands, tasks, menus
-from discord.ext.commands import hybrid_group
+from discord.ext.commands import hybrid_group, guild_only
 from discord.ui import Button
 
 from utils import bots, misc
@@ -423,6 +423,7 @@ class FiveNightsAtFreddys(commands.Cog):
         await ctx.send(embed=embed)
 
     @fnaf.command()
+    @guild_only()
     async def fpleaderboard(self, ctx: bots.CustomContext) -> None:
         """Displays the fazpoints all members of the server relative to each other."""
         await ctx.defer()

@@ -2,8 +2,9 @@ import copy
 from typing import List, Optional, Dict, Union
 
 import discord
+from discord.app_commands import guild_only as ac_guild_only, default_permissions
 from discord.ext import commands
-from discord.ext.commands import hybrid_group
+from discord.ext.commands import hybrid_group, guild_only, has_permissions
 
 from extensions.features.moderation import get_any_id
 from utils.bots import CustomContext, BOT_TYPES
@@ -22,9 +23,12 @@ class ShuffleNicks(commands.Cog):
         description="Shuffles usernames around between people. Do it again to reverse.",
         fallback="shuffle",
     )
+    @ac_guild_only()
+    @guild_only()
     @commands.cooldown(1, 3600, commands.BucketType.guild)
     @commands.bot_has_permissions(manage_nicknames=True)
     @commands.has_permissions(manage_nicknames=True)
+    @default_permissions(manage_nicknames=True)
     async def shufflenicks(self, ctx: CustomContext) -> None:
         """
         Shuffles nicknames between people on your server.
@@ -105,6 +109,9 @@ class ShuffleNicks(commands.Cog):
     @shufflenicks.command("reset")
     @commands.cooldown(1, 3600, commands.BucketType.guild)
     @commands.bot_has_permissions(manage_nicknames=True)
+    @has_permissions(manage_nicknames=True)
+    @default_permissions(manage_nicknames=True)
+    @guild_only()
     async def resetnicks(self, ctx: CustomContext) -> None:
         """Reset nicknames of all people who had their nicknames changed."""
         await ctx.defer(ephemeral=True)

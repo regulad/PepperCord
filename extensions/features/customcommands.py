@@ -4,8 +4,9 @@ from typing import Optional, List, cast
 
 import discord
 from discord.app_commands import describe
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, menus
-from discord.ext.commands import hybrid_group
+from discord.ext.commands import hybrid_group, guild_only
 
 from utils import bots
 from utils.attachments import find_url_recurse
@@ -32,7 +33,7 @@ class Keyword(Enum):
             await ctx.message.delete()
         elif self is self.__class__.MUTE_MEMBER:
             await ctx.author.edit(
-                timeout_until=datetime.datetime.now() + datetime.timedelta(days=1)
+                timed_out_until=datetime.datetime.now() + datetime.timedelta(days=1)
             )
         elif self is self.__class__.KICK_MEMBER:
             await ctx.author.kick()
@@ -202,26 +203,24 @@ class CustomCommands(commands.Cog):
             3, 10, commands.BucketType.channel
         )
 
-    """
     @commands.Cog.listener()
     async def on_custom_command_success(
-        self, custom_command: CustomCommand, ctx: bots.CustomContext
+            self, custom_command: CustomCommand, ctx: bots.CustomContext
     ) -> None:
         if custom_command.keyword is None:
             await ctx.message.add_reaction("✅")
 
     @commands.Cog.listener()
     async def on_custom_command_error(
-        self,
-        custom_command: CustomCommand,
-        ctx: bots.CustomContext,
-        reason: BaseException,
+            self,
+            custom_command: CustomCommand,
+            ctx: bots.CustomContext,
+            reason: BaseException,
     ):
         if isinstance(reason, commands.CommandOnCooldown):
             await ctx.message.add_reaction("⏰")
         else:
             await ctx.message.add_reaction("❌")
-    """
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -258,6 +257,8 @@ class CustomCommands(commands.Cog):
                     ctx.bot.dispatch("custom_command_success", custom_command, ctx)
 
     @hybrid_group(aliases=["cc"], fallback="list")
+    @ac_guild_only()
+    @guild_only()
     async def customcommands(self, ctx: bots.CustomContext) -> None:
         """Lists all custom commands currently on the server."""
         commands_dict = ctx["guild_document"].get("commands", {})
@@ -268,6 +269,7 @@ class CustomCommands(commands.Cog):
 
     @customcommands.command()
     @commands.has_permissions(administrator=True)
+    @guild_only()
     async def find(
             self, ctx: bots.CustomContext, *, query: CustomCommandConverter
     ) -> None:
@@ -280,10 +282,12 @@ class CustomCommands(commands.Cog):
 
     @customcommands.group(aliases=["m"], invoke_without_command=True)
     @commands.has_permissions(administrator=True)
+    @guild_only()
     async def match(self, ctx: bots.CustomContext) -> None:
         pass
 
     @match.command()
+    @guild_only()
     async def case(
             self, ctx: bots.CustomContext, *, is_case_sensitive: bool = False
     ) -> None:
@@ -294,6 +298,7 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @match.command()
+    @guild_only()
     async def firstword(self, ctx: bots.CustomContext, *, first_word_only: bool = True):
         """Configures if only the first word of a message should be checked for a custom command."""
         await ctx["guild_document"].update_db(
@@ -302,6 +307,7 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @match.command()
+    @guild_only()
     async def startswith(
             self, ctx: bots.CustomContext, *, must_start_with: bool = True
     ):
@@ -323,6 +329,7 @@ class CustomCommands(commands.Cog):
         command="The command that must be sent.",
         message="The message that the bot will respond with. Defaults to the most recently sent image.",
     )
+    @guild_only()
     async def add(
             self,
             ctx: bots.CustomContext,
@@ -352,6 +359,7 @@ class CustomCommands(commands.Cog):
     @customcommands.command()
     @commands.has_permissions(administrator=True)
     @describe(command="The command to be removed.")
+    @guild_only()
     async def delete(
             self,
             ctx: bots.CustomContext,

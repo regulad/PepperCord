@@ -7,6 +7,7 @@ import discord
 import psutil
 from discord import Guild, Interaction, Member, User, AppCommandType
 from discord.app_commands import describe, context_menu
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
 from git import Repo
@@ -70,7 +71,7 @@ class DiscordInfo(commands.Cog):
 
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:
-        watching_string = f"with {len(self.bot.users)} {'user' if len(self.bot.users) == 1 else 'users'} in {len(self.bot.guilds)} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
+        watching_string = f"with {len(self.bot.users):n} {'user' if len(self.bot.users) == 1 else 'users'} in {len(self.bot.guilds):n} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
         await self.bot.change_presence(activity=discord.Game(name=watching_string))
 
     @activity_update.before_loop
@@ -142,6 +143,7 @@ class DiscordInfo(commands.Cog):
 
     @hybrid_command()
     @commands.guild_only()
+    @ac_guild_only()
     async def serverinfo(
             self,
             ctx: bots.CustomContext,

@@ -3,13 +3,14 @@ from json import dump
 from typing import Optional
 
 from discord import Embed, File
-from discord.app_commands import describe
+from discord.app_commands import describe, default_permissions
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import (
     Cog,
     cooldown,
     has_permissions,
     BucketType,
-    hybrid_command,
+    hybrid_command, guild_only, bot_has_permissions,
 )
 from discord.ext.menus import ListPageSource, ViewMenuPages
 
@@ -47,6 +48,10 @@ class WordAnalysis(Cog):
     @hybrid_command()
     @cooldown(1, 2400, type=BucketType.guild)
     @has_permissions(manage_messages=True)
+    @bot_has_permissions(manage_messages=True)
+    @default_permissions(manage_messages=True)
+    @guild_only()
+    @ac_guild_only()
     @describe(
         should_dump="Dump the word analysis to a file.",
         length="The length of the word to find. Leave empty for any length.",
@@ -86,10 +91,10 @@ class WordAnalysis(Cog):
         await ViewMenuPages(source).start(ctx)
 
         if should_dump:
-            with StringIO() as f:
-                dump(quantity, f, indent=4)
-                f.seek(0)
-                await ctx.send(file=File(f, "wordanal.json"))
+            with StringIO() as fp:
+                dump(quantity, fp, indent=4)
+                fp.seek(0)
+                await ctx.send(file=File(fp, "wordanal.json"))
 
 
 async def setup(bot: BOT_TYPES) -> None:

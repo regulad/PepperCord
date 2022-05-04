@@ -12,12 +12,13 @@ from asyncgTTS import (
     TextSynthesizeRequestBody,
 )
 from discord.app_commands import describe
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import (
     hybrid_command,
     Cog,
     cooldown,
     BucketType,
-    hybrid_group,
+    hybrid_group, guild_only,
 )
 from discord.ext.menus import ListPageSource, ViewMenuPages
 
@@ -108,6 +109,8 @@ class TextToSpeech(Cog):
     @hybrid_command(aliases=["tts"])
     @cooldown(10, 2, BucketType.user)
     @describe(text="The text that will be converted to speech.")
+    @guild_only()
+    @ac_guild_only()
     @check_voice_client
     async def texttospeech(
             self,
@@ -133,6 +136,8 @@ class TextToSpeech(Cog):
         await ctx.send("Added text.", ephemeral=True)
 
     @hybrid_group()
+    @guild_only()
+    @ac_guild_only()
     async def ttssettings(self, ctx: bots.CustomContext) -> None:
         pass
 
@@ -140,6 +145,7 @@ class TextToSpeech(Cog):
     @describe(
         desiredvoice="The voice that the bot will attempt to use when talking for you. See the command listvoices."
     )
+    @guild_only()
     async def setvoice(
             self,
             ctx: bots.CustomContext,
@@ -162,6 +168,7 @@ class TextToSpeech(Cog):
         await ctx.send("Updated.", ephemeral=True)
 
     @ttssettings.command()
+    @guild_only()
     async def listvoices(self, ctx: bots.CustomContext) -> None:
         """Lists all voices that the bot can use."""
         await ctx.defer(ephemeral=True)

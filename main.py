@@ -3,6 +3,7 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 """
 
+import locale
 import logging
 import os
 import traceback
@@ -20,7 +21,9 @@ from pretty_help import PrettyHelp
 from utils import bots, misc
 from utils.help import BetterMenu
 
-default_log_level: int = logging.INFO
+DEFUALT_LOG_LEVEL: int = logging.INFO
+
+locale.setlocale(locale.LC_ALL, "")
 
 
 async def async_main() -> None:
@@ -34,7 +37,7 @@ async def async_main() -> None:
     debug: bool = config_source.get("PEPPERCORD_DEBUG") is not None
 
     logging.basicConfig(
-        level=logging.DEBUG if debug else default_log_level,
+        level=logging.DEBUG if debug else DEFUALT_LOG_LEVEL,
         format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
     )
 
@@ -42,7 +45,7 @@ async def async_main() -> None:
 
     if maybe_webhook is not None:
         logging.root.addHandler(
-            DiscordWebhookHandler(maybe_webhook, level=default_log_level)
+            DiscordWebhookHandler(maybe_webhook, level=DEFUALT_LOG_LEVEL)
         )
 
     if not os.path.exists("config/"):

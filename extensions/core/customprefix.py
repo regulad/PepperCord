@@ -1,6 +1,7 @@
 from typing import Optional
 
 import discord
+from discord.app_commands import guild_only
 from discord.ext import commands
 
 from utils.bots import BOT_TYPES, CustomContext
@@ -10,8 +11,15 @@ from utils.database import Document
 async def get_prefix(bot: BOT_TYPES, message: discord.Message) -> list[str]:
     prefix: str = bot.config.get("PEPPERCORD_PREFIX", "?")
     if message.guild is not None:
-        guild_document: Document = await bot.get_guild_document(message.guild)
-        prefix: str = guild_document.get("prefix", prefix)
+        if not hasattr(bot, "__p_cache"):
+            bot.__p_cache = {}
+
+        if bot.__p_cache.get(message.guild.id) is None:
+            guild_document: Document = await bot.get_guild_document(message.guild)
+            prefix: str = guild_document.get("prefix", prefix)
+            bot.__p_cache[message.guild.id] = prefix
+        else:
+            prefix: str = bot.__p_cache[message.guild.id]
     return commands.when_mentioned_or(f"{prefix} ", prefix)(bot, message)
 
 
@@ -22,6 +30,7 @@ class CustomPrefix(commands.Cog):
         self.bot: BOT_TYPES = bot
 
     @commands.command()
+    @guild_only()
     @commands.has_permissions(administrator=True)
     async def prefix(
             self,
@@ -30,18 +39,19 @@ class CustomPrefix(commands.Cog):
             prefix: Optional[str],
     ) -> None:
         """Changes the bot's prefix. This is only for message commands."""
-        if ctx.interaction is None:
-            if prefix is not None:
-                if prefix == ctx.bot.config.get("PEPPERCORD_PREFIX", "?"):
-                    await ctx["guild_document"].update_db({"$unset": {"prefix": 1}})
-                else:
-                    await ctx["guild_document"].update_db({"$set": {"prefix": prefix}})
-            await ctx.send(
-                f"The prefix is now "
-                f"{ctx['guild_document'].get('prefix', ctx.bot.config.get('PEPPERCORD_PREFIX', '?'))}."
-            )
-        else:
-            await ctx.send("You cannot set a prefix for slash messages.")
+        if prefix is not None:
+            if prefix == ctx.bot.config.get("PEPPERCORD_PREFIX", "?"):
+                await ctx["guild_document"].update_db({"$unset": {"prefix": 1}})
+            else:
+                await ctx["guild_document"].update_db({"$set": {"prefix": prefix}})
+        await ctx.send(
+            f"The prefix is now "
+            f"{ctx['guild_document'].get('prefix', ctx.bot.config.get('PEPPERCORD_PREFIX', '?'))}."
+        )
+        if not hasattr(ctx.bot, "__p_cache"):
+            ctx.bot.__p_cache = {}
+        ctx.bot.__p_cache[ctx.guild.id] = ctx['guild_document'].get('prefix',
+                                                                    ctx.bot.config.get('PEPPERCORD_PREFIX', '?'))
 
 
 async def setup(bot: BOT_TYPES) -> None:

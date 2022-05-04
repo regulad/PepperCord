@@ -1,11 +1,12 @@
 from random import choice
 
 from discord import Forbidden
+from discord.app_commands import guild_only as ac_guild_only, default_permissions
 from discord.ext.commands import (
     Cog,
     has_permissions,
     bot_has_permissions,
-    hybrid_command,
+    hybrid_command, guild_only,
 )
 
 from utils.bots import BOT_TYPES, CustomContext
@@ -85,6 +86,9 @@ class Regal(Cog):
     @hybrid_command(name="regal", aliases=["regalize"])
     @has_permissions(manage_nicknames=True)
     @bot_has_permissions(manage_nicknames=True)
+    @default_permissions(manage_nicknames=True)
+    @ac_guild_only()
+    @guild_only()
     async def regalize(self, ctx: CustomContext) -> None:
         """Make all the members of the server regal."""
         await ctx.defer(ephemeral=True)

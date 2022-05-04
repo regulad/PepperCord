@@ -4,7 +4,7 @@ from typing import Optional, cast, Literal
 import discord
 from aiohttp import ClientSession
 from anekos import *
-from discord.app_commands import describe
+from discord.app_commands import describe, default_permissions
 from discord.ext import commands
 from discord.ext.commands import Context, hybrid_group
 
@@ -149,6 +149,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(channel="The channel to set to OwO mode.")
     async def canowo(
             self,
@@ -163,6 +164,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(channel="The channel to be unset from OwO mode.")
     async def cannotowo(
             self,
@@ -177,6 +179,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(member="The member to set to OwO mode.")
     async def canowomember(
             self,
@@ -191,6 +194,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(member="The member to be unset from OwO mode.")
     async def cannotowomember(
             self,

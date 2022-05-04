@@ -23,11 +23,7 @@ class SpiceBot(commands.Cog):
         self.client = aiohttp.ClientSession()
 
     async def cog_before_invoke(self, ctx: bots.CustomContext) -> None:
-        if ctx.interaction is not None:
-            raise commands.CommandError(
-                "SpiceBot commands can only be run as a message command."
-            )
-        else:
+        if ctx.guild is None:
             spice_bot_user: discord.abc.User = ctx.guild.get_member(
                 SPICE_BOT_ID
             ) or await ctx.bot.fetch_user(SPICE_BOT_ID)

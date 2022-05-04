@@ -2,9 +2,10 @@
 
 FROM python:3.10.4-slim-buster
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y git ffmpeg gcc python3-dev
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get upgrade -y && \
+     apt-get install -y git ffmpeg gcc python3-dev
 
 WORKDIR /app
 

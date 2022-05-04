@@ -6,9 +6,10 @@ from typing import Union, Optional
 
 import discord
 from discord import Interaction, Member, AppCommandType
-from discord.app_commands import describe, context_menu
+from discord.app_commands import describe, context_menu, default_permissions
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, menus
-from discord.ext.commands import hybrid_group, hybrid_command
+from discord.ext.commands import hybrid_group, hybrid_command, guild_only
 
 from utils import checks, database
 from utils.bots import CustomContext, BOT_TYPES
@@ -203,6 +204,7 @@ class Levels(commands.Cog):
             await UserLevelMenu(user_level, True).start(ctx, channel=channel)
 
     @hybrid_group()
+    @default_permissions(administrator=True)
     async def levelsettings(self, ctx: CustomContext) -> None:
         pass
 
@@ -251,13 +253,15 @@ class Levels(commands.Cog):
             await UserLevelMenu(user_level).start(ctx, ephemeral=True)
 
     @hybrid_command()
+    @guild_only()
+    @ac_guild_only()
     async def leaderboard(self, ctx: CustomContext) -> None:
         """Displays the level of all members of the server relative to each other."""
         await ctx.defer()
 
         member_xps = []
 
-        for member in ctx.guild.members[:500]:  # To prevent DB from exploding
+        for member in ctx.guild.members:
             xp = await UserLevel.get_user(ctx.bot, member)
             if xp is not None:
                 member_xps.append(xp)

@@ -1,9 +1,10 @@
 from typing import List, Optional
 
 import discord
-from discord.app_commands import describe
+from discord.app_commands import describe, default_permissions
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands
-from discord.ext.commands import hybrid_group
+from discord.ext.commands import hybrid_group, guild_only
 
 from utils import bots
 from utils.bots import CustomContext, BOT_TYPES
@@ -38,11 +39,15 @@ class Alerts(commands.Cog):
         await member_message_processor(self.bot, member, "on_member_remove")
 
     @hybrid_group()
+    @ac_guild_only()
+    @guild_only()
+    @default_permissions(administrator=True)
     @commands.has_permissions(administrator=True)
     async def events(self, ctx: CustomContext) -> None:
         pass
 
     @events.command()
+    @guild_only()
     async def disable(self, ctx: CustomContext) -> None:
         """Removes all event data from the bot."""
         if ctx["guild_document"].get("reactions") is None:
@@ -56,6 +61,7 @@ class Alerts(commands.Cog):
         channel="The channel to send the message to.",
         message="The message to send, not including the member mention.",
     )
+    @guild_only()
     async def add(
             self,
             ctx: CustomContext,

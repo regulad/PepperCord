@@ -1,5 +1,6 @@
 from discord.app_commands import describe
-from discord.ext.commands import hybrid_command, Cog
+from discord.app_commands import guild_only as ac_guild_only
+from discord.ext.commands import hybrid_command, Cog, guild_only
 from discord.ext.menus import ViewMenuPages
 from youtube_dl import YoutubeDL
 
@@ -21,6 +22,8 @@ class Music(Cog):
         return await check_voice_client_predicate(ctx)
 
     @hybrid_command(aliases=["p"])
+    @guild_only()
+    @ac_guild_only()
     @describe(query="The video to search on YouTube, or a url.")
     async def play(
             self,
@@ -46,6 +49,8 @@ class Music(Cog):
             ).start(ctx)
 
     @hybrid_command(aliases=["pt"])
+    @guild_only()
+    @ac_guild_only()
     @describe(query="The video to search on YouTube, or a url.")
     async def playtop(
             self,

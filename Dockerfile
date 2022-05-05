@@ -4,8 +4,9 @@ FROM python:3.10.4-slim-buster
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get upgrade -y && \
-     apt-get install -y git ffmpeg gcc python3-dev
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y git ffmpeg gcc python3-dev
 
 WORKDIR /app
 

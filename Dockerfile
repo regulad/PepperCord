@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y git ffmpeg gcc python3-dev
+    apt-get install -y git ffmpeg gcc python3-dev g++
 
 WORKDIR /app
 

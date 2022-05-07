@@ -2,7 +2,8 @@ name: Docker
 on:
   push:
     branches:
-      - main
+      - "**"
+      - "!gh-pages"
     tags:
       - v*
   pull_request:

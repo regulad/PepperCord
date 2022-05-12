@@ -4,9 +4,8 @@ from os.path import splitext
 import discord
 import evb
 from aiohttp import ClientSession
-from discord.app_commands import describe
 from discord.ext import commands
-from discord.ext.commands import hybrid_command
+from discord.ext.commands import command
 from evb import AsyncEditVideoBotSession, StatsResponse
 
 from utils.attachments import find_url_recurse
@@ -45,10 +44,7 @@ class EditVideoBot(commands.Cog):
         else:
             return True
 
-    @hybrid_command()
-    @describe(
-        evb_commands="The commands that will be applied to the video. You can find a list here: https://bit.ly/3GBkKqx."
-    )
+    @command()
     async def edit(self, ctx: CustomContext, *, evb_commands: str) -> None:
         """Edit media with EditVideoBot."""
 
@@ -76,7 +72,7 @@ class EditVideoBot(commands.Cog):
         )
         await ctx.send(files=[file])
 
-    @hybrid_command()
+    @command()
     async def editsleft(self, ctx: CustomContext) -> None:
         """Shows the number of remaining EditVideoBot edits."""
         await ctx.defer(ephemeral=True)

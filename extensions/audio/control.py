@@ -1,7 +1,6 @@
 from discord import Embed, Message
-from discord.app_commands import guild_only as ac_guild_only
-from discord.ext.commands import hybrid_command, Cog, guild_only
-from discord.ext.menus import ViewMenuPages, ListPageSource, ViewMenu
+from discord.ext.commands import command, Cog, guild_only
+from discord.ext.menus import ReactionMenuPages, ListPageSource, ReactionMenu
 
 from utils.bots import BOT_TYPES, CustomContext, EnhancedSource, CustomVoiceClient
 from utils.checks import check_voice_client_predicate
@@ -52,7 +51,7 @@ class QueueMenuSource(ListPageSource):
         return base_embed
 
 
-class AudioSourceMenu(ViewMenu):
+class AudioSourceMenu(ReactionMenu):
     """An embed menu that makes displaying a source fancy."""
 
     def __init__(
@@ -112,16 +111,15 @@ class Audio(Cog):
     async def cog_check(self, ctx: CustomContext) -> bool:
         return await check_voice_client_predicate(ctx)
 
-    @hybrid_command(aliases=["q"])
+    @command(aliases=["q"])
     @guild_only()
-    @ac_guild_only()
     async def queue(self, ctx: CustomContext) -> None:
         """Displays information the upcoming tracks."""
         maybe_source: EnhancedSource = ctx.voice_client.source
         if maybe_source is None:
             await ctx.send("No track is playing.", ephemeral=True)
         else:
-            await ViewMenuPages(
+            await ReactionMenuPages(
                 QueueMenuSource(
                     list(ctx.voice_client.queue.deque),
                     ctx.voice_client,
@@ -131,9 +129,8 @@ class Audio(Cog):
                 )
             ).start(ctx, ephemeral=False)
 
-    @hybrid_command(aliases=["np"])
+    @command(aliases=["np"])
     @guild_only()
-    @ac_guild_only()
     async def nowplaying(self, ctx: CustomContext) -> None:
         """Displays information for the currently playing track, including how much time is left."""
         maybe_source: EnhancedSource = ctx.voice_client.source
@@ -142,41 +139,36 @@ class Audio(Cog):
         else:
             await AudioSourceMenu(maybe_source, ctx.voice_client).start(ctx)
 
-    @hybrid_command()
+    @command()
     @guild_only()
-    @ac_guild_only()
     async def pause(self, ctx: CustomContext) -> None:
         """Pauses the audio player."""
         ctx.voice_client.pause()
         await ctx.send("Paused the audio player.", ephemeral=True)
 
-    @hybrid_command()
+    @command()
     @guild_only()
-    @ac_guild_only()
     async def resume(self, ctx: CustomContext) -> None:
         """Resumes the audio player."""
         ctx.voice_client.resume()
         await ctx.send("Resumed the audio player.", ephemeral=True)
 
-    @hybrid_command(aliases=["s"])
+    @command(aliases=["s"])
     @guild_only()
-    @ac_guild_only()
     async def skip(self, ctx: CustomContext) -> None:
         """Stops the currently playing track."""
         ctx.voice_client.stop()
         await ctx.send("Stopped the currently playing track.", ephemeral=True)
 
-    @hybrid_command(aliases=["dc", "fuckoff"])
+    @command(aliases=["dc", "fuckoff"])
     @guild_only()
-    @ac_guild_only()
     async def disconnect(self, ctx: CustomContext) -> None:
         """Disconnects the audio player."""
         await ctx.voice_client.disconnect(force=True)
         await ctx.send("Disconnected from the voice channel.", ephemeral=True)
 
-    @hybrid_command(aliases=["l"])
+    @command(aliases=["l"])
     @guild_only()
-    @ac_guild_only()
     async def loop(self, ctx: CustomContext) -> None:
         """Toggles loop."""
         ctx.voice_client.should_loop = not ctx.voice_client.should_loop

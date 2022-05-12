@@ -3,9 +3,8 @@ from typing import Optional
 import discord
 from aiocoingecko import AsyncCoinGeckoAPISession
 from aiohttp import ClientSession
-from discord.app_commands import describe
 from discord.ext import commands, menus
-from discord.ext.commands import hybrid_group
+from discord.ext.commands import group
 
 from utils.bots import CustomContext, BOT_TYPES
 
@@ -74,7 +73,7 @@ class CoinGecko(commands.Cog):
         else:
             return True
 
-    @hybrid_group(fallback="status")
+    @group(fallback="status")
     async def coingecko(self, ctx: CustomContext) -> None:
         """Gets the status of the CoinGecko API."""
 
@@ -89,7 +88,7 @@ class CoinGecko(commands.Cog):
 
         get: list = await self.coin_gecko_session.get_coins_list()
 
-        await menus.ViewMenuPages(source=CoinMenuSource(get, per_page=15)).start(
+        await menus.ReactionMenuPages(source=CoinMenuSource(get, per_page=15)).start(
             ctx, ephemeral=True
         )
 
@@ -101,15 +100,11 @@ class CoinGecko(commands.Cog):
 
         get: list = await self.coin_gecko_session.get_supported_vs_currencies()
 
-        await menus.ViewMenuPages(source=CurrencyMenuSource(get, per_page=20)).start(
+        await menus.ReactionMenuPages(source=CurrencyMenuSource(get, per_page=20)).start(
             ctx, ephemeral=True
         )
 
     @coingecko.command()
-    @describe(
-        coin="The name of a currency to search. Example: ethereum.",
-        currency="The currency that the coin's value will be represented in. Defaults to usd.",
-    )
     async def price(
             self,
             ctx: CustomContext,

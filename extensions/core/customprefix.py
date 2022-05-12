@@ -1,7 +1,6 @@
 from typing import Optional
 
 import discord
-from discord.app_commands import guild_only
 from discord.ext import commands
 
 from utils.bots import BOT_TYPES, CustomContext
@@ -30,7 +29,6 @@ class CustomPrefix(commands.Cog):
         self.bot: BOT_TYPES = bot
 
     @commands.command()
-    @guild_only()
     @commands.has_permissions(administrator=True)
     async def prefix(
             self,

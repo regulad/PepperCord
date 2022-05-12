@@ -21,26 +21,13 @@ class _DefaultSendHandler(SendHandler):
         self.ctx: "CustomContext" = ctx
 
     async def send(self, *args, **kwargs) -> discord.Message:
-        if self.ctx.interaction is None:
-            if kwargs.get("ephemeral") is not None:
-                del kwargs["ephemeral"]
-            if kwargs.get("return_message") is not None:
-                del kwargs["return_message"]
-            if kwargs.get("reference") is None:
-                kwargs["reference"] = self.ctx.message
-            return await self.ctx.send_bare(*args, **kwargs)
-        else:
-            try:
-                return await self.ctx.send_bare(*args, **kwargs)
-            except NotFound:
-                try:
-                    return await self.ctx.interaction.followup.send(*args, **kwargs)
-                except NotFound:
-                    if kwargs.get("ephemeral") is not None:
-                        del kwargs["ephemeral"]
-                    if kwargs.get("return_message") is not None:
-                        del kwargs["return_message"]
-                    return await self.ctx.channel.send(*args, **kwargs)  # Worst case
+        if kwargs.get("ephemeral") is not None:
+            del kwargs["ephemeral"]
+        if kwargs.get("return_message") is not None:
+            del kwargs["return_message"]
+        if kwargs.get("reference") is None:
+            kwargs["reference"] = self.ctx.message
+        return await self.ctx.send_bare(*args, **kwargs)
 
 
 class CustomContext(commands.Context):
@@ -50,14 +37,6 @@ class CustomContext(commands.Context):
         self._custom_state: Dict[Any, Any] = {}
         self.send_handler: SendHandler = _DefaultSendHandler(self)
         super().__init__(**attrs)
-
-    @classmethod
-    async def from_interaction(cls, interaction: Interaction, /) -> "CustomContext":
-        """Creates a Context from an interaction with the CustomBotBase hooks intact."""
-        ctx: "CustomContext" = await super().from_interaction(interaction)
-        if hasattr(ctx.bot, "wait_for_dispatch"):
-            await ctx.bot.wait_for_dispatch("context_creation", ctx)
-        return ctx
 
     def __getitem__(self, item: Any) -> Any:
         return self._custom_state[item]
@@ -87,16 +66,7 @@ class CustomContext(commands.Context):
     async def defer(
             self, *, ephemeral: bool = False, trigger_typing: bool = True
     ) -> None:
-        if self.interaction is not None:
-            try:
-                await super().defer(ephemeral=ephemeral)
-            except discord.NotFound:
-                if self.interaction is not None:
-                    await super().channel.trigger_typing()
-                else:
-                    raise
-        else:
-            await super().channel.trigger_typing()
+        await super().channel.trigger_typing()
 
     def send(self, *args, **kwargs) -> Coroutine[Any, Any, Message]:
         return self.send_handler.send(*args, **kwargs)

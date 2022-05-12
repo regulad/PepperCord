@@ -13,7 +13,7 @@ class NotSharded(commands.CheckFailure):
 async def bot_is_sharded(ctx: CustomContext) -> bool:
     """Checks if the bot is sharded, and raises NotSharded if it isn't."""
 
-    return isinstance(ctx.bot, discord.AutoShardedClient)
+    return False
 
 
 @commands.check

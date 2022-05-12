@@ -63,16 +63,7 @@ async def async_main() -> None:
 
     logging.info("Configuring bot...")
     # Configure Sharding
-    bot_class: Type[bots.BOT_TYPES]
-    shards: Optional[int] = int(config_source.get("PEPPERCORD_SHARDS", "0"))
-    if shards > 0:
-        bot_class = bots.CustomAutoShardedBot
-    elif shards == -1:
-        bot_class = bots.CustomAutoShardedBot
-        shards = None
-    else:
-        bot_class = bots.CustomBot
-        shards = None
+    bot_class: Type[bots.BOT_TYPES] = bots.CustomBot
     # Configure bot
     bot: bots.BOT_TYPES = bot_class(
         command_prefix=config_source.get("PEPPERCORD_PREFIX", "?"),
@@ -81,11 +72,8 @@ async def async_main() -> None:
             color=discord.Colour.orange(),
             menu=BetterMenu(),
         ),
-        intents=discord.Intents.all(),
         database=db,
         config=os.environ,
-        shard_count=shards,
-        loop=loop,
         activity=Game("PepperCord"),
     )
 
@@ -105,7 +93,6 @@ async def async_main() -> None:
     extension_coros: list[Coroutine] = [
         bot.load_extension(ext) for ext in misc.get_python_modules("extensions")
     ]
-    extension_coros.append(bot.load_extension("jishaku"))
 
     tasks: list[Task] = [loop.create_task(coro) for coro in extension_coros]
 
@@ -116,26 +103,6 @@ async def async_main() -> None:
     logging.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")
 
     async with bot:
-
-        @bot.listen("on_ready")
-        async def setup_commands() -> None:
-            if bot.config.get("PEPPERCORD_TESTGUILDS"):
-                testguilds: list[Object] = [
-                    Object(id=int(testguild))
-                    for testguild in bot.config["PEPPERCORD_TESTGUILDS"].split(",")
-                ]
-                for guild in testguilds:
-                    bot.tree.copy_global_to(guild=guild)
-                bot.tree.clear_commands(guild=None)
-                await gather(*[bot.tree.sync(guild=guild) for guild in testguilds])
-                await bot.tree.sync()
-                logging.info("Finished syncing guild commands.")
-            elif bot.config.get("PEPPERCORD_SLASH_COMMANDS") is None:
-                await bot.tree.sync()
-                for guild in bot.guilds:  # THIS is the reason this cannot be a setup hook. It must be after the bot is ready, and the guilds are populated.
-                    await bot.tree.sync(guild=guild)
-                logging.info("Synced global commands.")
-
         await bot.start(config_source["PEPPERCORD_TOKEN"])
 
 

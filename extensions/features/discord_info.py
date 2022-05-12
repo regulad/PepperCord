@@ -6,47 +6,14 @@ from typing import Union, Optional
 import discord
 import psutil
 from discord import Guild, Interaction, Member, User, AppCommandType
-from discord.app_commands import describe, context_menu
-from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
-from discord.ext.commands import hybrid_command
+from discord.ext.commands import command
 from git import Repo
 
 from utils import bots
 from utils.bots import CustomContext
 
 WHOIS_CM_NAME: str = "Get User Information"
-
-
-@context_menu(name=WHOIS_CM_NAME)
-async def whois_cm(interaction: Interaction, user: Member | User) -> None:
-    ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    embed = (
-        discord.Embed(
-            colour=user.colour,
-            title=f"All about {user.name}#{user.discriminator}\n({user.id})",
-        )
-            .set_thumbnail(url=user.avatar.url)
-            .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-            .add_field(
-            name="Account creation date:",
-            value=f"<t:{user.created_at.timestamp():.0f}:R>",
-        )
-    )
-    if isinstance(user, discord.Member):
-        embed = embed.insert_field_at(0, name="Status:", value=f"{user.status}")
-        if user.name != user.display_name:
-            embed = embed.insert_field_at(0, name="Nickname:", value=user.display_name)
-        embed = embed.add_field(
-            name="Server join date:",
-            value=f"<t:{user.joined_at.timestamp():.0f}:R>",
-        )
-        if user.premium_since:
-            embed = embed.add_field(
-                name="Server boosting since:",
-                value=f"<t:{user.premium_since.timestamp():.0f}:R>",
-            )
-    await ctx.send(embed=embed, ephemeral=True)
 
 
 GIT_REPO: Repo = Repo()
@@ -63,12 +30,6 @@ class DiscordInfo(commands.Cog):
     def cog_unload(self) -> None:
         self.activity_update.stop()
 
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(whois_cm)
-
-    async def cog_unload(self) -> None:
-        self.bot.tree.remove_command(WHOIS_CM_NAME, type=AppCommandType.user)
-
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:
         watching_string = f"with {len(self.bot.users):n} {'user' if len(self.bot.users) == 1 else 'users'} in {len(self.bot.guilds):n} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
@@ -79,9 +40,8 @@ class DiscordInfo(commands.Cog):
         await self.bot.wait_until_ready()
         await sleep(10)  # Avoid disconnecting right away
 
-    @hybrid_command()
+    @command()
     @commands.is_owner()
-    @describe(activity="The status that the bot will change to.")
     async def status(
             self,
             ctx: bots.CustomContext,
@@ -99,10 +59,7 @@ class DiscordInfo(commands.Cog):
             await ctx.bot.change_presence(activity=discord.Game(name=watching_string))
         await ctx.send("Status updated.", ephemeral=True)
 
-    @hybrid_command()
-    @describe(
-        user="The user that will have their info displayed. This can be any user, in or outside this server."
-    )
+    @command()
     async def whois(
             self,
             ctx: bots.CustomContext,
@@ -141,9 +98,8 @@ class DiscordInfo(commands.Cog):
                 )
         await ctx.send(embed=embed, ephemeral=True)
 
-    @hybrid_command()
+    @command()
     @commands.guild_only()
-    @ac_guild_only()
     async def serverinfo(
             self,
             ctx: bots.CustomContext,
@@ -178,7 +134,7 @@ class DiscordInfo(commands.Cog):
         await ctx.send(embed=embed)
         await ctx.invoke(self.whois, user=guild.owner)
 
-    @hybrid_command()
+    @command()
     async def botinfo(self, ctx: bots.CustomContext) -> None:
         """Displays information about the bot and the machine it's running on, as well as an invitation link."""
         await ctx.defer(ephemeral=True)

@@ -5,9 +5,8 @@ from typing import Optional, Any
 
 from aiohttp import ClientSession
 from discord import Embed, User, HTTPException
-from discord.app_commands import describe, rename
-from discord.ext.commands import Cog, hybrid_group
-from discord.ext.menus import ListPageSource, ViewMenuPages
+from discord.ext.commands import Cog, group
+from discord.ext.menus import ListPageSource, ReactionMenuPages
 from discord.ext.tasks import loop
 from motor.motor_asyncio import AsyncIOMotorCollection
 
@@ -221,12 +220,7 @@ class Redirector(Cog):
 
             await listening_user.send("An IP address has been grabbed!", embed=embed)
 
-    @hybrid_group(aliases=["register_listener", "make_campaign", "r"], fallback="grab")
-    @rename(link_id="campaign_id")
-    @describe(
-        destination="The URL to redirect the victim to.",
-        link_id="The campaign ID to register.",
-    )
+    @group(aliases=["register_listener", "make_campaign", "r"], fallback="grab")
     async def ipgrab(
             self,
             ctx: CustomContext,
@@ -285,11 +279,9 @@ class Redirector(Cog):
 
         source: CampaignSource = CampaignSource(all_campaigns)
 
-        await ViewMenuPages(source).start(ctx, ephemeral=True)
+        await ReactionMenuPages(source).start(ctx, ephemeral=True)
 
     @ipgrab.command()
-    @rename(link_id="campaign_id")
-    @describe(link_id="The campaign ID to summarize.")
     async def summarize_campaign(
             self,
             ctx: CustomContext,
@@ -322,11 +314,9 @@ class Redirector(Cog):
 
         source: HitSource = HitSource(all_hits, link_id)
 
-        await ViewMenuPages(source).start(ctx, ephemeral=True)
+        await ReactionMenuPages(source).start(ctx, ephemeral=True)
 
     @ipgrab.command()
-    @describe(link_id="The campaign ID to stop listening to.")
-    @rename(link_id="campaign_id")
     async def stopgrabbing(
             self,
             ctx: CustomContext,

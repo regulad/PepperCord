@@ -3,10 +3,8 @@ from enum import Enum
 from typing import Optional, List, cast
 
 import discord
-from discord.app_commands import describe
-from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, menus
-from discord.ext.commands import hybrid_group, guild_only
+from discord.ext.commands import group, guild_only
 
 from utils import bots
 from utils.attachments import find_url_recurse
@@ -256,15 +254,14 @@ class CustomCommands(commands.Cog):
                 else:
                     ctx.bot.dispatch("custom_command_success", custom_command, ctx)
 
-    @hybrid_group(aliases=["cc"], fallback="list")
-    @ac_guild_only()
+    @group(aliases=["cc"], fallback="list")
     @guild_only()
     async def customcommands(self, ctx: bots.CustomContext) -> None:
         """Lists all custom commands currently on the server."""
         commands_dict = ctx["guild_document"].get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
-        pages = menus.ViewMenuPages(source=source)
+        pages = menus.ReactionMenuPages(source=source)
         await pages.start(ctx)
 
     @customcommands.command()
@@ -325,10 +322,6 @@ class CustomCommands(commands.Cog):
 
     @customcommands.command()
     @commands.has_permissions(administrator=True)
-    @describe(
-        command="The command that must be sent.",
-        message="The message that the bot will respond with. Defaults to the most recently sent image.",
-    )
     @guild_only()
     async def add(
             self,
@@ -358,7 +351,6 @@ class CustomCommands(commands.Cog):
 
     @customcommands.command()
     @commands.has_permissions(administrator=True)
-    @describe(command="The command to be removed.")
     @guild_only()
     async def delete(
             self,

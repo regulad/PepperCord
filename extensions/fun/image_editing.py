@@ -4,9 +4,8 @@ from typing import Optional
 
 import discord
 from PIL import Image, ImageDraw, ImageFont
-from discord.app_commands import describe
 from discord.ext import commands
-from discord.ext.commands import hybrid_command
+from discord.ext.commands import command
 
 from utils.bots import CustomContext, BOT_TYPES
 
@@ -36,9 +35,8 @@ class Images(commands.Cog):
     def __init__(self, bot: BOT_TYPES):
         self.bot: BOT_TYPES = bot
 
-    @hybrid_command()
+    @command()
     @commands.cooldown(1, 40, commands.BucketType.channel)
-    @describe(channel="The channel that will have it's pins displayed. ")
     async def pinsleft(
             self,
             ctx: CustomContext,

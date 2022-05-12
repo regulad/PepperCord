@@ -1,10 +1,8 @@
 from typing import List, Optional
 
 import discord
-from discord.app_commands import describe, default_permissions
-from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands
-from discord.ext.commands import hybrid_group, guild_only
+from discord.ext.commands import group, guild_only
 
 from utils import bots
 from utils.bots import CustomContext, BOT_TYPES
@@ -38,10 +36,8 @@ class Alerts(commands.Cog):
     async def on_member_remove(self, member: discord.Member) -> None:
         await member_message_processor(self.bot, member, "on_member_remove")
 
-    @hybrid_group()
-    @ac_guild_only()
+    @group()
     @guild_only()
-    @default_permissions(administrator=True)
     @commands.has_permissions(administrator=True)
     async def events(self, ctx: CustomContext) -> None:
         pass
@@ -56,11 +52,6 @@ class Alerts(commands.Cog):
         await ctx.send("Done.", ephemeral=True)
 
     @events.command()
-    @describe(
-        messagetype="The event that must be recieved to dispatch the message. on_member_join or on_member_remove, for members joining and leaving respectively.",
-        channel="The channel to send the message to.",
-        message="The message to send, not including the member mention.",
-    )
     @guild_only()
     async def add(
             self,

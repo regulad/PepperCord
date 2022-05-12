@@ -156,14 +156,10 @@ class CustomClientBase:
             await self._schedule_event(coro, method, *args, **kwargs)
 
 
-class CustomAutoShardedBot(CustomBotBase, CustomClientBase, discord.AutoShardedClient):
-    pass
-
-
 class CustomBot(CustomBotBase, CustomClientBase, discord.Client):
     pass
 
 
-BOT_TYPES = Union[CustomBot, CustomAutoShardedBot]
+BOT_TYPES = CustomBot
 
-__all__ = ["CustomBot", "CustomAutoShardedBot", "BOT_TYPES", "CONFIGURATION_PROVIDERS"]
+__all__ = ["CustomBot", "BOT_TYPES", "CONFIGURATION_PROVIDERS"]

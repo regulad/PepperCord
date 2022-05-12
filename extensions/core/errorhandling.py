@@ -3,7 +3,6 @@ from typing import Optional, cast, Type
 
 import discord
 from asyncgTTS import LibraryException as TtsException
-from discord.app_commands import CommandInvokeError as AppCommandInvokeError
 from discord.ext import commands, menus
 from evb import LibraryException as EvbException
 
@@ -44,12 +43,9 @@ def find_error(error: Exception) -> Optional[str]:
             return None
 
 
-class ErrorMenu(menus.ViewMenu):
+class ErrorMenu(menus.ReactionMenu):
     def __init__(self, error: Exception, **kwargs):
-        if isinstance(error, commands.HybridCommandError):
-            error = error.original
-
-        if isinstance(error, (commands.CommandInvokeError, AppCommandInvokeError)):
+        if isinstance(error, commands.CommandInvokeError):
             error = error.original
 
         self.error = error
@@ -118,20 +114,18 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_completion")
     async def affirm_working(self, ctx: bots.CustomContext) -> None:
-        if ctx.interaction is None:
-            await ctx.message.add_reaction("✅")
+        await ctx.message.add_reaction("✅")
 
     @commands.Cog.listener("on_command_error")
     async def soft_affirm_error(
             self, ctx: bots.CustomContext, error: Exception
     ) -> None:
-        if ctx.interaction is None:
-            await ctx.message.add_reaction("❌")
+        await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:
         if ctx.command is not None and not isinstance(error, commands.DisabledCommand):
-            await ErrorMenu(error).start(ctx, ephemeral=ctx.interaction is not None)
+            await ErrorMenu(error).start(ctx)
 
     @commands.Cog.listener("on_command_error")
     async def attempt_to_reinvoke(

@@ -4,9 +4,8 @@ from typing import Optional, cast, Literal
 import discord
 from aiohttp import ClientSession
 from anekos import *
-from discord.app_commands import describe, default_permissions
 from discord.ext import commands
-from discord.ext.commands import Context, hybrid_group
+from discord.ext.commands import Context, group
 
 from utils import bots, webhook
 from utils.bots import BOT_TYPES, CustomContext
@@ -143,14 +142,12 @@ class Nekos(commands.Cog):
         if self.nekos_http_client is not None:
             await self.nekos_http_client.close()
 
-    @hybrid_group(aliases=["n", "neko"])
+    @group(aliases=["n", "neko"])
     async def nekos(self, ctx: CustomContext) -> None:
         pass
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
-    @default_permissions(administrator=True)
-    @describe(channel="The channel to set to OwO mode.")
     async def canowo(
             self,
             ctx: bots.CustomContext,
@@ -164,8 +161,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
-    @default_permissions(administrator=True)
-    @describe(channel="The channel to be unset from OwO mode.")
     async def cannotowo(
             self,
             ctx: bots.CustomContext,
@@ -179,8 +174,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
-    @default_permissions(administrator=True)
-    @describe(member="The member to set to OwO mode.")
     async def canowomember(
             self,
             ctx: bots.CustomContext,
@@ -194,8 +187,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
-    @default_permissions(administrator=True)
-    @describe(member="The member to be unset from OwO mode.")
     async def cannotowomember(
             self,
             ctx: bots.CustomContext,
@@ -210,10 +201,6 @@ class Nekos(commands.Cog):
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
     @commands.is_nsfw()
-    @describe(
-        quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        tag="The tag you want to search. You can see all options if you leave this blank.",
-    )
     async def nsfw(
             self,
             ctx: CustomContext,
@@ -250,10 +237,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
-    @describe(
-        quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        tag="The tag you want to search. You can see all options if you leave this blank.",
-    )
     async def sfw(
             self,
             ctx: CustomContext,
@@ -290,10 +273,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
-    @describe(
-        quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        tag="The tag you want to search. You can see all options if you leave this blank.",
-    )
     async def image(
             self,
             ctx: CustomContext,
@@ -331,7 +310,6 @@ class Nekos(commands.Cog):
             )
 
     @nekos.command()
-    @describe(question="The question you want to ask.")
     async def eightball(
             self,
             ctx: CustomContext,
@@ -349,9 +327,6 @@ class Nekos(commands.Cog):
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
     @commands.is_nsfw()
-    @describe(
-        add_author="If the author should be added to the thread where all the tags will be displayed."
-    )
     async def allnsfw(
             self,
             ctx: CustomContext,
@@ -366,9 +341,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
-    @describe(
-        add_author="If the author should be added to the thread where all the tags will be displayed."
-    )
     async def allsfw(
             self,
             ctx: CustomContext,
@@ -383,9 +355,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
-    @describe(
-        add_author="If the author should be added to the thread where all the tags will be displayed."
-    )
     async def images(
             self,
             ctx: CustomContext,
@@ -399,7 +368,6 @@ class Nekos(commands.Cog):
         await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
 
     @nekos.command()
-    @describe(text="The text to be owoifyed.")
     async def owoify(
             self,
             ctx: CustomContext,

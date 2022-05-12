@@ -1,7 +1,5 @@
-from discord.app_commands import describe
-from discord.app_commands import guild_only as ac_guild_only
-from discord.ext.commands import hybrid_command, Cog, guild_only
-from discord.ext.menus import ViewMenuPages
+from discord.ext.commands import command, Cog, guild_only
+from discord.ext.menus import ReactionMenuPages
 from youtube_dl import YoutubeDL
 
 from extensions.audio.control import QueueMenuSource, AudioSourceMenu
@@ -21,10 +19,8 @@ class Music(Cog):
     async def cog_check(self, ctx: CustomContext) -> bool:
         return await check_voice_client_predicate(ctx)
 
-    @hybrid_command(aliases=["p"])
+    @command(aliases=["p"])
     @guild_only()
-    @ac_guild_only()
-    @describe(query="The video to search on YouTube, or a url.")
     async def play(
             self,
             ctx: CustomContext,
@@ -44,14 +40,12 @@ class Music(Cog):
         if len(ytdl_sources) == 1:
             await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
         else:
-            await ViewMenuPages(
+            await ReactionMenuPages(
                 QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
             ).start(ctx)
 
-    @hybrid_command(aliases=["pt"])
+    @command(aliases=["pt"])
     @guild_only()
-    @ac_guild_only()
-    @describe(query="The video to search on YouTube, or a url.")
     async def playtop(
             self,
             ctx: CustomContext,
@@ -74,7 +68,7 @@ class Music(Cog):
         if len(ytdl_sources) == 1:
             await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
         else:
-            await ViewMenuPages(
+            await ReactionMenuPages(
                 QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
             ).start(ctx)
 

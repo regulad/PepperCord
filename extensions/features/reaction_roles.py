@@ -2,11 +2,9 @@ from typing import Tuple, cast
 
 import discord
 from discord import Message
-from discord.app_commands import describe
-from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands
 from discord.ext.commands import (
-    hybrid_group,
+    group,
     EmojiConverter,
     BadArgument,
     MessageConverter, guild_only,
@@ -82,8 +80,7 @@ class ReactionRoles(commands.Cog):
                                         ctx.guild.get_role(role_id)
                                     )
 
-    @hybrid_group()
-    @ac_guild_only()
+    @group()
     @guild_only()
     async def reactionrole(self, ctx: bots.CustomContext) -> None:
         """
@@ -103,11 +100,6 @@ class ReactionRoles(commands.Cog):
 
     @reactionrole.command()
     @guild_only()
-    @describe(
-        message="A reference to the message that will have a reaction role attached.",
-        emoji="The emoji that will trigger the reaction role.",
-        role="The role that will be given to the user.",
-    )
     async def add(
             self,
             ctx: bots.CustomContext,

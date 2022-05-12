@@ -3,11 +3,9 @@ from typing import Optional, cast
 
 import discord
 from discord import Interaction, Message, AppCommandType
-from discord.app_commands import describe, context_menu
-from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands
 from discord.ext.commands import (
-    hybrid_group,
+    group,
     EmojiConverter,
     BadArgument,
     MessageConverter, guild_only,
@@ -72,28 +70,6 @@ async def send_star(
 PIN_CM_NAME: str = "Pin to Starboard"
 
 
-@context_menu(name=PIN_CM_NAME)
-@ac_guild_only()
-async def pin_cm(interaction: Interaction, message: Message) -> None:
-    """Pins a message to the starboard. You must link to the message."""
-
-    ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    try:
-        message: discord.Message = await send_star(
-            ctx["guild_document"], message, ctx.bot
-        )
-        await ctx.send(
-            f"Your pinned message can now be found at {message.jump_url}",
-            ephemeral=True,
-        )
-    except AlreadyPinned:
-        await ctx.send(
-            "This message is already pinned to the starboard.", ephemeral=True
-        )
-    except bots.NotConfigured:
-        await ctx.send("This server has not configured the starboard.", ephemeral=True)
-
-
 class Starboard(commands.Cog):
     """Alternative way to "pin" messages."""
 
@@ -104,12 +80,6 @@ class Starboard(commands.Cog):
         if not ctx.guild:
             raise commands.NoPrivateMessage
         return True
-
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(pin_cm)
-
-    async def cog_unload(self) -> None:
-        self.bot.tree.remove_command(PIN_CM_NAME, type=AppCommandType.message)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(
@@ -154,8 +124,7 @@ class Starboard(commands.Cog):
         else:
             return
 
-    @hybrid_group(fallback="status", aliases=["sb"])
-    @ac_guild_only()
+    @group(fallback="status", aliases=["sb"])
     @guild_only()
     async def starboard(self, ctx: bots.CustomContext) -> None:
         """Shows all the settings of the currently configured starboard."""
@@ -209,7 +178,6 @@ class Starboard(commands.Cog):
             await ctx.send("Starboard disabled.", ephemeral=True)
 
     @sbconfig.command()
-    @describe(channel="The channel to be used as a starboard.")
     @guild_only()
     async def channel(
             self,
@@ -229,7 +197,6 @@ class Starboard(commands.Cog):
 
     @sbconfig.command()
     @guild_only()
-    @describe(emoji="The emoji that people can react to a message with to pin it.")
     async def emoji(
             self,
             ctx: bots.CustomContext,
@@ -254,9 +221,6 @@ class Starboard(commands.Cog):
 
     @sbconfig.command()
     @guild_only()
-    @describe(
-        threshold="The amount of people that must react to the message in order for it to be pinned."
-    )
     async def threshold(
             self,
             ctx: bots.CustomContext,
@@ -273,9 +237,6 @@ class Starboard(commands.Cog):
 
     @starboard.command()
     @guild_only()
-    @describe(
-        message="The message to be pinned to the starboard. Can be provided as a link, or by shift clicking. You can omit this if you are replying to a message."
-    )
     async def pin(
             self,
             ctx: bots.CustomContext,
@@ -305,7 +266,6 @@ class Starboard(commands.Cog):
         description="Converts pins in channel to pins on starboard. Does not unpin channels.",
     )
     @guild_only()
-    @describe(channel="The channel to convert pins from.")
     async def sconvert(
             self,
             ctx: bots.CustomContext,

@@ -6,10 +6,8 @@ from typing import Union, Optional
 
 import discord
 from discord import Interaction, Member, AppCommandType
-from discord.app_commands import describe, context_menu, default_permissions
-from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, menus
-from discord.ext.commands import hybrid_group, hybrid_command, guild_only
+from discord.ext.commands import group, command, guild_only
 
 from utils import checks, database
 from utils.bots import CustomContext, BOT_TYPES
@@ -140,18 +138,6 @@ class UserLevelMenu(menus.Menu):
 RANK_CM_NAME: str = "Get Rank"
 
 
-@context_menu(name=RANK_CM_NAME)
-async def rank_cm(interaction: Interaction, user: Member) -> None:
-    """Displays a user's current rank."""
-
-    ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    user_level: Optional[UserLevel] = await UserLevel.get_user(interaction.client, user)
-    if user_level is None:
-        await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
-    else:
-        await UserLevelMenu(user_level).start(ctx, ephemeral=True)
-
-
 class Levels(commands.Cog):
     """Each member can "level up" and raise their point on the server's leaderboard."""
 
@@ -160,12 +146,6 @@ class Levels(commands.Cog):
         self.cooldown: commands.CooldownMapping = (
             commands.CooldownMapping.from_cooldown(3, 10, commands.BucketType.user)
         )
-
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(rank_cm)
-
-    async def cog_unload(self) -> None:
-        self.bot.tree.remove_command(RANK_CM_NAME, type=AppCommandType.user)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -203,8 +183,7 @@ class Levels(commands.Cog):
 
             await UserLevelMenu(user_level, True).start(ctx, channel=channel)
 
-    @hybrid_group()
-    @default_permissions(administrator=True)
+    @group()
     async def levelsettings(self, ctx: CustomContext) -> None:
         pass
 
@@ -213,7 +192,6 @@ class Levels(commands.Cog):
         usage="[Channel]",
     )
     @commands.has_permissions(administrator=True)
-    @describe(channel="The channel all level-up notofications will be redirected to.")
     async def redirect(
             self,
             ctx: CustomContext,
@@ -240,7 +218,7 @@ class Levels(commands.Cog):
         )
         await ctx.send("Settings updated.", ephemeral=True)
 
-    @hybrid_command()
+    @command()
     async def rank(self, ctx: CustomContext, *, user: Optional[discord.Member]) -> None:
         """Displays your current rank."""
         await ctx.defer(ephemeral=True)
@@ -252,9 +230,8 @@ class Levels(commands.Cog):
         else:
             await UserLevelMenu(user_level).start(ctx, ephemeral=True)
 
-    @hybrid_command()
+    @command()
     @guild_only()
-    @ac_guild_only()
     async def leaderboard(self, ctx: CustomContext) -> None:
         """Displays the level of all members of the server relative to each other."""
         await ctx.defer()
@@ -271,7 +248,7 @@ class Levels(commands.Cog):
             ctx.guild,
         )
 
-        await menus.ViewMenuPages(source=source).start(ctx)
+        await menus.ReactionMenuPages(source=source).start(ctx)
 
 
 async def setup(bot: BOT_TYPES) -> None:

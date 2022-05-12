@@ -7,9 +7,8 @@ from typing import Optional
 import discord
 from aiohttp import ClientSession
 from discord import File
-from discord.app_commands import describe
 from discord.ext import commands, tasks
-from discord.ext.commands import hybrid_command
+from discord.ext.commands import command
 from youtube_dl import YoutubeDL
 
 from utils.attachments import MediaTooLong
@@ -69,12 +68,11 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
     async def reassemble_downloader(self) -> None:
         await get_running_loop().run_in_executor(None, self.assemble_downloader)
 
-    @hybrid_command()
+    @command()
     @commands.cooldown(2, 120, commands.BucketType.channel)
     @commands.cooldown(1, 120, commands.BucketType.user)
     @commands.cooldown(3, 120, commands.BucketType.guild)
     @commands.cooldown(5, 360, commands.BucketType.default)
-    @describe(query="The query for youtubedl")
     async def download(
             self,
             ctx: CustomContext,

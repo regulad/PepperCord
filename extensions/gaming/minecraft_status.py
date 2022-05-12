@@ -5,9 +5,8 @@ from typing import Optional, List
 import discord
 import mcstatus
 from aiohttp import ClientSession
-from discord.app_commands import describe
 from discord.ext import commands
-from discord.ext.commands import hybrid_command
+from discord.ext.commands import command
 
 from utils.bots import BOT_TYPES, CustomContext
 
@@ -40,8 +39,7 @@ class Minecraft(commands.Cog):
     async def cog_unload(self) -> None:
         await self.aiohttp_cs.close()
 
-    @hybrid_command()
-    @describe(server="The Minecraft: Java Edition server to query.")
+    @command()
     async def javaserver(
             self,
             ctx: CustomContext,
@@ -133,8 +131,7 @@ class Minecraft(commands.Cog):
 
         await ctx.send(embed=embed, file=file, ephemeral=True)
 
-    @hybrid_command()
-    @describe(server="The Minecraft: Bedrock Edition server to query.")
+    @command()
     async def bedrockserver(
             self,
             ctx: CustomContext,

@@ -28,7 +28,7 @@ class GuildsMenuList(menus.ListPageSource):
         return base_embed
 
 
-class ShardMenu(menus.ViewMenu):
+class ShardMenu(menus.ReactionMenu):
     def __init__(
             self,
             shard_info,
@@ -105,7 +105,7 @@ class OwnerUtils(commands.Cog):
     @commands.command()
     async def guilds(self, ctx: bots.CustomContext) -> None:
         """List all the guilds the bot is in."""
-        await menus.ViewMenuPages(
+        await menus.ReactionMenuPages(
             GuildsMenuList(sorted(ctx.bot.guilds, key=lambda g: g.me.joined_at), per_page=10)
         ).start(
             ctx, ephemeral=True

@@ -339,12 +339,12 @@ class Nekos(commands.Cog):
             question: Optional[str] = None,
     ) -> None:
         """Use the magic 8 ball!"""
-        await ctx.defer()
-        eightball_resposne = await self.nekos_life_client.random_8ball(question)
-        eightball_embed: discord.Embed = discord.Embed(
-            title=eightball_resposne.text.title(), color=discord.Colour.blurple()
-        ).set_image(url=eightball_resposne.image_url)
-        await ctx.send(embed=eightball_embed)
+        async with ctx.typing():
+            eightball_resposne = await self.nekos_life_client.random_8ball(question)
+            eightball_embed: discord.Embed = discord.Embed(
+                title=eightball_resposne.text.title(), color=discord.Colour.blurple()
+            ).set_image(url=eightball_resposne.image_url)
+            await ctx.send(embed=eightball_embed)
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
@@ -358,11 +358,11 @@ class Nekos(commands.Cog):
             add_author: bool = False,
     ) -> None:
         """Shows a sampler of all the NSFW image tags."""
-        await ctx.defer(ephemeral=True)
-        thread: discord.Thread = await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.NSFW, add_author
-        )
-        await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            thread: discord.Thread = await send_sampler(
+                ctx, self.nekos_life_client, NSFWType.NSFW, add_author
+            )
+            await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
@@ -375,11 +375,11 @@ class Nekos(commands.Cog):
             add_author: bool = False,
     ) -> None:
         """Shows a sampler of all the SFW image tags."""
-        await ctx.defer(ephemeral=True)
-        thread: discord.Thread = await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.SFW, add_author
-        )
-        await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            thread: discord.Thread = await send_sampler(
+                ctx, self.nekos_life_client, NSFWType.SFW, add_author
+            )
+            await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
@@ -392,11 +392,11 @@ class Nekos(commands.Cog):
             add_author: bool = False,
     ) -> None:
         """Shows a sampler of all the images."""
-        await ctx.defer(ephemeral=True)
-        thread: discord.Thread = await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.REAL_SFW, add_author
-        )
-        await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            thread: discord.Thread = await send_sampler(
+                ctx, self.nekos_life_client, NSFWType.REAL_SFW, add_author
+            )
+            await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
 
     @nekos.command()
     @describe(text="The text to be owoifyed.")
@@ -407,14 +407,14 @@ class Nekos(commands.Cog):
             text: str,
     ) -> None:
         """Owoify your text!"""
-        await ctx.defer()
-        await ctx.send((await self.nekos_life_client.owoify(text)).text)
+        async with ctx.typing():
+            await ctx.send((await self.nekos_life_client.owoify(text)).text)
 
     @nekos.command()
     async def fact(self, ctx: CustomContext) -> None:
         """Get a neat fact!"""
-        await ctx.defer()
-        await ctx.send(f'*"{(await self.nekos_life_client.random_fact_text()).text}"*')
+        async with ctx.typing():
+            await ctx.send(f'*"{(await self.nekos_life_client.random_fact_text()).text}"*')
 
 
 async def setup(bot: BOT_TYPES) -> None:

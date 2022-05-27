@@ -243,35 +243,33 @@ class Levels(commands.Cog):
     @hybrid_command()
     async def rank(self, ctx: CustomContext, *, user: Optional[discord.Member]) -> None:
         """Displays your current rank."""
-        await ctx.defer(ephemeral=True)
-
-        user: discord.Member = user or ctx.author
-        user_level: Optional[UserLevel] = await UserLevel.get_user(self.bot, user)
-        if user_level is None:
-            await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
-        else:
-            await UserLevelMenu(user_level).start(ctx, ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            user: discord.Member = user or ctx.author
+            user_level: Optional[UserLevel] = await UserLevel.get_user(self.bot, user)
+            if user_level is None:
+                await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
+            else:
+                await UserLevelMenu(user_level).start(ctx, ephemeral=True)
 
     @hybrid_command()
     @guild_only()
     @ac_guild_only()
     async def leaderboard(self, ctx: CustomContext) -> None:
         """Displays the level of all members of the server relative to each other."""
-        await ctx.defer()
+        async with ctx.typing():
+            member_xps = []
 
-        member_xps = []
+            for member in ctx.guild.members:
+                xp = await UserLevel.get_user(ctx.bot, member)
+                if xp is not None:
+                    member_xps.append(xp)
 
-        for member in ctx.guild.members:
-            xp = await UserLevel.get_user(ctx.bot, member)
-            if xp is not None:
-                member_xps.append(xp)
+            source = LevelSource(
+                sorted(member_xps, key=operator.attrgetter("xp"), reverse=True),
+                ctx.guild,
+            )
 
-        source = LevelSource(
-            sorted(member_xps, key=operator.attrgetter("xp"), reverse=True),
-            ctx.guild,
-        )
-
-        await menus.ViewMenuPages(source=source).start(ctx)
+            await menus.ViewMenuPages(source=source).start(ctx)
 
 
 async def setup(bot: BOT_TYPES) -> None:

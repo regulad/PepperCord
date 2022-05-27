@@ -157,10 +157,10 @@ class TopGGWebhook(commands.Cog, name="Voting"):
             user: discord.Member,
     ) -> None:
         """Shows you your voting stats."""
-        await ctx.defer(ephemeral=True)
-        document: database.Document = await self.bot.get_user_document(user)
+        async with ctx.typing(ephemeral=True):
+            document: database.Document = await self.bot.get_user_document(user)
 
-        await VotesMenu(document, user).start(ctx, ephemeral=True)
+            await VotesMenu(document, user).start(ctx, ephemeral=True)
 
 
 class TopGG(commands.Cog):
@@ -192,12 +192,12 @@ class TopGG(commands.Cog):
     @topgg.command()
     async def totalvotes(self, ctx: bots.CustomContext) -> None:
         """Shows the total amount of votes the bot as accumulated."""
-        await ctx.defer(ephemeral=True)
-        bot_info: BotData = await self.topggpy.get_bot_info()
-        await ctx.send(
-            f"{ctx.bot.user.name} has received {bot_info['points']} votes on Top.gg. Why don't you make it {int(bot_info['points']) + 1}?",
-            ephemeral=True,
-        )
+        async with ctx.typing(ephemeral=True):
+            bot_info: BotData = await self.topggpy.get_bot_info()
+            await ctx.send(
+                f"{ctx.bot.user.name} has received {bot_info['points']} votes on Top.gg. Why don't you make it {int(bot_info['points']) + 1}?",
+                ephemeral=True,
+            )
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

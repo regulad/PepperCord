@@ -312,11 +312,11 @@ class Starboard(commands.Cog):
             *,
             channel: discord.TextChannel,
     ) -> None:
-        await ctx.defer(ephemeral=True)
-        for pin in (await channel.pins())[::-1]:
-            await send_star(ctx["guild_document"], pin, ctx.bot)
-            await asyncio.sleep(1)  # Prevents rate-limiting
-        await ctx.send("Done moving pins!", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            for pin in (await channel.pins())[::-1]:
+                await send_star(ctx["guild_document"], pin, ctx.bot)
+                await asyncio.sleep(1)  # Prevents rate-limiting
+            await ctx.send("Done moving pins!", ephemeral=True)
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

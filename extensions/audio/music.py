@@ -32,21 +32,21 @@ class Music(Cog):
             query: str,
     ) -> None:
         """Plays a video from YouTube, or from another place with a URL."""
-        await ctx.defer()
-        query: str = query if str_is_url(query) else f"ytsearch:{query}"
+        async with ctx.typing():
+            query: str = query if str_is_url(query) else f"ytsearch:{query}"
 
-        ytdl_sources: list[YTDLSource] = await YTDLSource.from_url(
-            self._file_downloader, query, ctx.author, loop=ctx.voice_client.loop
-        )
-        for source in ytdl_sources:
-            await ctx.voice_client.queue.put(source)
+            ytdl_sources: list[YTDLSource] = await YTDLSource.from_url(
+                self._file_downloader, query, ctx.author, loop=ctx.voice_client.loop
+            )
+            for source in ytdl_sources:
+                await ctx.voice_client.queue.put(source)
 
-        if len(ytdl_sources) == 1:
-            await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
-        else:
-            await ViewMenuPages(
-                QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
-            ).start(ctx)
+            if len(ytdl_sources) == 1:
+                await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
+            else:
+                await ViewMenuPages(
+                    QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
+                ).start(ctx)
 
     @hybrid_command(aliases=["pt"])
     @guild_only()
@@ -59,24 +59,24 @@ class Music(Cog):
             query: str,
     ) -> None:
         """Plays a song at the top of the queue."""
-        await ctx.defer()
-        query: str = query if str_is_url(query) else f"ytsearch:{query}"
+        async with ctx.typing():
+            query: str = query if str_is_url(query) else f"ytsearch:{query}"
 
-        ytdl_sources: list[YTDLSource] = await YTDLSource.from_url(
-            self._file_downloader, query, ctx.author, loop=ctx.voice_client.loop
-        )
-        for source in ytdl_sources:
-            if len(ctx.voice_client.queue.deque) > 1:
-                ctx.voice_client.queue.deque.appendleft(source)
+            ytdl_sources: list[YTDLSource] = await YTDLSource.from_url(
+                self._file_downloader, query, ctx.author, loop=ctx.voice_client.loop
+            )
+            for source in ytdl_sources:
+                if len(ctx.voice_client.queue.deque) > 1:
+                    ctx.voice_client.queue.deque.appendleft(source)
+                else:
+                    await ctx.voice_client.queue.put(source)
+
+            if len(ytdl_sources) == 1:
+                await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
             else:
-                await ctx.voice_client.queue.put(source)
-
-        if len(ytdl_sources) == 1:
-            await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
-        else:
-            await ViewMenuPages(
-                QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
-            ).start(ctx)
+                await ViewMenuPages(
+                    QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
+                ).start(ctx)
 
 
 async def setup(bot: BOT_TYPES) -> None:

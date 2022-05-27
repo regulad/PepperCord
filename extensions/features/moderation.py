@@ -67,12 +67,12 @@ class Moderation(commands.Cog):
     @commands.is_owner()
     async def nopunish(self, ctx: bots.CustomContext):
         """Clears all previous punishments."""
-        await ctx.defer(ephemeral=True)
-        for guild in ctx.bot.guilds:
-            await (await ctx.bot.get_guild_document(guild)).update_db(
-                {"$unset": {"punishments": 1}}
-            )
-        await ctx.send("Done.")
+        async with ctx.typing():
+            for guild in ctx.bot.guilds:
+                await (await ctx.bot.get_guild_document(guild)).update_db(
+                    {"$unset": {"punishments": 1}}
+                )
+            await ctx.send("Done.")
 
     @hybrid_command(aliases=["pu", "del"])
     @commands.has_permissions(manage_messages=True)

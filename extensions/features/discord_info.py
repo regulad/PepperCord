@@ -181,59 +181,59 @@ class DiscordInfo(commands.Cog):
     @hybrid_command()
     async def botinfo(self, ctx: bots.CustomContext) -> None:
         """Displays information about the bot and the machine it's running on, as well as an invitation link."""
-        await ctx.defer(ephemeral=True)
 
-        try:
-            base = ctx.bot.config.get(
-                "PEPPERCORD_WEB", "https://www.regulad.xyz/PepperCord"
-            )
-            embed: discord.Embed = (
-                discord.Embed(
-                    colour=discord.Colour.orange(),
-                    title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
-                    description=f"**Important Links**: "
-                                f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
-                                f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
-                                f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
+        async with ctx.typing(ephemeral=True):
+            try:
+                base = ctx.bot.config.get(
+                    "PEPPERCORD_WEB", "https://www.regulad.xyz/PepperCord"
                 )
-                    .set_thumbnail(url=ctx.bot.user.avatar.url)
-                    .add_field(
-                    name="Invite:",
-                    value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
-                    inline=False,
+                embed: discord.Embed = (
+                    discord.Embed(
+                        colour=discord.Colour.orange(),
+                        title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
+                        description=f"**Important Links**: "
+                                    f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
+                                    f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
+                                    f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
+                    )
+                        .set_thumbnail(url=ctx.bot.user.avatar.url)
+                        .add_field(
+                        name="Invite:",
+                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
+                        inline=False,
+                    )
+                        .add_field(
+                        name="Bot status:",
+                        value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
+                    )
+                        .add_field(
+                        name="System resources:",
+                        value=f"Memory: "
+                              f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
+                              f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
+                              f"({psutil.virtual_memory().percent}%)"
+                              f"\nCPU: {platform.processor()} running at "
+                              f"{round(psutil.cpu_freq().current) / 1000}GHz, "
+                              f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
+                              f"{psutil.cpu_count(logical=False)} physical cores",
+                    )
                 )
-                    .add_field(
-                    name="Bot status:",
-                    value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
+                if GIT_REPO.active_branch is not None:
+                    embed.add_field(
+                        name="Versions:",
+                        value=f"OS: {platform.system()} (`{platform.release()}`)"
+                              f"\nPython: `{version}`"
+                              f"\ndiscord.py: `{discord.__version__}`"
+                              f"\nBot Version: `{GIT_REPO.active_branch.name}` (`{GIT_REPO.active_branch.commit}`)",
+                        inline=False,
+                    )
+            except psutil.Error:
+                await ctx.send(
+                    "Had trouble fetching information about the bot. Try again later."
                 )
-                    .add_field(
-                    name="System resources:",
-                    value=f"Memory: "
-                          f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
-                          f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
-                          f"({psutil.virtual_memory().percent}%)"
-                          f"\nCPU: {platform.processor()} running at "
-                          f"{round(psutil.cpu_freq().current) / 1000}GHz, "
-                          f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
-                          f"{psutil.cpu_count(logical=False)} physical cores",
-                )
-            )
-            if GIT_REPO.active_branch is not None:
-                embed.add_field(
-                    name="Versions:",
-                    value=f"OS: {platform.system()} (`{platform.release()}`)"
-                          f"\nPython: `{version}`"
-                          f"\ndiscord.py: `{discord.__version__}`"
-                          f"\nBot Version: `{GIT_REPO.active_branch.name}` (`{GIT_REPO.active_branch.commit}`)",
-                    inline=False,
-                )
-        except psutil.Error:
-            await ctx.send(
-                "Had trouble fetching information about the bot. Try again later."
-            )
-        else:
-            await ctx.send(embed=embed, ephemeral=True)
-            await ctx.invoke(self.whois, user=ctx.bot.user)
+            else:
+                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.invoke(self.whois, user=ctx.bot.user)
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

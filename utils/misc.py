@@ -4,9 +4,26 @@ import string
 from datetime import timedelta, datetime
 from typing import Mapping
 
+from discord import Status
 
-def split_string_chunks(string: str, chunk_size: int = 2000) -> list[str]:
-    return [string[i: i + chunk_size] for i in range(0, len(string), chunk_size)]
+
+def split_iter_chunks(iterable: list, chunk_size: int = 2000) -> list[str]:
+    return [iterable[i: i + chunk_size] for i in range(0, len(iterable), chunk_size)]
+
+
+def status_breakdown(desktop_status: Status, mobile_status: Status, web_status: Status) -> str | None:
+    strings: list[str] = []
+
+    if desktop_status is not Status.offline:
+        strings.append(f"Desktop: `{str(desktop_status).title()}`")
+
+    if mobile_status is not Status.offline:
+        strings.append(f"Mobile: `{str(mobile_status).title()}`")
+
+    if web_status is not Status.offline:
+        strings.append(f"Web: `{str(web_status).title()}`")
+
+    return ", ".join(strings) if strings else None
 
 
 def get_list_of_files_in_base(basedir: str) -> list[str]:
@@ -94,11 +111,12 @@ class FrozenDict(Mapping):
 UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()
 
 __all__: list[str] = [
-    "split_string_chunks",
+    "split_iter_chunks",
     "FrozenDict",
     "is_module",
     "get_list_of_files_in_base",
     "get_python_modules",
     "random_string",
     "UTC_OFFSET",
+    "status_breakdown",
 ]

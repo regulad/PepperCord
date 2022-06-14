@@ -5,7 +5,7 @@ import discord
 
 from utils import bots
 from utils.database import Document
-from utils.misc import split_string_chunks
+from utils.misc import split_iter_chunks
 
 
 async def get_or_create_namespaced_webhook(
@@ -111,7 +111,7 @@ async def filter_message(
 
     if len(filtered_message) > 2000:
         webhook_message: Optional[discord.WebhookMessage] = None
-        for message_fragment in split_string_chunks(filtered_message, chunk_size=2000):
+        for message_fragment in split_iter_chunks(filtered_message, chunk_size=2000):
             await resend_as_webhook(webhook, message, content=message_fragment)
     else:
         webhook_message: Optional[discord.WebhookMessage] = await resend_as_webhook(

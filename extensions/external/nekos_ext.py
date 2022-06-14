@@ -10,7 +10,7 @@ from discord.ext.commands import Context, hybrid_group
 
 from utils import bots, webhook
 from utils.bots import BOT_TYPES, CustomContext
-from utils.misc import split_string_chunks
+from utils.misc import split_iter_chunks
 
 
 class NSFWType(Enum):
@@ -110,7 +110,7 @@ class Nekos(commands.Cog):
         return "".join(
             [
                 (await self.nekos_life_client.owoify(fragment)).text
-                for fragment in split_string_chunks(owoify, chunk_size=199)
+                for fragment in split_iter_chunks(owoify, chunk_size=199)
             ]
         )
 

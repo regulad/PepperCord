@@ -14,6 +14,7 @@ from git import Repo
 
 from utils import bots
 from utils.bots import CustomContext
+from utils.misc import status_breakdown
 
 WHOIS_CM_NAME: str = "Get User Information"
 
@@ -124,8 +125,12 @@ class DiscordInfo(commands.Cog):
                 value=f"<t:{user.created_at.timestamp():.0f}:R>",
             )
         )
+        after_breakdown: str = status_breakdown(user.desktop_status, user.mobile_status, user.web_status)
         if isinstance(user, discord.Member):
-            embed = embed.insert_field_at(0, name="Status:", value=f"{user.status}")
+            embed = embed.insert_field_at(
+                0,
+                name="Status:", value=f"{user.status}{f' ({after_breakdown})' if after_breakdown else ''}"
+            )
             if user.name != user.display_name:
                 embed = embed.insert_field_at(
                     0, name="Nickname:", value=user.display_name

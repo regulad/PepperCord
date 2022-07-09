@@ -6,9 +6,8 @@ https://github.com/regulad/PepperCord
 import locale
 import logging
 import os
-import traceback
-from asyncio import run, gather, AbstractEventLoop, get_event_loop, Task
-from typing import Optional, Type, MutableMapping, Any, Coroutine
+from asyncio import run, gather, AbstractEventLoop, get_event_loop
+from typing import Optional, Type, MutableMapping, Coroutine
 
 import art
 import discord
@@ -89,27 +88,13 @@ async def async_main() -> None:
         activity=Game("PepperCord"),
     )
 
-    client_logger: logging.Logger = logging.getLogger(discord.client.__name__)
-
-    async def on_error(event_method: str, *args: Any, **kwargs: Any) -> None:
-        client_logger.critical(f"Ignoring exception in {event_method}")
-        client_logger.critical(traceback.format_exc())
-
-    logging.info("Replacing error handler...")
-
-    bot.on_error = on_error
-
-    logging.info("Done.")
-
     logging.info("Loading extensions...")
     extension_coros: list[Coroutine] = [
         bot.load_extension(ext) for ext in misc.get_python_modules("extensions")
     ]
     extension_coros.append(bot.load_extension("jishaku"))
 
-    tasks: list[Task] = [loop.create_task(coro) for coro in extension_coros]
-
-    await gather(*tasks)
+    await gather(*extension_coros)
     logging.info("Done.")
 
     logging.info("Ready.")

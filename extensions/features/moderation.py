@@ -87,8 +87,11 @@ class Moderation(commands.Cog):
             messages: int,
     ) -> None:
         """Deletes a set amount of messages from a channel."""
-        await ctx.channel.purge(limit=messages)
-        await ctx.send("Deleted.", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            if ctx.interaction is None:
+                await ctx.message.delete()
+            await ctx.channel.purge(limit=messages, reason=f"Requested by {ctx.author}.")
+            await ctx.send("Deleted.", ephemeral=True, delete_after=5)
 
     @hybrid_command(aliases=["tb"])
     @commands.has_permissions(ban_members=True)

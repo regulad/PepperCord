@@ -46,7 +46,7 @@ async def send_star(
     ).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
         url=message.jump_url,
-        icon_url=(message.author.guild_avatar or message.author.avatar).url,
+        icon_url=message.author.display_icon.url,
     )
 
     try:
@@ -171,14 +171,14 @@ class Starboard(commands.Cog):
 
         embed = (
             discord.Embed(title="Starboard Config")
-                .add_field(
+            .add_field(
                 name="Channel:",
                 value=ctx.guild.get_channel(
                     ctx["guild_document"]["starboard"]["channel"]
                 ).mention,
             )
-                .add_field(name="Emoji:", value=emoji)
-                .add_field(
+            .add_field(name="Emoji:", value=emoji)
+            .add_field(
                 name="Threshold:",
                 value=ctx["guild_document"]["starboard"].get("threshold", 3),
             )

@@ -35,7 +35,9 @@ class Categories(Cog):
     @Cog.listener()
     async def on_message(self, message: Message) -> None:
         ctx: CustomContext = await self.bot.get_context(message)
-        if ctx.channel.category is not None \
+        if ctx.guild is not None and \
+                ctx.channel.category is not None \
+                and hasattr(ctx.channel, "position") \
                 and (ctx.channel.category.id in ctx["guild_document"].get("autosort_categories", [])):
             await ctx.channel.edit(position=ctx.channel.category.position)
 

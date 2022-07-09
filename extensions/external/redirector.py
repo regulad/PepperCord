@@ -203,15 +203,15 @@ class Redirector(Cog):
                     title="Result",
                     description=f"Regarding campaign ID `{logged_event.link_id}`",
                 )
-                    .add_field(
+                .add_field(
                     name="Redirected to:",
                     value=f"[{logged_event.redirected_to}]({logged_event.redirected_to})",
                 )
-                    .add_field(
+                .add_field(
                     name="Redirected at:",
                     value=f"<t:{floor((logged_event.redirected_at - UTC_OFFSET).timestamp())}>",
                 )
-                    .add_field(name="IP Address:", value=f"`{logged_event.remote}`")
+                .add_field(name="IP Address:", value=f"`{logged_event.remote}`")
             )
 
             if logged_event.user_agent is not None:

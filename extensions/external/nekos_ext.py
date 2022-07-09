@@ -73,10 +73,10 @@ async def send_sampler(
             tag_type = RealSFWImageTags
 
     message: discord.Message = await ctx.channel.send(
-        f"**{nsfw_type.name.replace('_', ' ').title()} Results**"
+        f"**{nsfw_type.name.replace('_', ' ').upper()} Results**"
     )
     thread: discord.Thread = await message.create_thread(
-        name=f"{nsfw_type.name.replace('_', ' ').title()} Results"
+        name=f"{nsfw_type.name.replace('_', ' ').upper()} Results"
     )
     if add_author:
         await thread.add_user(ctx.author)
@@ -209,87 +209,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
-    @commands.is_nsfw()
-    @describe(
-        quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        tag="The tag you want to search. You can see all options if you leave this blank.",
-    )
-    async def nsfw(
-            self,
-            ctx: CustomContext,
-            quantity: Literal[tuple(range(1, 11))] = None,
-            *,
-            tag: Optional[NSFWNekosTagConverter] = None,
-    ) -> None:
-        """Pull an NSFW image from nekos.life."""
-        if tag is not None:
-            if quantity > 10:
-                raise RuntimeError("Too many images!")
-            await ctx.send(
-                "\n".join(
-                    [
-                        (
-                            await self.nekos_life_client.image(cast(NSFWImageTags, tag))
-                        ).url
-                        for _ in range(1, quantity + 1)
-                    ]
-                ),
-            )
-        else:
-            await ctx.send(
-                embed=discord.Embed(
-                    title="Tags",
-                    description="\n".join(
-                        [
-                            f"* {tag.title().replace('_', ' ')}"
-                            for tag in NSFWImageTags.__members__.keys()
-                        ]
-                    ),
-                ),
-            )
-
-    @nekos.command()
-    @commands.cooldown(3, 120, commands.BucketType.channel)
-    @describe(
-        quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        tag="The tag you want to search. You can see all options if you leave this blank.",
-    )
-    async def sfw(
-            self,
-            ctx: CustomContext,
-            quantity: Literal[tuple(range(1, 11))] = None,
-            *,
-            tag: Optional[SFWNekosTagConverter] = None,
-    ) -> None:
-        """Pull an SFW image from nekos.life."""
-        if tag is not None:
-            if quantity > 10:
-                raise RuntimeError("Too many images!")
-            await ctx.send(
-                "\n".join(
-                    [
-                        (
-                            await self.nekos_life_client.image(cast(SFWImageTags, tag))
-                        ).url
-                        for _ in range(1, quantity + 1)
-                    ]
-                ),
-            )
-        else:
-            await ctx.send(
-                embed=discord.Embed(
-                    title="Tags",
-                    description="\n".join(
-                        [
-                            f"* {tag.title().replace('_', ' ')}"
-                            for tag in SFWImageTags.__members__.keys()
-                        ]
-                    ),
-                ),
-            )
-
-    @nekos.command()
-    @commands.cooldown(3, 120, commands.BucketType.channel)
     @describe(
         quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
         tag="The tag you want to search. You can see all options if you leave this blank.",
@@ -299,7 +218,7 @@ class Nekos(commands.Cog):
             ctx: CustomContext,
             quantity: Literal[tuple(range(1, 11))] = None,
             *,
-            tag: Optional[TagConverter] = None,
+            tag: Optional[str] = None,
     ) -> None:
         """Pull an image from nekos.life."""
         if tag is not None:
@@ -308,11 +227,7 @@ class Nekos(commands.Cog):
             await ctx.send(
                 "\n".join(
                     [
-                        (
-                            await self.nekos_life_client.image(
-                                cast(RealSFWImageTags, tag)
-                            )
-                        ).url
+                        (await self.nekos_life_client.image(tag)).url
                         for _ in range(1, quantity + 1)
                     ]
                 ),

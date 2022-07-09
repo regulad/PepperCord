@@ -49,13 +49,7 @@ async def impersonate(
 ) -> Optional[discord.WebhookMessage]:
     if kwargs.get("avatar_url") is None:
         kwargs["avatar_url"] = (
-            (
-                victim.guild_avatar.url
-                if victim.guild_avatar is not None
-                else victim.avatar.url
-            )
-            if hasattr(victim, "guild_avatar")
-            else victim.avatar.url
+            victim.display_avatar.url
         )
     if kwargs.get("username") is None:
         kwargs["username"] = victim.display_name

@@ -414,11 +414,7 @@ class FiveNightsAtFreddys(commands.Cog):
                 color=user.color,
             )
             embed.set_thumbnail(
-                url=(
-                    user.guild_avatar.url
-                    if user.guild_avatar is not None
-                    else user.avatar.url
-                )
+                url=user.display_icon.url
             )
             await ctx.send(embed=embed)
 

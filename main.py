@@ -11,7 +11,7 @@ from typing import Optional, Type, MutableMapping, Coroutine
 
 import art
 import discord
-from discord import Object, Game
+from discord import Object, Game, Forbidden
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -117,8 +117,10 @@ async def async_main() -> None:
                 logging.info("Finished syncing guild commands.")
             elif bot.config.get("PEPPERCORD_SLASH_COMMANDS") is None:
                 await bot.tree.sync()
-                for guild in bot.guilds:  # THIS is the reason this cannot be a setup hook. It must be after the bot is ready, and the guilds are populated.
-                    await bot.tree.sync(guild=guild)
+                try:
+                    await gather(*[bot.tree.sync(guild=guild) for guild in bot.guilds])
+                except Forbidden:
+                    pass
                 logging.info("Synced global commands.")
 
         await bot.start(config_source["PEPPERCORD_TOKEN"])

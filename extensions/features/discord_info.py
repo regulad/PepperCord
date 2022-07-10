@@ -59,10 +59,14 @@ class DiscordInfo(commands.Cog):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
-        self.activity_update.start()
-
     def cog_unload(self) -> None:
-        self.activity_update.stop()
+        if self.activity_update.is_running():
+            self.activity_update.stop()
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        await sleep(10)
+        self.activity_update.start()
 
     async def cog_load(self) -> None:
         self.bot.tree.add_command(whois_cm)

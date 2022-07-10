@@ -46,7 +46,7 @@ async def send_star(
     ).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
         url=message.jump_url,
-        icon_url=message.author.display_icon.url,
+        icon_url=message.author.display_avatar.url,
     )
 
     try:
@@ -78,20 +78,7 @@ async def pin_cm(interaction: Interaction, message: Message) -> None:
     """Pins a message to the starboard. You must link to the message."""
 
     ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    try:
-        message: discord.Message = await send_star(
-            ctx["guild_document"], message, ctx.bot
-        )
-        await ctx.send(
-            f"Your pinned message can now be found at {message.jump_url}",
-            ephemeral=True,
-        )
-    except AlreadyPinned:
-        await ctx.send(
-            "This message is already pinned to the starboard.", ephemeral=True
-        )
-    except bots.NotConfigured:
-        await ctx.send("This server has not configured the starboard.", ephemeral=True)
+    await ctx.invoke(ctx.bot.get_command("starboard pin"), message)
 
 
 class Starboard(commands.Cog):
@@ -186,7 +173,7 @@ class Starboard(commands.Cog):
 
         await ctx.send(embed=embed, ephemeral=True)
 
-    @starboard.group(fallback="status", aliases=["sbconf"])
+    @starboard.group(name="config", fallback="status", aliases=["sbconf"])
     @commands.has_permissions(administrator=True)
     @guild_only()
     async def sbconfig(self, ctx: bots.CustomContext) -> None:
@@ -314,8 +301,10 @@ class Starboard(commands.Cog):
     ) -> None:
         async with ctx.typing(ephemeral=True):
             for pin in (await channel.pins())[::-1]:
-                await send_star(ctx["guild_document"], pin, ctx.bot)
-                await asyncio.sleep(1)  # Prevents rate-limiting
+                try:
+                    await send_star(ctx["guild_document"], pin, ctx.bot)
+                except AlreadyPinned:
+                    continue
             await ctx.send("Done moving pins!", ephemeral=True)
 
 

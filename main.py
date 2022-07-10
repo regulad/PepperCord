@@ -85,7 +85,7 @@ async def async_main() -> None:
         config=os.environ,
         shard_count=shards,
         loop=loop,
-        activity=Game("PepperCord"),
+        activity=Game("Starting PepperCord..."),
     )
 
     logging.info("Loading extensions...")

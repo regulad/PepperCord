@@ -5,7 +5,6 @@ import random
 from typing import Union, Optional
 
 import discord
-from discord import Interaction, Member, AppCommandType
 from discord.ext import commands, menus
 from discord.ext.commands import group, command, guild_only
 

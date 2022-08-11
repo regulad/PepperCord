@@ -2,7 +2,8 @@ import abc
 from typing import Dict, Any, Optional, cast, TYPE_CHECKING, Coroutine
 
 import discord
-from discord import Interaction, Message, NotFound
+from discord import Message
+from discord.context_managers import Typing
 from discord.ext import commands
 
 from .audio import *
@@ -67,6 +68,9 @@ class CustomContext(commands.Context):
             self, *, ephemeral: bool = False, trigger_typing: bool = True
     ) -> None:
         await super().channel.trigger_typing()
+
+    def typing(self, ephemeral: bool = False) -> Typing:
+        return super().typing()
 
     def send(self, *args, **kwargs) -> Coroutine[Any, Any, Message]:
         return self.send_handler.send(*args, **kwargs)

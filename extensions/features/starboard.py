@@ -1,8 +1,6 @@
-import asyncio
 from typing import Optional, cast
 
 import discord
-from discord import Interaction, Message, AppCommandType
 from discord.ext import commands
 from discord.ext.commands import (
     group,
@@ -13,7 +11,6 @@ from discord.ext.commands import (
 
 from utils import bots, database
 from utils.attachments import find_url, NoMedia
-from utils.bots import CustomContext
 
 
 class AlreadyPinned(RuntimeError):

@@ -1,6 +1,5 @@
 from discord import CategoryChannel, Embed, Message
-from discord.app_commands import default_permissions, guild_only as ac_guild_only, describe
-from discord.ext.commands import Cog, hybrid_group, bot_has_permissions, has_permissions, guild_only
+from discord.ext.commands import Cog, bot_has_permissions, has_permissions, guild_only, group
 from discord.ext.menus import ListPageSource, ViewMenuPages
 
 from utils.bots import BOT_TYPES, CustomContext
@@ -41,12 +40,10 @@ class Categories(Cog):
                 and (ctx.channel.category.id in ctx["guild_document"].get("autosort_categories", [])):
             await ctx.channel.edit(position=ctx.channel.category.position)
 
-    @hybrid_group(fallback="list")
+    @group(fallback="list")
     @bot_has_permissions(manage_channels=True)
     @has_permissions(manage_channels=True)
-    @default_permissions(manage_channels=True)
     @guild_only()
-    @ac_guild_only()
     async def autosort(self, ctx: CustomContext) -> None:
         """
         Lists all categories registered for AutoSorting.
@@ -72,7 +69,6 @@ class Categories(Cog):
     @bot_has_permissions(manage_channels=True)
     @has_permissions(manage_channels=True)
     @guild_only()
-    @describe(category="The category in question.")
     async def add(self, ctx: CustomContext, category: CategoryChannel) -> None:
         """Adds a category to the list of categories with AutoSort."""
         async with ctx.typing(ephemeral=True):
@@ -83,7 +79,6 @@ class Categories(Cog):
     @bot_has_permissions(manage_channels=True)
     @has_permissions(manage_channels=True)
     @guild_only()
-    @describe(category="The category in question.")
     async def remove(self, ctx: CustomContext, category: CategoryChannel) -> None:
         """Removes a category from the list of categories with AutoSort."""
         async with ctx.typing(ephemeral=True):

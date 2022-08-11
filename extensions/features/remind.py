@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 from typing import cast
 
 from discord import Member, Status, Thread, CategoryChannel, TextChannel, ForumChannel, DiscordException
-from discord.app_commands import describe
-from discord.ext.commands import Cog, hybrid_command
+from discord.ext.commands import Cog, command
 from discord.ext.tasks import loop
 
 from utils.bots import BOT_TYPES, CustomContext
@@ -42,7 +41,6 @@ class Remind(Cog):
                     finally:
                         await document.update_db({"$pull": {"remind": reminder}})
 
-
     @Cog.listener()
     async def on_presence_update(self, before: Member, after: Member) -> None:
         document: Document = await self.bot.get_user_document(after)
@@ -54,18 +52,13 @@ class Remind(Cog):
         async with semaphore:
             if after.status is not Status.offline and before.status is Status.offline:
                 for reminder in document.get("remind_online", []).copy():
-                    maybe_channel: None | Thread | ForumChannel | TextChannel | CategoryChannel = after.guild.get_channel_or_thread(reminder["channel"])
+                    maybe_channel: None | Thread | ForumChannel | TextChannel | CategoryChannel = after.guild.get_channel_or_thread(
+                        reminder["channel"])
                     if maybe_channel is not None:
                         await after.send(f"Reminder from {maybe_channel.mention}:\n{reminder['message']}")
                         await document.update_db({"$pull": {"remind_online": reminder}})
 
-
-
-    @hybrid_command()
-    @describe(
-        time="The time between now and when you want to be reminded. (ex. 1d, 1h, 1m, 1s)",
-        message="The message you want to be reminded of. Use $this to replace the message with the message you are replying to. (if applicable)",
-    )
+    @command()
     async def remind(self, ctx: CustomContext, time: TimedeltaShorthand, *, message: str = "$this") -> None:
         """
         Reminds you of something after a certain amount of time.
@@ -73,20 +66,19 @@ class Remind(Cog):
         time: timedelta = cast(timedelta, time)
         if ctx.message.reference is not None:
             message = message.replace("$this", ctx.message.reference.jump_url)
-        await ctx["author_document"].update_db({"$push": {"remind": {"message": message, "channel": ctx.channel.id, "time": datetime.utcnow() + time}}})
+        await ctx["author_document"].update_db(
+            {"$push": {"remind": {"message": message, "channel": ctx.channel.id, "time": datetime.utcnow() + time}}})
         await ctx.send(f"I will remind you in {time}. Leave your DMs open.", ephemeral=True)
 
-    @hybrid_command()
-    @describe(
-        message="The message you want to be reminded of. Use $this to replace the message with the message you are replying to. (if applicable)",
-    )
+    @command()
     async def remind_online(self, ctx: CustomContext, *, message: str = "$this") -> None:
         """
         Reminds you of something when you come online.
         """
         if ctx.message.reference is not None:
             message = message.replace("$this", ctx.message.reference.jump_url)
-        await ctx["author_document"].update_db({"$push": {"remind_online": {"message": message, "channel": ctx.channel.id}}})
+        await ctx["author_document"].update_db(
+            {"$push": {"remind_online": {"message": message, "channel": ctx.channel.id}}})
         await ctx.send(f"I will remind you when you come online next. Leave your DMs open.", ephemeral=True)
 
 

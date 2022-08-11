@@ -11,7 +11,7 @@ from typing import Optional, Type, MutableMapping, Coroutine
 
 import art
 import discord
-from discord import Object, Game, Forbidden
+from discord import Game
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase

@@ -11,41 +11,9 @@ from discord.ext.commands import command
 from git import Repo
 
 from utils import bots
-from utils.bots import CustomContext
 from utils.misc import status_breakdown
 
 WHOIS_CM_NAME: str = "Get User Information"
-
-
-@context_menu(name=WHOIS_CM_NAME)
-async def whois_cm(interaction: Interaction, user: Member | User) -> None:
-    ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    embed = (
-        discord.Embed(
-            colour=user.colour,
-            title=f"All about {user.name}#{user.discriminator}\n({user.id})",
-        )
-            .set_thumbnail(url=user.avatar.url)
-            .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-            .add_field(
-            name="Account creation date:",
-            value=f"<t:{user.created_at.timestamp():.0f}:R>",
-        )
-    )
-    if isinstance(user, discord.Member):
-        embed = embed.insert_field_at(0, name="Status:", value=f"{user.status}")
-        if user.name != user.display_name:
-            embed = embed.insert_field_at(0, name="Nickname:", value=user.display_name)
-        embed = embed.add_field(
-            name="Server join date:",
-            value=f"<t:{user.joined_at.timestamp():.0f}:R>",
-        )
-        if user.premium_since:
-            embed = embed.add_field(
-                name="Server boosting since:",
-                value=f"<t:{user.premium_since.timestamp():.0f}:R>",
-            )
-    await ctx.send(embed=embed, ephemeral=True)
 
 
 GIT_REPO: Repo = Repo()
@@ -65,12 +33,6 @@ class DiscordInfo(commands.Cog):
     async def on_ready(self) -> None:
         await sleep(10)
         self.activity_update.start()
-
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(whois_cm)
-
-    async def cog_unload(self) -> None:
-        self.bot.tree.remove_command(WHOIS_CM_NAME, type=AppCommandType.user)
 
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:

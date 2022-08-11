@@ -1,12 +1,11 @@
-from typing import cast
-
-from discord import Member, Guild, HTTPException, Status, Interaction, AppCommandType
-from discord.ext.commands import Cog, guild_only, group, Greedy, Command
+from discord import Member, Guild, HTTPException, Status
+from discord.ext.commands import Cog, guild_only, group, Greedy
 from discord.utils import escape_markdown
 
 from utils.bots import BOT_TYPES, CustomContext
 from utils.database import Document
 from utils.misc import status_breakdown
+
 
 class StatusWatch(Cog):
     """A set of tools that allows you to watch the status of another user and get notified when it changes."""

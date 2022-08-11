@@ -4,8 +4,6 @@
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)
 
-[![Run on Repl.it](https://user-images.githubusercontent.com/27065646/92304596-bf719b00-ef7f-11ea-987f-2c1f3c323088.png)](https://repl.it/github/regulad/PepperCord)
-
 # About
 
 PepperCord was born out of necessity for a simpler alternative to other utility bots.

@@ -1,11 +1,12 @@
 from random import choice
 
 from discord import Forbidden
+from discord.app_commands import guild_only as ac_guild_only, default_permissions
 from discord.ext.commands import (
     Cog,
     has_permissions,
     bot_has_permissions,
-    hybrid_command,
+    hybrid_command, guild_only,
 )
 
 from utils.bots import BOT_TYPES, CustomContext
@@ -85,20 +86,23 @@ class Regal(Cog):
     @hybrid_command(name="regal", aliases=["regalize"])
     @has_permissions(manage_nicknames=True)
     @bot_has_permissions(manage_nicknames=True)
+    @default_permissions(manage_nicknames=True)
+    @ac_guild_only()
+    @guild_only()
     async def regalize(self, ctx: CustomContext) -> None:
         """Make all the members of the server regal."""
-        await ctx.defer(ephemeral=True)
-        for member in ctx.guild.members:
-            display_name_regal: str = regalize(member.display_name)
-            try:
-                await member.edit(
-                    nick=display_name_regal
-                    if member.display_name != display_name_regal
-                    else regalize(member.name)
-                )
-            except Forbidden:
-                continue
-        await ctx.send("Done!", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            for member in ctx.guild.members:
+                display_name_regal: str = regalize(member.display_name)
+                try:
+                    await member.edit(
+                        nick=display_name_regal
+                        if member.display_name != display_name_regal
+                        else regalize(member.name)
+                    )
+                except Forbidden:
+                    continue
+            await ctx.send("Done!", ephemeral=True)
 
 
 async def setup(bot: BOT_TYPES) -> None:

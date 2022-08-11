@@ -24,8 +24,6 @@ class _DefaultSendHandler(SendHandler):
         if self.ctx.interaction is None:
             if kwargs.get("ephemeral") is not None:
                 del kwargs["ephemeral"]
-            if kwargs.get("return_message") is not None:
-                del kwargs["return_message"]
             if kwargs.get("reference") is None:
                 kwargs["reference"] = self.ctx.message
             return await self.ctx.send_bare(*args, **kwargs)
@@ -38,8 +36,6 @@ class _DefaultSendHandler(SendHandler):
                 except NotFound:
                     if kwargs.get("ephemeral") is not None:
                         del kwargs["ephemeral"]
-                    if kwargs.get("return_message") is not None:
-                        del kwargs["return_message"]
                     return await self.ctx.channel.send(*args, **kwargs)  # Worst case
 
 
@@ -83,20 +79,6 @@ class CustomContext(commands.Context):
             if self.voice_client is not None
             else (await CustomVoiceClient.create(self.author.voice.channel, **kwargs))
         )
-
-    async def defer(
-            self, *, ephemeral: bool = False, trigger_typing: bool = True
-    ) -> None:
-        if self.interaction is not None:
-            try:
-                await super().defer(ephemeral=ephemeral)
-            except discord.NotFound:
-                if self.interaction is not None:
-                    await super().channel.trigger_typing()
-                else:
-                    raise
-        else:
-            await super().channel.trigger_typing()
 
     def send(self, *args, **kwargs) -> Coroutine[Any, Any, Message]:
         return self.send_handler.send(*args, **kwargs)

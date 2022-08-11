@@ -203,15 +203,15 @@ class Redirector(Cog):
                     title="Result",
                     description=f"Regarding campaign ID `{logged_event.link_id}`",
                 )
-                    .add_field(
+                .add_field(
                     name="Redirected to:",
                     value=f"[{logged_event.redirected_to}]({logged_event.redirected_to})",
                 )
-                    .add_field(
+                .add_field(
                     name="Redirected at:",
                     value=f"<t:{floor((logged_event.redirected_at - UTC_OFFSET).timestamp())}>",
                 )
-                    .add_field(name="IP Address:", value=f"`{logged_event.remote}`")
+                .add_field(name="IP Address:", value=f"`{logged_event.remote}`")
             )
 
             if logged_event.user_agent is not None:
@@ -238,54 +238,52 @@ class Redirector(Cog):
         This can be used for IP grabbing, analytics, link shortening, or anything else that needs to be redirected.
         """
 
-        await ctx.defer(ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            link_id: str = link_id or random_string(length=6)
 
-        link_id: str = link_id or random_string(length=6)
+            # Start listening
+            listening_document: Document = await get_listen_doc(
+                get_collection(self.bot), link_id
+            )
+            await listening_document.update_db(
+                {
+                    "$set": {"listening_user": ctx.author.id},
+                    "$currentDate": {"last_checked": True, "created_at": True},
+                }
+            )
 
-        # Start listening
-        listening_document: Document = await get_listen_doc(
-            get_collection(self.bot), link_id
-        )
-        await listening_document.update_db(
-            {
-                "$set": {"listening_user": ctx.author.id},
-                "$currentDate": {"last_checked": True, "created_at": True},
-            }
-        )
+            async with self.client_session.post(
+                    f"{API_URL}{link_id}", data=destination
+            ) as response:
+                if response.status != 201:
+                    raise HTTPException(
+                        response, response.reason
+                    )  # Possibly jank. It should be fine.
 
-        async with self.client_session.post(
-                f"{API_URL}{link_id}", data=destination
-        ) as response:
-            if response.status != 201:
-                raise HTTPException(
-                    response, response.reason
-                )  # Possibly jank. It should be fine.
+            # TODO: Webhook implementation
 
-        # TODO: Webhook implementation
-
-        await ctx.send(
-            f"Campaign link created: <{SHORT_URL}{link_id}>\n"
-            f"Your campaign ID is: `{link_id}`\n"
-            f"Make sure your DMs are open. You will receive notifications there.",
-            ephemeral=True,
-        )
+            await ctx.send(
+                f"Campaign link created: <{SHORT_URL}{link_id}>\n"
+                f"Your campaign ID is: `{link_id}`\n"
+                f"Make sure your DMs are open. You will receive notifications there.",
+                ephemeral=True,
+            )
 
     @ipgrab.command()
     async def all_campaigns(self, ctx: CustomContext) -> None:
         """Lists all the redirector campaigns you are listening to."""
 
-        await ctx.defer(ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            all_campaigns: list[tuple[str, datetime]] = []
 
-        all_campaigns: list[tuple[str, datetime]] = []
+            async for document in get_collection(self.bot).find(
+                    {"listening_user": ctx.author.id}
+            ):
+                all_campaigns.append((document["_id"], document["created_at"]))
 
-        async for document in get_collection(self.bot).find(
-                {"listening_user": ctx.author.id}
-        ):
-            all_campaigns.append((document["_id"], document["created_at"]))
+            source: CampaignSource = CampaignSource(all_campaigns)
 
-        source: CampaignSource = CampaignSource(all_campaigns)
-
-        await ViewMenuPages(source).start(ctx, ephemeral=True)
+            await ViewMenuPages(source).start(ctx, ephemeral=True)
 
     @ipgrab.command()
     @rename(link_id="campaign_id")
@@ -297,32 +295,31 @@ class Redirector(Cog):
     ) -> None:
         """Summarizes a redirector campaign."""
 
-        await ctx.defer(ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            all_hits: list[LoggedEvent] = []
 
-        all_hits: list[LoggedEvent] = []
+            document: Document = await get_listen_doc(get_collection(self.bot), link_id)
 
-        document: Document = await get_listen_doc(get_collection(self.bot), link_id)
-
-        async with self.client_session.get(
-                f"{API_URL}hits/{document['_id']}"
-        ) as response:
-            data: list[dict[str, Any]] = await response.json()
-            for entry in data:
-                timestamp: datetime = datetime.fromisoformat(entry["timestamp"])
-                all_hits.append(
-                    LoggedEvent(
-                        entry["link_id"],
-                        entry["redirected_to"],
-                        timestamp,
-                        entry["remote"],
-                        entry.get("user_agent"),
-                        document=document,
+            async with self.client_session.get(
+                    f"{API_URL}hits/{document['_id']}"
+            ) as response:
+                data: list[dict[str, Any]] = await response.json()
+                for entry in data:
+                    timestamp: datetime = datetime.fromisoformat(entry["timestamp"])
+                    all_hits.append(
+                        LoggedEvent(
+                            entry["link_id"],
+                            entry["redirected_to"],
+                            timestamp,
+                            entry["remote"],
+                            entry.get("user_agent"),
+                            document=document,
+                        )
                     )
-                )
 
-        source: HitSource = HitSource(all_hits, link_id)
+            source: HitSource = HitSource(all_hits, link_id)
 
-        await ViewMenuPages(source).start(ctx, ephemeral=True)
+            await ViewMenuPages(source).start(ctx, ephemeral=True)
 
     @ipgrab.command()
     @describe(link_id="The campaign ID to stop listening to.")
@@ -334,24 +331,23 @@ class Redirector(Cog):
     ) -> None:
         """Stops listening to a campaign ID."""
 
-        await ctx.defer(ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            listening_document: Document = await get_listen_doc(
+                get_collection(self.bot), link_id
+            )
 
-        listening_document: Document = await get_listen_doc(
-            get_collection(self.bot), link_id
-        )
+            if listening_document.get("listening_user") is None:
+                await ctx.send("That campaign ID is not being listened to.", ephemeral=True)
+                return
 
-        if listening_document.get("listening_user") is None:
-            await ctx.send("That campaign ID is not being listened to.", ephemeral=True)
-            return
+            if listening_document["listening_user"] != ctx.author.id:
+                await ctx.send("You are not listening to that campaign ID.", ephemeral=True)
+                return
 
-        if listening_document["listening_user"] != ctx.author.id:
-            await ctx.send("You are not listening to that campaign ID.", ephemeral=True)
-            return
-
-        await listening_document.delete_db()
-        await ctx.send(
-            "You are no longer listening to that campaign ID.", ephemeral=True
-        )
+            await listening_document.delete_db()
+            await ctx.send(
+                "You are no longer listening to that campaign ID.", ephemeral=True
+            )
 
 
 async def setup(bot: BOT_TYPES) -> None:

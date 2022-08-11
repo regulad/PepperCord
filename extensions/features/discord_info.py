@@ -7,12 +7,14 @@ import discord
 import psutil
 from discord import Guild, Interaction, Member, User, AppCommandType
 from discord.app_commands import describe, context_menu
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
 from git import Repo
 
 from utils import bots
 from utils.bots import CustomContext
+from utils.misc import status_breakdown
 
 WHOIS_CM_NAME: str = "Get User Information"
 
@@ -25,9 +27,9 @@ async def whois_cm(interaction: Interaction, user: Member | User) -> None:
             colour=user.colour,
             title=f"All about {user.name}#{user.discriminator}\n({user.id})",
         )
-            .set_thumbnail(url=user.avatar.url)
-            .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-            .add_field(
+        .set_thumbnail(url=user.avatar.url)
+        .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
+        .add_field(
             name="Account creation date:",
             value=f"<t:{user.created_at.timestamp():.0f}:R>",
         )
@@ -57,10 +59,14 @@ class DiscordInfo(commands.Cog):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
-        self.activity_update.start()
-
     def cog_unload(self) -> None:
-        self.activity_update.stop()
+        if self.activity_update.is_running():
+            self.activity_update.stop()
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        await sleep(10)
+        self.activity_update.start()
 
     async def cog_load(self) -> None:
         self.bot.tree.add_command(whois_cm)
@@ -70,7 +76,7 @@ class DiscordInfo(commands.Cog):
 
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:
-        watching_string = f"with {len(self.bot.users)} {'user' if len(self.bot.users) == 1 else 'users'} in {len(self.bot.guilds)} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
+        watching_string = f"with {len(self.bot.users):n} {'user' if len(self.bot.users) == 1 else 'users'} in {len(self.bot.guilds):n} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
         await self.bot.change_presence(activity=discord.Game(name=watching_string))
 
     @activity_update.before_loop
@@ -116,15 +122,19 @@ class DiscordInfo(commands.Cog):
                 colour=user.colour,
                 title=f"All about {user.name}#{user.discriminator}\n({user.id})",
             )
-                .set_thumbnail(url=user.avatar.url)
-                .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-                .add_field(
+            .set_thumbnail(url=user.avatar.url)
+            .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
+            .add_field(
                 name="Account creation date:",
                 value=f"<t:{user.created_at.timestamp():.0f}:R>",
             )
         )
+        after_breakdown: str = status_breakdown(user.desktop_status, user.mobile_status, user.web_status)
         if isinstance(user, discord.Member):
-            embed = embed.insert_field_at(0, name="Status:", value=f"{user.status}")
+            embed = embed.insert_field_at(
+                0,
+                name="Status:", value=f"{user.status}{f' ({after_breakdown})' if after_breakdown else ''}"
+            )
             if user.name != user.display_name:
                 embed = embed.insert_field_at(
                     0, name="Nickname:", value=user.display_name
@@ -142,6 +152,7 @@ class DiscordInfo(commands.Cog):
 
     @hybrid_command()
     @commands.guild_only()
+    @ac_guild_only()
     async def serverinfo(
             self,
             ctx: bots.CustomContext,
@@ -153,21 +164,21 @@ class DiscordInfo(commands.Cog):
                 colour=discord.Colour.random(),
                 title=f"Info for {guild.name}\n({guild.id})",
             )
-                .add_field(
+            .add_field(
                 name="Server Owner:",
                 value=f"{guild.owner.display_name}#{guild.owner.discriminator} ({guild.owner.id})",
             )
-                .add_field(
+            .add_field(
                 name="Created at:",
                 value=f"<t:{guild.created_at.timestamp():.0f}:R>",
             )
-                .add_field(name="Roles:", value=len(guild.roles))
-                .add_field(name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}")
-                .add_field(
+            .add_field(name="Roles:", value=len(guild.roles))
+            .add_field(name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}")
+            .add_field(
                 name="Total channels:",
                 value=f"{len(guild.channels)} channels, {len(guild.categories)} categories.",
             )
-                .add_field(name="Total members:", value=guild.member_count)
+            .add_field(name="Total members:", value=guild.member_count)
         )
         if guild.icon is not None:
             embed.set_thumbnail(url=guild.icon.url)
@@ -179,59 +190,59 @@ class DiscordInfo(commands.Cog):
     @hybrid_command()
     async def botinfo(self, ctx: bots.CustomContext) -> None:
         """Displays information about the bot and the machine it's running on, as well as an invitation link."""
-        await ctx.defer(ephemeral=True)
 
-        try:
-            base = ctx.bot.config.get(
-                "PEPPERCORD_WEB", "https://www.regulad.xyz/PepperCord"
-            )
-            embed: discord.Embed = (
-                discord.Embed(
-                    colour=discord.Colour.orange(),
-                    title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
-                    description=f"**Important Links**: "
-                                f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
-                                f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
-                                f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
+        async with ctx.typing(ephemeral=True):
+            try:
+                base = ctx.bot.config.get(
+                    "PEPPERCORD_WEB", "https://www.regulad.xyz/PepperCord"
                 )
+                embed: discord.Embed = (
+                    discord.Embed(
+                        colour=discord.Colour.orange(),
+                        title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
+                        description=f"**Important Links**: "
+                                    f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
+                                    f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
+                                    f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
+                    )
                     .set_thumbnail(url=ctx.bot.user.avatar.url)
                     .add_field(
-                    name="Invite:",
-                    value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
-                    inline=False,
-                )
+                        name="Invite:",
+                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
+                        inline=False,
+                    )
                     .add_field(
-                    name="Bot status:",
-                    value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
-                )
+                        name="Bot status:",
+                        value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
+                    )
                     .add_field(
-                    name="System resources:",
-                    value=f"Memory: "
-                          f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
-                          f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
-                          f"({psutil.virtual_memory().percent}%)"
-                          f"\nCPU: {platform.processor()} running at "
-                          f"{round(psutil.cpu_freq().current) / 1000}GHz, "
-                          f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
-                          f"{psutil.cpu_count(logical=False)} physical cores",
+                        name="System resources:",
+                        value=f"Memory: "
+                              f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
+                              f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
+                              f"({psutil.virtual_memory().percent}%)"
+                              f"\nCPU: {platform.processor()} running at "
+                              f"{round(psutil.cpu_freq().current) / 1000}GHz, "
+                              f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
+                              f"{psutil.cpu_count(logical=False)} physical cores",
+                    )
                 )
-            )
-            if GIT_REPO.active_branch is not None:
-                embed.add_field(
-                    name="Versions:",
-                    value=f"OS: {platform.system()} (`{platform.release()}`)"
-                          f"\nPython: `{version}`"
-                          f"\ndiscord.py: `{discord.__version__}`"
-                          f"\nBot Version: `{GIT_REPO.active_branch.name}` (`{GIT_REPO.active_branch.commit}`)",
-                    inline=False,
+                if GIT_REPO.active_branch is not None:
+                    embed.add_field(
+                        name="Versions:",
+                        value=f"OS: {platform.system()} (`{platform.release()}`)"
+                              f"\nPython: `{version}`"
+                              f"\ndiscord.py: `{discord.__version__}`"
+                              f"\nBot Version: `{GIT_REPO.active_branch.name}` (`{GIT_REPO.active_branch.commit}`)",
+                        inline=False,
+                    )
+            except psutil.Error:
+                await ctx.send(
+                    "Had trouble fetching information about the bot. Try again later."
                 )
-        except psutil.Error:
-            await ctx.send(
-                "Had trouble fetching information about the bot. Try again later."
-            )
-        else:
-            await ctx.send(embed=embed, ephemeral=True)
-            await ctx.invoke(self.whois, user=ctx.bot.user)
+            else:
+                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.invoke(self.whois, user=ctx.bot.user)
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

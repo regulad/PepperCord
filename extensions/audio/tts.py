@@ -12,12 +12,13 @@ from asyncgTTS import (
     TextSynthesizeRequestBody,
 )
 from discord.app_commands import describe
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import (
     hybrid_command,
     Cog,
     cooldown,
     BucketType,
-    hybrid_group,
+    hybrid_group, guild_only,
 )
 from discord.ext.menus import ListPageSource, ViewMenuPages
 
@@ -108,6 +109,8 @@ class TextToSpeech(Cog):
     @hybrid_command(aliases=["tts"])
     @cooldown(10, 2, BucketType.user)
     @describe(text="The text that will be converted to speech.")
+    @guild_only()
+    @ac_guild_only()
     @check_voice_client
     async def texttospeech(
             self,
@@ -116,23 +119,24 @@ class TextToSpeech(Cog):
             text: str,
     ) -> None:
         """Have the bot talk for you in a voice channel."""
-        await ctx.defer(ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            source = await TTSSource.from_text(
+                text,
+                ctx["author_document"].get("voice", "en-US-Wavenet-D"),
+                self._async_gtts_session,
+                ctx.author,
+            )
 
-        source = await TTSSource.from_text(
-            text,
-            ctx["author_document"].get("voice", "en-US-Wavenet-D"),
-            self._async_gtts_session,
-            ctx.author,
-        )
+            if ctx.voice_client.queue.qsize() > 0:
+                ctx.voice_client.queue.deque.appendleft(source)  # Meh.
+            else:
+                await ctx.voice_client.queue.put(source)
 
-        if ctx.voice_client.queue.qsize() > 0:
-            ctx.voice_client.queue.deque.appendleft(source)  # Meh.
-        else:
-            await ctx.voice_client.queue.put(source)
-
-        await ctx.send("Added text.", ephemeral=True)
+            await ctx.send("Added text.", ephemeral=True)
 
     @hybrid_group()
+    @guild_only()
+    @ac_guild_only()
     async def ttssettings(self, ctx: bots.CustomContext) -> None:
         pass
 
@@ -140,6 +144,7 @@ class TextToSpeech(Cog):
     @describe(
         desiredvoice="The voice that the bot will attempt to use when talking for you. See the command listvoices."
     )
+    @guild_only()
     async def setvoice(
             self,
             ctx: bots.CustomContext,
@@ -147,28 +152,28 @@ class TextToSpeech(Cog):
             desiredvoice: Optional[str] = "en-US-Wavenet-D",
     ) -> None:
         """Allows you to select a voice that the bot will use to portray you in Text-To-Speech conversations."""
-        await ctx.defer(ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            voices: list = await self._async_gtts_session.get_voices("en-US")
 
-        voices: list = await self._async_gtts_session.get_voices("en-US")
+            for voice in voices:
+                if voice["name"] == desiredvoice:
+                    break
+            else:
+                raise VoiceDoesNotExist
 
-        for voice in voices:
-            if voice["name"] == desiredvoice:
-                break
-        else:
-            raise VoiceDoesNotExist
+            await ctx["author_document"].update_db({"$set": {"voice": desiredvoice}})
 
-        await ctx["author_document"].update_db({"$set": {"voice": desiredvoice}})
-
-        await ctx.send("Updated.", ephemeral=True)
+            await ctx.send("Updated.", ephemeral=True)
 
     @ttssettings.command()
+    @guild_only()
     async def listvoices(self, ctx: bots.CustomContext) -> None:
         """Lists all voices that the bot can use."""
-        await ctx.defer(ephemeral=True)
-        voices: list = await self._async_gtts_session.get_voices("en-US")
-        await ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(
-            ctx, ephemeral=True
-        )
+        async with ctx.typing(ephemeral=True):
+            voices: list = await self._async_gtts_session.get_voices("en-US")
+            await ViewMenuPages(source=LanguageSource(voices, per_page=6)).start(
+                ctx, ephemeral=True
+            )
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

@@ -1,13 +1,15 @@
-from typing import Tuple
+from typing import Tuple, cast
 
 import discord
+from discord import Message
 from discord.app_commands import describe
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands
 from discord.ext.commands import (
     hybrid_group,
     EmojiConverter,
     BadArgument,
-    MessageConverter,
+    MessageConverter, guild_only,
 )
 
 from utils import bots
@@ -81,6 +83,8 @@ class ReactionRoles(commands.Cog):
                                     )
 
     @hybrid_group()
+    @ac_guild_only()
+    @guild_only()
     async def reactionrole(self, ctx: bots.CustomContext) -> None:
         """
         Reaction Roles are a system that allow users to get a role by reacting to a message.
@@ -88,6 +92,7 @@ class ReactionRoles(commands.Cog):
         pass
 
     @reactionrole.command()
+    @guild_only()
     async def disable(self, ctx: bots.CustomContext) -> None:
         """Disables all existing reaction roles. You will need to readd them to have them work again"""
         if ctx["guild_document"].get("reactions") is None:
@@ -97,6 +102,7 @@ class ReactionRoles(commands.Cog):
             await ctx.send("Deleted all reaction roles.")
 
     @reactionrole.command()
+    @guild_only()
     @describe(
         message="A reference to the message that will have a reaction role attached.",
         emoji="The emoji that will trigger the reaction role.",
@@ -118,6 +124,8 @@ class ReactionRoles(commands.Cog):
             emoji: discord.Emoji = await converter.convert(ctx, emoji)
         except BadArgument:
             pass
+
+        message: Message = cast(Message, message)
 
         await message.add_reaction(emoji)
         await ctx["guild_document"].update_db(

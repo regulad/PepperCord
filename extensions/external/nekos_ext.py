@@ -4,13 +4,13 @@ from typing import Optional, cast, Literal
 import discord
 from aiohttp import ClientSession
 from anekos import *
-from discord.app_commands import describe
+from discord.app_commands import describe, default_permissions
 from discord.ext import commands
 from discord.ext.commands import Context, hybrid_group
 
 from utils import bots, webhook
 from utils.bots import BOT_TYPES, CustomContext
-from utils.misc import split_string_chunks
+from utils.misc import split_iter_chunks
 
 
 class NSFWType(Enum):
@@ -73,10 +73,10 @@ async def send_sampler(
             tag_type = RealSFWImageTags
 
     message: discord.Message = await ctx.channel.send(
-        f"**{nsfw_type.name.replace('_', ' ').title()} Results**"
+        f"**{nsfw_type.name.replace('_', ' ').upper()} Results**"
     )
     thread: discord.Thread = await message.create_thread(
-        name=f"{nsfw_type.name.replace('_', ' ').title()} Results"
+        name=f"{nsfw_type.name.replace('_', ' ').upper()} Results"
     )
     if add_author:
         await thread.add_user(ctx.author)
@@ -110,7 +110,7 @@ class Nekos(commands.Cog):
         return "".join(
             [
                 (await self.nekos_life_client.owoify(fragment)).text
-                for fragment in split_string_chunks(owoify, chunk_size=199)
+                for fragment in split_iter_chunks(owoify, chunk_size=199)
             ]
         )
 
@@ -149,6 +149,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(channel="The channel to set to OwO mode.")
     async def canowo(
             self,
@@ -163,6 +164,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(channel="The channel to be unset from OwO mode.")
     async def cannotowo(
             self,
@@ -177,6 +179,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(member="The member to set to OwO mode.")
     async def canowomember(
             self,
@@ -191,6 +194,7 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.has_permissions(administrator=True)
+    @default_permissions(administrator=True)
     @describe(member="The member to be unset from OwO mode.")
     async def cannotowomember(
             self,
@@ -205,87 +209,6 @@ class Nekos(commands.Cog):
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
-    @commands.is_nsfw()
-    @describe(
-        quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        tag="The tag you want to search. You can see all options if you leave this blank.",
-    )
-    async def nsfw(
-            self,
-            ctx: CustomContext,
-            quantity: Literal[tuple(range(1, 11))] = None,
-            *,
-            tag: Optional[NSFWNekosTagConverter] = None,
-    ) -> None:
-        """Pull an NSFW image from nekos.life."""
-        if tag is not None:
-            if quantity > 10:
-                raise RuntimeError("Too many images!")
-            await ctx.send(
-                "\n".join(
-                    [
-                        (
-                            await self.nekos_life_client.image(cast(NSFWImageTags, tag))
-                        ).url
-                        for _ in range(1, quantity + 1)
-                    ]
-                ),
-            )
-        else:
-            await ctx.send(
-                embed=discord.Embed(
-                    title="Tags",
-                    description="\n".join(
-                        [
-                            f"* {tag.title().replace('_', ' ')}"
-                            for tag in NSFWImageTags.__members__.keys()
-                        ]
-                    ),
-                ),
-            )
-
-    @nekos.command()
-    @commands.cooldown(3, 120, commands.BucketType.channel)
-    @describe(
-        quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
-        tag="The tag you want to search. You can see all options if you leave this blank.",
-    )
-    async def sfw(
-            self,
-            ctx: CustomContext,
-            quantity: Literal[tuple(range(1, 11))] = None,
-            *,
-            tag: Optional[SFWNekosTagConverter] = None,
-    ) -> None:
-        """Pull an SFW image from nekos.life."""
-        if tag is not None:
-            if quantity > 10:
-                raise RuntimeError("Too many images!")
-            await ctx.send(
-                "\n".join(
-                    [
-                        (
-                            await self.nekos_life_client.image(cast(SFWImageTags, tag))
-                        ).url
-                        for _ in range(1, quantity + 1)
-                    ]
-                ),
-            )
-        else:
-            await ctx.send(
-                embed=discord.Embed(
-                    title="Tags",
-                    description="\n".join(
-                        [
-                            f"* {tag.title().replace('_', ' ')}"
-                            for tag in SFWImageTags.__members__.keys()
-                        ]
-                    ),
-                ),
-            )
-
-    @nekos.command()
-    @commands.cooldown(3, 120, commands.BucketType.channel)
     @describe(
         quantity="Defines the number of images you want to see. Defaults to 1, max is 10.",
         tag="The tag you want to search. You can see all options if you leave this blank.",
@@ -295,7 +218,7 @@ class Nekos(commands.Cog):
             ctx: CustomContext,
             quantity: Literal[tuple(range(1, 11))] = None,
             *,
-            tag: Optional[TagConverter] = None,
+            tag: Optional[str] = None,
     ) -> None:
         """Pull an image from nekos.life."""
         if tag is not None:
@@ -304,11 +227,7 @@ class Nekos(commands.Cog):
             await ctx.send(
                 "\n".join(
                     [
-                        (
-                            await self.nekos_life_client.image(
-                                cast(RealSFWImageTags, tag)
-                            )
-                        ).url
+                        (await self.nekos_life_client.image(tag)).url
                         for _ in range(1, quantity + 1)
                     ]
                 ),
@@ -335,12 +254,12 @@ class Nekos(commands.Cog):
             question: Optional[str] = None,
     ) -> None:
         """Use the magic 8 ball!"""
-        await ctx.defer()
-        eightball_resposne = await self.nekos_life_client.random_8ball(question)
-        eightball_embed: discord.Embed = discord.Embed(
-            title=eightball_resposne.text.title(), color=discord.Colour.blurple()
-        ).set_image(url=eightball_resposne.image_url)
-        await ctx.send(embed=eightball_embed)
+        async with ctx.typing():
+            eightball_resposne = await self.nekos_life_client.random_8ball(question)
+            eightball_embed: discord.Embed = discord.Embed(
+                title=eightball_resposne.text.title(), color=discord.Colour.blurple()
+            ).set_image(url=eightball_resposne.image_url)
+            await ctx.send(embed=eightball_embed)
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
@@ -354,11 +273,11 @@ class Nekos(commands.Cog):
             add_author: bool = False,
     ) -> None:
         """Shows a sampler of all the NSFW image tags."""
-        await ctx.defer(ephemeral=True)
-        thread: discord.Thread = await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.NSFW, add_author
-        )
-        await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            thread: discord.Thread = await send_sampler(
+                ctx, self.nekos_life_client, NSFWType.NSFW, add_author
+            )
+            await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
@@ -371,11 +290,11 @@ class Nekos(commands.Cog):
             add_author: bool = False,
     ) -> None:
         """Shows a sampler of all the SFW image tags."""
-        await ctx.defer(ephemeral=True)
-        thread: discord.Thread = await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.SFW, add_author
-        )
-        await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            thread: discord.Thread = await send_sampler(
+                ctx, self.nekos_life_client, NSFWType.SFW, add_author
+            )
+            await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
 
     @nekos.command()
     @commands.cooldown(3, 120, commands.BucketType.channel)
@@ -388,11 +307,11 @@ class Nekos(commands.Cog):
             add_author: bool = False,
     ) -> None:
         """Shows a sampler of all the images."""
-        await ctx.defer(ephemeral=True)
-        thread: discord.Thread = await send_sampler(
-            ctx, self.nekos_life_client, NSFWType.REAL_SFW, add_author
-        )
-        await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            thread: discord.Thread = await send_sampler(
+                ctx, self.nekos_life_client, NSFWType.REAL_SFW, add_author
+            )
+            await ctx.send(f"Thread created: <#{thread.id}>", ephemeral=True)
 
     @nekos.command()
     @describe(text="The text to be owoifyed.")
@@ -403,14 +322,14 @@ class Nekos(commands.Cog):
             text: str,
     ) -> None:
         """Owoify your text!"""
-        await ctx.defer()
-        await ctx.send((await self.nekos_life_client.owoify(text)).text)
+        async with ctx.typing():
+            await ctx.send((await self.nekos_life_client.owoify(text)).text)
 
     @nekos.command()
     async def fact(self, ctx: CustomContext) -> None:
         """Get a neat fact!"""
-        await ctx.defer()
-        await ctx.send(f'*"{(await self.nekos_life_client.random_fact_text()).text}"*')
+        async with ctx.typing():
+            await ctx.send(f'*"{(await self.nekos_life_client.random_fact_text()).text}"*')
 
 
 async def setup(bot: BOT_TYPES) -> None:

@@ -3,9 +3,10 @@ import math
 from typing import Optional, Union, cast
 
 import discord
-from discord.app_commands import describe
+from discord.app_commands import describe, default_permissions
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
-from discord.ext.commands import hybrid_command
+from discord.ext.commands import hybrid_command, guild_only
 
 from utils import bots, database, converters
 from utils.bots import BOT_TYPES
@@ -66,16 +67,19 @@ class Moderation(commands.Cog):
     @commands.is_owner()
     async def nopunish(self, ctx: bots.CustomContext):
         """Clears all previous punishments."""
-        await ctx.defer(ephemeral=True)
-        for guild in ctx.bot.guilds:
-            await (await ctx.bot.get_guild_document(guild)).update_db(
-                {"$unset": {"punishments": 1}}
-            )
-        await ctx.send("Done.")
+        async with ctx.typing():
+            for guild in ctx.bot.guilds:
+                await (await ctx.bot.get_guild_document(guild)).update_db(
+                    {"$unset": {"punishments": 1}}
+                )
+            await ctx.send("Done.")
 
     @hybrid_command(aliases=["pu", "del"])
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
+    @default_permissions(manage_messages=True)
+    @ac_guild_only()
+    @guild_only()
     @describe(messages="The amount of messages to be deleted.")
     async def purge(
             self,
@@ -83,17 +87,23 @@ class Moderation(commands.Cog):
             messages: int,
     ) -> None:
         """Deletes a set amount of messages from a channel."""
-        await ctx.channel.purge(limit=messages)
-        await ctx.send("Deleted.", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            if ctx.interaction is None:
+                await ctx.message.delete()
+            await ctx.channel.purge(limit=messages, reason=f"Requested by {ctx.author}.")
+            await ctx.send("Deleted.", ephemeral=True, delete_after=5)
 
     @hybrid_command(aliases=["tb"])
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
+    @default_permissions(manage_messages=True)
     @describe(
         member="The member to be banned.",
         reason="The reason for the ban.",
         time="The amount of time for the user to be banned for",
     )
+    @ac_guild_only()
+    @guild_only()
     async def timeban(
             self,
             ctx: bots.CustomContext,

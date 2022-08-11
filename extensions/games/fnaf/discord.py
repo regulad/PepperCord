@@ -9,7 +9,7 @@ from PIL.Image import Image as ImageType
 from discord import Interaction
 from discord.app_commands import describe
 from discord.ext import commands, tasks, menus
-from discord.ext.commands import hybrid_group
+from discord.ext.commands import hybrid_group, guild_only
 from discord.ui import Button
 
 from utils import bots, misc
@@ -364,28 +364,28 @@ class FiveNightsAtFreddys(commands.Cog):
             else:
                 await ctx.send("You have a game ongoing!", ephemeral=True)
                 return
-        await ctx.defer()
-        if night != 7:
-            freddy = Animatronic.FREDDY.difficulty(night)
-            bonnie = Animatronic.BONNIE.difficulty(night)
-            chica = Animatronic.CHICA.difficulty(night)
-            foxy = Animatronic.FOXY.difficulty(night)
-        difficulty: AnimatronicDifficulty = AnimatronicDifficulty(
-            night,
-            misc.FrozenDict(
-                {
-                    Animatronic.FREDDY: freddy,
-                    Animatronic.BONNIE: bonnie,
-                    Animatronic.CHICA: chica,
-                    Animatronic.FOXY: foxy,
-                }
-            ),
-            night != 7,
-        )
-        initial_state: GameState = GameState.initialize(difficulty)
-        response_message: discord.abc.Message = await ctx.send(
-            f"You will earn at least {initial_state.fazpoints} fazpoints for this game."
-        )
+        async with ctx.typing():
+            if night != 7:
+                freddy = Animatronic.FREDDY.difficulty(night)
+                bonnie = Animatronic.BONNIE.difficulty(night)
+                chica = Animatronic.CHICA.difficulty(night)
+                foxy = Animatronic.FOXY.difficulty(night)
+            difficulty: AnimatronicDifficulty = AnimatronicDifficulty(
+                night,
+                misc.FrozenDict(
+                    {
+                        Animatronic.FREDDY: freddy,
+                        Animatronic.BONNIE: bonnie,
+                        Animatronic.CHICA: chica,
+                        Animatronic.FOXY: foxy,
+                    }
+                ),
+                night != 7,
+            )
+            initial_state: GameState = GameState.initialize(difficulty)
+            response_message: discord.abc.Message = await ctx.send(
+                f"You will earn at least {initial_state.fazpoints} fazpoints for this game."
+            )
         holder: GameStateHolder = GameStateHolder(
             response_message,
             ctx.bot,
@@ -406,38 +406,34 @@ class FiveNightsAtFreddys(commands.Cog):
             user: Optional[discord.Member],
     ) -> None:
         """Get the fazpoints of a member."""
-        await ctx.defer()
-        user: discord.Member = user or ctx.author
-        embed: discord.Embed = discord.Embed(
-            title=f"{user.display_name}'s Fazpoints",
-            description=f"```{await get_fazpoints(ctx.bot, user)}```",
-            color=user.color,
-        )
-        embed.set_thumbnail(
-            url=(
-                user.guild_avatar.url
-                if user.guild_avatar is not None
-                else user.avatar.url
+        async with ctx.typing():
+            user: discord.Member = user or ctx.author
+            embed: discord.Embed = discord.Embed(
+                title=f"{user.display_name}'s Fazpoints",
+                description=f"```{await get_fazpoints(ctx.bot, user)}```",
+                color=user.color,
             )
-        )
-        await ctx.send(embed=embed)
+            embed.set_thumbnail(
+                url=user.display_avatar.url
+            )
+            await ctx.send(embed=embed)
 
     @fnaf.command()
+    @guild_only()
     async def fpleaderboard(self, ctx: bots.CustomContext) -> None:
         """Displays the fazpoints all members of the server relative to each other."""
-        await ctx.defer()
+        async with ctx.typing():
+            member_fazpoints: list[tuple[discord.Member, int]] = []
 
-        member_fazpoints: list[tuple[discord.Member, int]] = []
+            for member in ctx.guild.members[:500]:  # To prevent DB from exploding
+                member_fazpoints.append((member, await get_fazpoints(ctx.bot, member)))
 
-        for member in ctx.guild.members[:500]:  # To prevent DB from exploding
-            member_fazpoints.append((member, await get_fazpoints(ctx.bot, member)))
+            source = LevelSource(
+                sorted(member_fazpoints, key=operator.itemgetter(-1), reverse=True),
+                ctx.guild,
+            )
 
-        source = LevelSource(
-            sorted(member_fazpoints, key=operator.itemgetter(-1), reverse=True),
-            ctx.guild,
-        )
-
-        await menus.ViewMenuPages(source=source).start(ctx)
+            await menus.ViewMenuPages(source=source).start(ctx)
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

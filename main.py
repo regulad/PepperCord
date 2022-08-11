@@ -3,15 +3,15 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 """
 
+import locale
 import logging
 import os
-import traceback
-from asyncio import run, gather, AbstractEventLoop, get_event_loop, Task
-from typing import Optional, Type, MutableMapping, Any, Coroutine
+from asyncio import run, gather, AbstractEventLoop, get_event_loop
+from typing import Optional, Type, MutableMapping, Coroutine
 
 import art
 import discord
-from discord import Object, Game
+from discord import Object, Game, Forbidden
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -20,7 +20,9 @@ from pretty_help import PrettyHelp
 from utils import bots, misc
 from utils.help import BetterMenu
 
-default_log_level: int = logging.INFO
+DEFUALT_LOG_LEVEL: int = logging.INFO
+
+locale.setlocale(locale.LC_ALL, "")
 
 
 async def async_main() -> None:
@@ -34,7 +36,7 @@ async def async_main() -> None:
     debug: bool = config_source.get("PEPPERCORD_DEBUG") is not None
 
     logging.basicConfig(
-        level=logging.DEBUG if debug else default_log_level,
+        level=logging.DEBUG if debug else DEFUALT_LOG_LEVEL,
         format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
     )
 
@@ -42,7 +44,7 @@ async def async_main() -> None:
 
     if maybe_webhook is not None:
         logging.root.addHandler(
-            DiscordWebhookHandler(maybe_webhook, level=default_log_level)
+            DiscordWebhookHandler(maybe_webhook, level=DEFUALT_LOG_LEVEL)
         )
 
     if not os.path.exists("config/"):
@@ -83,20 +85,8 @@ async def async_main() -> None:
         config=os.environ,
         shard_count=shards,
         loop=loop,
-        activity=Game("PepperCord"),
+        activity=Game("Starting PepperCord..."),
     )
-
-    client_logger: logging.Logger = logging.getLogger(discord.client.__name__)
-
-    async def on_error(event_method: str, *args: Any, **kwargs: Any) -> None:
-        client_logger.critical(f"Ignoring exception in {event_method}")
-        client_logger.critical(traceback.format_exc())
-
-    logging.info("Replacing error handler...")
-
-    bot.on_error = on_error
-
-    logging.info("Done.")
 
     logging.info("Loading extensions...")
     extension_coros: list[Coroutine] = [
@@ -104,9 +94,7 @@ async def async_main() -> None:
     ]
     extension_coros.append(bot.load_extension("jishaku"))
 
-    tasks: list[Task] = [loop.create_task(coro) for coro in extension_coros]
-
-    await gather(*tasks)
+    await gather(*extension_coros)
     logging.info("Done.")
 
     logging.info("Ready.")
@@ -129,8 +117,10 @@ async def async_main() -> None:
                 logging.info("Finished syncing guild commands.")
             elif bot.config.get("PEPPERCORD_SLASH_COMMANDS") is None:
                 await bot.tree.sync()
-                for guild in bot.guilds:  # THIS is the reason this cannot be a setup hook. It must be after the bot is ready, and the guilds are populated.
-                    await bot.tree.sync(guild=guild)
+                try:
+                    await gather(*[bot.tree.sync(guild=guild) for guild in bot.guilds])
+                except Forbidden:
+                    pass
                 logging.info("Synced global commands.")
 
         await bot.start(config_source["PEPPERCORD_TOKEN"])

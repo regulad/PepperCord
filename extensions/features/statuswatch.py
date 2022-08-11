@@ -2,39 +2,27 @@ from typing import cast
 
 from discord import Member, Guild, HTTPException, Status, Interaction, AppCommandType
 from discord.app_commands import describe, context_menu
+from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import Cog, guild_only, hybrid_group, Greedy, Command
 from discord.utils import escape_markdown
 
 from utils.bots import BOT_TYPES, CustomContext
 from utils.database import Document
-
-
-def status_breakdown(desktop_status: Status, mobile_status: Status, web_status: Status) -> str | None:
-    strings: list[str] = []
-
-    if desktop_status is not Status.offline:
-        strings.append(f"Desktop: `{str(desktop_status).title()}`")
-
-    if mobile_status is not Status.offline:
-        strings.append(f"Mobile: `{str(mobile_status).title()}`")
-
-    if web_status is not Status.offline:
-        strings.append(f"Web: `{str(web_status).title()}`")
-
-    return ", ".join(strings) if strings else None
-
+from utils.misc import status_breakdown
 
 WATCH_CM: str = "Watch Status"
 UNWATCH_CM: str = "Stop Watching Status"
 
 
 @context_menu(name=WATCH_CM)
+@ac_guild_only()
 async def watch_cm_pred(interaction: Interaction, member: Member) -> None:
     ctx: CustomContext = await CustomContext.from_interaction(interaction)
     await ctx.invoke(cast(Command, cast(StatusWatch, ctx.bot.get_cog(StatusWatch.__name__)).statuswatch), member)
 
 
 @context_menu(name=UNWATCH_CM)
+@ac_guild_only()
 async def unwatch_cm_pred(interaction: Interaction, member: Member) -> None:
     ctx: CustomContext = await CustomContext.from_interaction(interaction)
     await ctx.invoke(cast(Command, cast(StatusWatch, ctx.bot.get_cog(StatusWatch.__name__)).statuswatch_stop), member)
@@ -57,11 +45,12 @@ class StatusWatch(Cog):
     @Cog.listener()
     async def on_presence_update(self, before: Member, after: Member) -> None:
         document: Document = await self.bot.get_user_document(after)
-        if before.status != after.status:  # We don't care about presences here.
+        if before.status != after.status and after.status is not Status.offline:  # We don't care about presences here.
             before_breakdown: str | None = status_breakdown(before.desktop_status, before.mobile_status,
                                                             before.web_status)
             after_breakdown: str | None = status_breakdown(after.desktop_status, after.mobile_status,
                                                            after.web_status)
+            from_text: str = f"\nfrom `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''}"
             for guild_id, user_id \
                     in [(int(scope.split("-")[0]), int(scope.split("-")[-1])) for scope in
                         document.get("watchers", [])]:
@@ -72,14 +61,15 @@ class StatusWatch(Cog):
                         await (self.bot.get_user(user_id) or await self.bot.fetch_user(user_id)).send(
                             f"Update from {escape_markdown(guild.name)}: "
                             f"{after.mention}'s ({escape_markdown(after.display_name)}) status has changed to "
-                            f"`{str(after.status).title()}`{f' ({after_breakdown})' if after_breakdown else ''}\n"
-                            f"(from `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''})"
+                            f"`{str(after.status).title()}`{f' ({after_breakdown})' if after_breakdown else ''}"
+                            f"{from_text if before.status is not Status.offline else ''}"
                         )
                 except HTTPException:
                     continue
 
     @hybrid_group(name="watch", aliases=("w", "sw"), fallback="start")
     @guild_only()
+    @ac_guild_only()
     @describe(member="The member to watch. This will be in the context of server this command is executed in.")
     async def statuswatch(self, ctx: CustomContext, member: Member) -> None:
         """Watch a member's status. You'll receive updates in a DM."""

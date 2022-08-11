@@ -52,38 +52,37 @@ class EditVideoBot(commands.Cog):
     async def edit(self, ctx: CustomContext, *, evb_commands: str) -> None:
         """Edit media with EditVideoBot."""
 
-        await ctx.defer()
+        async with ctx.typing():
+            url, source = await find_url_recurse(ctx.message)
 
-        url, source = await find_url_recurse(ctx.message)
+            async with self.client_session.get(url) as resp:
+                attachment_bytes = await resp.read()
 
-        async with self.client_session.get(url) as resp:
-            attachment_bytes = await resp.read()
+            if (
+                    isinstance(source, discord.Embed) and source.type == "gifv"
+            ):  # deprecated!... kinda
+                extension: str = "mp4"
+            else:
+                extension: str = splitext(url)[1].strip(".")
 
-        if (
-                isinstance(source, discord.Embed) and source.type == "gifv"
-        ):  # deprecated!... kinda
-            extension: str = "mp4"
-        else:
-            extension: str = splitext(url)[1].strip(".")
+            response: evb.EditResponse = await self.evb_session.edit(
+                attachment_bytes, evb_commands, extension
+            )
 
-        response: evb.EditResponse = await self.evb_session.edit(
-            attachment_bytes, evb_commands, extension
-        )
-
-        file = discord.File(
-            BytesIO(await response.download()),
-            f"output{splitext(response.media_url)[1]}",
-        )
-        await ctx.send(files=[file])
+            file = discord.File(
+                BytesIO(await response.download()),
+                f"output{splitext(response.media_url)[1]}",
+            )
+            await ctx.send(files=[file])
 
     @hybrid_command()
     async def editsleft(self, ctx: CustomContext) -> None:
         """Shows the number of remaining EditVideoBot edits."""
-        await ctx.defer(ephemeral=True)
 
-        stats: StatsResponse = await self.evb_session.stats()
+        async with ctx.typing(ephemeral=True):
+            stats: StatsResponse = await self.evb_session.stats()
 
-        await ctx.send(stats.remaining_daily_requests, ephemeral=True)
+            await ctx.send(stats.remaining_daily_requests, ephemeral=True)
 
 
 async def setup(bot: BOT_TYPES) -> None:

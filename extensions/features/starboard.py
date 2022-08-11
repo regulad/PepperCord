@@ -44,7 +44,7 @@ async def send_star(
     ).set_author(
         name=f"Sent by {message.author.display_name} in {message.channel.name}",
         url=message.jump_url,
-        icon_url=(message.author.guild_avatar or message.author.avatar).url,
+        icon_url=message.author.display_avatar.url,
     )
 
     try:
@@ -140,14 +140,14 @@ class Starboard(commands.Cog):
 
         embed = (
             discord.Embed(title="Starboard Config")
-                .add_field(
+            .add_field(
                 name="Channel:",
                 value=ctx.guild.get_channel(
                     ctx["guild_document"]["starboard"]["channel"]
                 ).mention,
             )
-                .add_field(name="Emoji:", value=emoji)
-                .add_field(
+            .add_field(name="Emoji:", value=emoji)
+            .add_field(
                 name="Threshold:",
                 value=ctx["guild_document"]["starboard"].get("threshold", 3),
             )
@@ -155,7 +155,7 @@ class Starboard(commands.Cog):
 
         await ctx.send(embed=embed, ephemeral=True)
 
-    @starboard.group(fallback="status", aliases=["sbconf"])
+    @starboard.group(name="config", fallback="status", aliases=["sbconf"])
     @commands.has_permissions(administrator=True)
     @guild_only()
     async def sbconfig(self, ctx: bots.CustomContext) -> None:
@@ -272,11 +272,13 @@ class Starboard(commands.Cog):
             *,
             channel: discord.TextChannel,
     ) -> None:
-        await ctx.defer(ephemeral=True)
-        for pin in (await channel.pins())[::-1]:
-            await send_star(ctx["guild_document"], pin, ctx.bot)
-            await asyncio.sleep(1)  # Prevents rate-limiting
-        await ctx.send("Done moving pins!", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            for pin in (await channel.pins())[::-1]:
+                try:
+                    await send_star(ctx["guild_document"], pin, ctx.bot)
+                except AlreadyPinned:
+                    continue
+            await ctx.send("Done moving pins!", ephemeral=True)
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

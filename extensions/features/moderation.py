@@ -65,12 +65,12 @@ class Moderation(commands.Cog):
     @commands.is_owner()
     async def nopunish(self, ctx: bots.CustomContext):
         """Clears all previous punishments."""
-        await ctx.defer(ephemeral=True)
-        for guild in ctx.bot.guilds:
-            await (await ctx.bot.get_guild_document(guild)).update_db(
-                {"$unset": {"punishments": 1}}
-            )
-        await ctx.send("Done.")
+        async with ctx.typing():
+            for guild in ctx.bot.guilds:
+                await (await ctx.bot.get_guild_document(guild)).update_db(
+                    {"$unset": {"punishments": 1}}
+                )
+            await ctx.send("Done.")
 
     @command(aliases=["pu", "del"])
     @commands.has_permissions(manage_messages=True)
@@ -82,8 +82,11 @@ class Moderation(commands.Cog):
             messages: int,
     ) -> None:
         """Deletes a set amount of messages from a channel."""
-        await ctx.channel.purge(limit=messages)
-        await ctx.send("Deleted.", ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            if ctx.interaction is None:
+                await ctx.message.delete()
+            await ctx.channel.purge(limit=messages, reason=f"Requested by {ctx.author}.")
+            await ctx.send("Deleted.", ephemeral=True, delete_after=5)
 
     @command(aliases=["tb"])
     @commands.has_permissions(ban_members=True)

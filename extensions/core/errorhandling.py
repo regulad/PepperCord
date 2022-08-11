@@ -136,7 +136,7 @@ class ErrorHandling(commands.Cog):
                 if ctx.valid and isinstance(
                         error, (commands.CommandOnCooldown, commands.CheckFailure)
                 ):
-                    await ctx.reinvoke()
+                    await ctx.reinvoke()  # fixme: this seems to be broken in current versions of discord.py
 
     @commands.Cog.listener("on_command_error")
     async def determine_if_critical(

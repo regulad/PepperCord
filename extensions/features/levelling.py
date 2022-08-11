@@ -117,13 +117,13 @@ class UserLevelMenu(menus.Menu):
                 colour=self.source.user.colour,
                 title=f"{self.source.user.display_name}'s level",
             )
-                .add_field(name="XP:", value=f"```{self.source.xp}```")
-                .add_field(name="Level:", value=f"```{self.source.level}```")
-                .add_field(
+            .add_field(name="XP:", value=f"```{self.source.xp}```")
+            .add_field(name="Level:", value=f"```{self.source.level}```")
+            .add_field(
                 name="To next:",
                 value=f"```{round(self.source.next - self.source.xp)}```",
             )
-                .set_thumbnail(url=self.source.user.avatar.url)
+            .set_thumbnail(url=self.source.user.avatar.url)
         )
         if self.level_up:
             return await channel.send(
@@ -221,32 +221,30 @@ class Levels(commands.Cog):
     @command()
     async def rank(self, ctx: CustomContext, *, user: Optional[discord.Member]) -> None:
         """Displays your current rank."""
-        await ctx.defer(ephemeral=True)
-
-        user: discord.Member = user or ctx.author
-        user_level: Optional[UserLevel] = await UserLevel.get_user(self.bot, user)
-        if user_level is None:
-            await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
-        else:
-            await UserLevelMenu(user_level).start(ctx, ephemeral=True)
+        async with ctx.typing(ephemeral=True):
+            user: discord.Member = user or ctx.author
+            user_level: Optional[UserLevel] = await UserLevel.get_user(self.bot, user)
+            if user_level is None:
+                await ctx.send(f"{user.display_name} doesn't have a level.", ephemeral=True)
+            else:
+                await UserLevelMenu(user_level).start(ctx, ephemeral=True)
 
     @command()
     @guild_only()
     async def leaderboard(self, ctx: CustomContext) -> None:
         """Displays the level of all members of the server relative to each other."""
-        await ctx.defer()
+        async with ctx.typing():
+            member_xps = []
 
-        member_xps = []
+            for member in ctx.guild.members:
+                xp = await UserLevel.get_user(ctx.bot, member)
+                if xp is not None:
+                    member_xps.append(xp)
 
-        for member in ctx.guild.members:
-            xp = await UserLevel.get_user(ctx.bot, member)
-            if xp is not None:
-                member_xps.append(xp)
-
-        source = LevelSource(
-            sorted(member_xps, key=operator.attrgetter("xp"), reverse=True),
-            ctx.guild,
-        )
+            source = LevelSource(
+                sorted(member_xps, key=operator.attrgetter("xp"), reverse=True),
+                ctx.guild,
+            )
 
         await menus.ReactionMenuPages(source=source).start(ctx)
 

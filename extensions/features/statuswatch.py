@@ -6,22 +6,7 @@ from discord.utils import escape_markdown
 
 from utils.bots import BOT_TYPES, CustomContext
 from utils.database import Document
-
-
-def status_breakdown(desktop_status: Status, mobile_status: Status, web_status: Status) -> str | None:
-    strings: list[str] = []
-
-    if desktop_status is not Status.offline:
-        strings.append(f"Desktop: `{str(desktop_status).title()}`")
-
-    if mobile_status is not Status.offline:
-        strings.append(f"Mobile: `{str(mobile_status).title()}`")
-
-    if web_status is not Status.offline:
-        strings.append(f"Web: `{str(web_status).title()}`")
-
-    return ", ".join(strings) if strings else None
-
+from utils.misc import status_breakdown
 
 class StatusWatch(Cog):
     """A set of tools that allows you to watch the status of another user and get notified when it changes."""

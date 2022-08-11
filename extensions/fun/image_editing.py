@@ -45,13 +45,12 @@ class Images(commands.Cog):
     ) -> None:
         """Shows how many pins are left in a channel in a wonderfully flashy way."""
         channel: discord.TextChannel = channel or ctx.channel
-        await ctx.defer()
-
-        pins_left = 50 - len(await channel.pins())
-        with await ctx.bot.loop.run_in_executor(
-                None, partial(pins_left_executor, pins_left)
-        ) as buffer:
-            await ctx.send(file=discord.File(buffer, "pinsleft.png"))
+        async with ctx.typing():
+            pins_left = 50 - len(await channel.pins())
+            with await ctx.bot.loop.run_in_executor(
+                    None, partial(pins_left_executor, pins_left)
+            ) as buffer:
+                await ctx.send(file=discord.File(buffer, "pinsleft.png"))
 
 
 async def setup(bot: BOT_TYPES) -> None:

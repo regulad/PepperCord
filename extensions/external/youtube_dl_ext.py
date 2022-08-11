@@ -80,58 +80,58 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
             query: str,
     ) -> None:
         """Download a video using YoutubeDL."""
-        await ctx.defer()
 
-        if str_is_url(query):
-            url: str = query
-        else:
-            url: str = f"ytsearch:{query}"
-
-        info: dict = await ctx.bot.loop.run_in_executor(
-            None, partial(self.ytdl.extract_info, url, download=False)
-        )
-
-        if info.get("url") is None:
-            if info.get("entries") is not None and len(info["entries"]) > 0:
-                info = info["entries"][-1]
+        async with ctx.typing():
+            if str_is_url(query):
+                url: str = query
             else:
-                raise BadVideo("This video cannot be downloaded")
+                url: str = f"ytsearch:{query}"
 
-        if (
-                info.get("duration") is not None and info["duration"] > 600
-        ) and not await ctx.bot.is_owner(ctx.author):
-            raise MediaTooLong(
-                f"Cannot download this video, it is over 5 minutes in length, "
-                f"as it is {info['duration'] / 60} minutes long."
+            info: dict = await ctx.bot.loop.run_in_executor(
+                None, partial(self.ytdl.extract_info, url, download=False)
             )
 
-        if (
-                info.get("filesize") is not None
-                and info["filesize"] > ctx.guild.filesize_limit
-        ):  # Save time.
-            await ctx.send(
-                "I cannot send a video of this size in this server. Consider boosting it to allow larger files."
-            )
-        else:
-            async with self.downloader.get(info["url"]) as response:
-                if response.status != 200:
-                    raise MiscHTTPException(response, None)
+            if info.get("url") is None:
+                if info.get("entries") is not None and len(info["entries"]) > 0:
+                    info = info["entries"][-1]
                 else:
-                    with BytesIO(await response.read()) as buffer:
-                        base_file_name: str = response.url.path.strip().removeprefix(
-                            "/"
-                        )
-                        split_ext_tuple: tuple[str, str] = splitext(base_file_name)
-                        if not split_ext_tuple[-1]:
-                            # No extension! We need to do something.
-                            real_ext: str = split(response.content_type)[-1]
-                            split_ext_tuple = (split_ext_tuple[0], f".{real_ext}")
-                        await ctx.send(
-                            file=File(
-                                buffer,
-                                filename=(split_ext_tuple[0] + split_ext_tuple[-1]),
+                    raise BadVideo("This video cannot be downloaded")
+
+            if (
+                    info.get("duration") is not None and info["duration"] > 600
+            ) and not await ctx.bot.is_owner(ctx.author):
+                raise MediaTooLong(
+                    f"Cannot download this video, it is over 5 minutes in length, "
+                    f"as it is {info['duration'] / 60} minutes long."
+                )
+
+            if (
+                    info.get("filesize") is not None
+                    and info["filesize"] > ctx.guild.filesize_limit
+            ):  # Save time.
+                await ctx.send(
+                    "I cannot send a video of this size in this server. Consider boosting it to allow larger files."
+                )
+            else:
+                async with self.downloader.get(info["url"]) as response:
+                    if response.status != 200:
+                        raise MiscHTTPException(response, None)
+                    else:
+                        with BytesIO(await response.read()) as buffer:
+                            base_file_name: str = response.url.path.strip().removeprefix(
+                                "/"
                             )
-                        )
+                            split_ext_tuple: tuple[str, str] = splitext(base_file_name)
+                            if not split_ext_tuple[-1]:
+                                # No extension! We need to do something.
+                                real_ext: str = split(response.content_type)[-1]
+                                split_ext_tuple = (split_ext_tuple[0], f".{real_ext}")
+                            await ctx.send(
+                                file=File(
+                                    buffer,
+                                    filename=(split_ext_tuple[0] + split_ext_tuple[-1]),
+                                )
+                            )
 
 
 async def setup(bot: BOT_TYPES) -> None:

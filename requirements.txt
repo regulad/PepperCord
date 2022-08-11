@@ -23,4 +23,4 @@ youtube_dl>=2021.12
 async-gTTS>=0.2.0, <1
 evb.py>=1.1.1, <2
 aiocoingecko>=1.0.0, <2
-anekos.py>=1.0.0, <2
+anekos.py>=2.0.0, <3

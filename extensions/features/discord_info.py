@@ -242,7 +242,7 @@ class DiscordInfo(commands.Cog):
                 )
             else:
                 await ctx.send(embed=embed, ephemeral=True)
-                await ctx.invoke(self.whois, user=ctx.bot.user)
+                await ctx.invoke(self.whois, user=ctx.guild.me)
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

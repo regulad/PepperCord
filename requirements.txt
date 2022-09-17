@@ -1,5 +1,5 @@
 # Core libraries
-discord.py[voice,speed]@git+https://github.com/Rapptz/discord.py.git
+discord.py[voice]>=2,<3
 
 # Custom Extensions
 discord-ext-hybrid-menus>=1.0.1,<2

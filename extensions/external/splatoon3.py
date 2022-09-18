@@ -6,9 +6,8 @@ from PIL import Image
 from aiohttp import ClientSession
 from dateutil.parser import isoparse
 from discord import Embed, File
-from discord.app_commands import describe
 from discord.ext import tasks
-from discord.ext.commands import Cog, hybrid_group
+from discord.ext.commands import Cog, group
 from discord.utils import format_dt
 from reportlab.graphics.renderPM import drawToFile
 from reportlab.graphics.shapes import Drawing
@@ -94,11 +93,7 @@ class Splatoon3(Cog):
         if self.update_cache.is_running():
             self.update_cache.cancel()
 
-    @hybrid_group(aliases=["splat", "splatoon3"], fallback="schedule")
-    @describe(
-        game="The game mode to get information about.",
-        index="The time slot to get. 0 is right now, 1 is the next set of stages, etc."
-    )
+    @group(aliases=["splat", "splatoon3"])
     async def splatoon(
             self,
             ctx: CustomContext,

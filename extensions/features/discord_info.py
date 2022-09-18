@@ -5,7 +5,7 @@ from typing import Union, Optional
 
 import discord
 import psutil
-from discord import Guild, Interaction, Member, User, AppCommandType
+from discord import Guild, Interaction, Member, User, AppCommandType, GroupChannel
 from discord.ext import commands, tasks
 from discord.ext.commands import command
 from git import Repo
@@ -124,13 +124,8 @@ class DiscordInfo(commands.Cog):
                     )
                     .set_thumbnail(url=ctx.bot.user.avatar.url)
                     .add_field(
-                        name="Invite:",
-                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), scopes=('bot', 'applications.commands'))})",
-                        inline=False,
-                    )
-                    .add_field(
                         name="Bot status:",
-                        value=f"Online, servicing {len(ctx.bot.users)} users in {len(ctx.bot.guilds)} servers",
+                        value=f"Online, servicing {len(ctx.bot.users)} users in {len([gc for gc in ctx.bot.private_channels if isinstance(gc, GroupChannel)])} group chat(s)",
                     )
                     .add_field(
                         name="System resources:",

@@ -23,6 +23,8 @@ class SelfUtils(Cog):
         if relationship.type == RelationshipType.incoming_request:
             await relationship.accept()
 
+    # TODO: Add a command to join a group chat call/ accept a friend request/ accept a group chat invite/ etc.
+
 
 async def setup(bot: BOT_TYPES) -> None:
     await bot.add_cog(SelfUtils(bot))

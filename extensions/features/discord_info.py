@@ -125,7 +125,7 @@ class DiscordInfo(commands.Cog):
                     .set_thumbnail(url=ctx.bot.user.avatar.url)
                     .add_field(
                         name="Invite:",
-                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), guild=ctx.guild, scopes=('bot', 'applications.commands'))})",
+                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), scopes=('bot', 'applications.commands'))})",
                         inline=False,
                     )
                     .add_field(
@@ -159,7 +159,8 @@ class DiscordInfo(commands.Cog):
                 )
             else:
                 await ctx.send(embed=embed, ephemeral=True)
-                await ctx.invoke(self.whois, user=ctx.guild.me)
+                if ctx.guild is not None:
+                    await ctx.invoke(self.whois, user=ctx.guild.me)
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

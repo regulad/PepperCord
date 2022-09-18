@@ -28,6 +28,8 @@ class _DefaultSendHandler(SendHandler):
             del kwargs["return_message"]
         if kwargs.get("reference") is None:
             kwargs["reference"] = self.ctx.message
+        if kwargs.get("embed") is not None:
+            del kwargs["embed"]
         return await self.ctx.send_bare(*args, **kwargs)
 
 

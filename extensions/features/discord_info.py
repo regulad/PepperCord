@@ -25,44 +25,6 @@ class DiscordInfo(commands.Cog):
     def __init__(self, bot: bots.BOT_TYPES) -> None:
         self.bot = bot
 
-    def cog_unload(self) -> None:
-        if self.activity_update.is_running():
-            self.activity_update.stop()
-
-    @commands.Cog.listener()
-    async def on_ready(self) -> None:
-        await sleep(10)
-        self.activity_update.start()
-
-    @tasks.loop(seconds=600)
-    async def activity_update(self) -> None:
-        watching_string = f"with {len(self.bot.users):n} {'user' if len(self.bot.users) == 1 else 'users'} in {len(self.bot.guilds):n} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
-        await self.bot.change_presence(activity=discord.Game(name=watching_string))
-
-    @activity_update.before_loop
-    async def before_activity_update(self) -> None:
-        await self.bot.wait_until_ready()
-        await sleep(10)  # Avoid disconnecting right away
-
-    @command()
-    @commands.is_owner()
-    async def status(
-            self,
-            ctx: bots.CustomContext,
-            *,
-            activity: Optional[str],
-    ) -> None:
-        """Sets the bot's status. If no status is specified, it will go back to the default."""
-        task_is_running = self.activity_update.is_running()
-
-        if activity is None and not task_is_running:
-            self.activity_update.start()
-        else:
-            self.activity_update.cancel()
-            watching_string = f"{activity}"
-            await ctx.bot.change_presence(activity=discord.Game(name=watching_string))
-        await ctx.send("Status updated.", ephemeral=True)
-
     @command()
     async def whois(
             self,

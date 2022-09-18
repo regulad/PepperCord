@@ -12,6 +12,7 @@ from typing import Optional, Type, MutableMapping, Coroutine
 import art
 import discord
 from discord import Game
+from discord.ext.commands import when_mentioned
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -65,7 +66,7 @@ async def async_main() -> None:
     bot_class: Type[bots.BOT_TYPES] = bots.CustomBot
     # Configure bot
     bot: bots.BOT_TYPES = bot_class(
-        command_prefix=config_source.get("PEPPERCORD_PREFIX", "?"),
+        command_prefix=when_mentioned,
         case_insensitive=True,
         help_command=PrettyHelp(
             color=discord.Colour.orange(),
@@ -73,7 +74,11 @@ async def async_main() -> None:
         ),
         database=db,
         config=os.environ,
-        activity=Game("PepperCord"),
+        user_bot=True,
+        owner_ids=[
+            int(owner)
+            for owner in config_source["PEPPERCORD_OWNERS"].split(",")
+        ]
     )
 
     logging.info("Loading extensions...")

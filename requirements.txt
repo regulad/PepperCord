@@ -10,7 +10,6 @@ jishaku>=2.3.2  # Useful development tools.
 aiohttp>=3.6.5 # For asynchronous HTTP requests
 motor>=3, <4 # For asynchronous MongoDB
 dnspython>=2.1.0 # For MongoDB SRV connection strings
-topggpy>=1.4.0, <2
 GitPython>=3.1.24, <4
 art>=5.6, <6
 discord-webhook-logger>=1.2, <2

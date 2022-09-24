@@ -1,16 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timezone, tzinfo
 from io import BytesIO
 from random import choice
-from typing import Literal, Any
+from typing import Literal, Any, cast, Type
 
 from PIL import Image
 from aiohttp import ClientSession
 from dateutil.parser import isoparse
 from dateutil.tz import tzutc
-from discord import Embed, File
+from discord import Embed, File, SelectOption, Interaction
 from discord.app_commands import describe
 from discord.ext import tasks
-from discord.ext.commands import Cog, hybrid_group, UserInputError
+from discord.ext.commands import Cog, hybrid_group
+from discord.ui import Select, View
 from discord.utils import format_dt
 from reportlab.graphics.renderPM import drawToFile
 from reportlab.graphics.shapes import Drawing
@@ -22,7 +23,38 @@ SPLATFEST_UNSTARTED_COLOR: int = 0x666775
 REGULAR_BATTLE_COLOR: int = 0xcff622
 RANKED_BATTLE_COLOR: int = 0xf54910
 SALMON_RUN_COLOR: int = 0xff5600
-TIMESLOT_EMOJI: str = "📆"
+
+TIMESLOT_LONG: str = "%m/%d"
+TIMESLOT_SHORT: str = "%I:%M %p"
+TIMESLOT_TZ: str = "%Z"
+TIMESLOT_EMOJIS: dict[int, str] = {
+    0: "🕛",
+    1: "🕐",
+    2: "🕑",
+    3: "🕒",
+    4: "🕓",
+    5: "🕔",
+    6: "🕕",
+    7: "🕖",
+    8: "🕗",
+    9: "🕘",
+    10: "🕙",
+    11: "🕚",
+}
+
+MODE_LITERAL: Type = Literal[
+        "Regular Battle",
+        "Anarchy Battle (Series)",
+        "Anarchy Battle (Open)",
+        "Salmon Run",
+        "Splatfest Battle",
+
+        "regular",
+        "open",
+        "series",
+        "salmon",
+        "splatfest"
+    ]
 
 
 def splatfest_color(colors: dict[str, float]) -> int:
@@ -72,7 +104,7 @@ def concat_pngs(png1: bytes, png2: bytes) -> bytes:
         return buffer.read()
 
 
-class TimeSlotData:
+class TimeSlotData:  # This could probably extend SelectOption, but this is separate for the sake of selfbot support.
     def __init__(self, start: datetime, end: datetime, index: int) -> None:
         self.start: datetime = start
         self.end: datetime = end
@@ -86,10 +118,99 @@ class TimeSlotData:
 
     @property
     def name(self) -> str:
-        return f"{format_dt(self.start)} - {format_dt(self.end)}"
+        now: datetime = datetime.now()
+        ctz: tzinfo = now.tzinfo
+        now = now.astimezone(ctz)  # weird.
+        return f"{self.start.astimezone(ctz).strftime(TIMESLOT_SHORT)} " \
+               f"- {self.end.astimezone(ctz).strftime(TIMESLOT_SHORT)} "
+
+    @property
+    def description(self) -> str:
+        now: datetime = datetime.now()
+        ctz: tzinfo = now.tzinfo
+        now = now.astimezone(ctz)  # weird.
+        return f"{self.start.astimezone(ctz).strftime(TIMESLOT_LONG)} " \
+               f"- {self.end.astimezone(ctz).strftime(TIMESLOT_LONG)} " \
+               f"({now.strftime(TIMESLOT_TZ)})"
+
+    @property
+    def emoji(self) -> str:
+        now: datetime = datetime.now()
+        ctz: tzinfo = now.tzinfo
+        localized_start: datetime = self.start.astimezone(ctz)
+
+        hour_str: str = localized_start.strftime("%I")
+        hour: int = int(hour_str)
+
+        if hour > 11:
+            hour -= 12
+
+        return TIMESLOT_EMOJIS[hour]
 
     def __repr__(self) -> str:
         return f"<TimeSlotData start={self.start} end={self.end} index={self.index}>"
+
+
+def send_wrap(send, *args, **kwargs) -> Any:
+    if "files" in kwargs:
+        if kwargs["files"] is not None:
+            kwargs["attachments"] = kwargs["files"]
+        else:
+            kwargs["attachments"] = []
+        del kwargs["files"]
+    return send(*args, **kwargs)
+
+
+class ScheduleSelectionMenu(Select):
+    def __init__(self, ctx: CustomContext, data: list[TimeSlotData], mode: MODE_LITERAL, **attrs) -> None:
+        self.ctx: CustomContext = ctx
+        self.data: list[TimeSlotData] = data
+        self.game: MODE_LITERAL = mode
+
+        self.splatoon_3_cog: "Splatoon3" = cast("Splatoon3", self.ctx.bot.get_cog("Splatoon3"))
+
+        options: list[SelectOption] = [
+            SelectOption(
+                label=timeslot.name,
+                emoji=timeslot.emoji,
+                description=timeslot.description,
+            ) for timeslot in data
+        ]
+
+        super().__init__(placeholder="Timeslots", options=options, min_values=1, max_values=1, **attrs)
+
+    def _get_timeslot(self, name: str) -> TimeSlotData | None:
+        """
+        Helper to get the timeslot info.
+        """
+        for timeslot in self.data:
+            if timeslot.name == name:
+                return timeslot
+        else:
+            return None
+
+    async def callback(self, interaction: Interaction) -> None:
+        await interaction.response.defer()
+
+        timeslot: TimeSlotData = self._get_timeslot(interaction.data["values"][0])
+
+        await self.splatoon_3_cog.send_schedule(
+            self.ctx,
+            self.game,
+            timeslot.index,
+            lambda *args, **kwargs: send_wrap(self.ctx["response"].edit, *args, **kwargs)
+        )
+
+
+class ScheduleView(View):
+    def __init__(self, ctx: CustomContext, data: list[TimeSlotData], mode: MODE_LITERAL, **attrs) -> None:
+        self.ctx: CustomContext = ctx
+        self.data: list[TimeSlotData] = data
+        self.game: MODE_LITERAL = mode
+
+        super().__init__(**attrs)
+
+        self.add_item(ScheduleSelectionMenu(ctx, data, mode))
 
 
 class Splatoon3(Cog):
@@ -160,19 +281,7 @@ class Splatoon3(Cog):
 
         return await self.bot.loop.run_in_executor(None, concat_pngs, stage1_png, stage2_png)
 
-    async def _compose_schedule_message(self, game: Literal[
-        "Regular Battle",
-        "Anarchy Battle (Series)",
-        "Anarchy Battle (Open)",
-        "Salmon Run",
-        "Splatfest Battle",
-
-        "regular",
-        "open",
-        "series",
-        "salmon",
-        "splatfest"
-    ] = "Regular Battle", index: int = 0) -> tuple[
+    async def _compose_schedule_message(self, game: MODE_LITERAL = "Regular Battle", index: int = 0) -> tuple[
         Embed | None,
         list[tuple[str, bytes]],
         list[TimeSlotData]
@@ -187,9 +296,9 @@ class Splatoon3(Cog):
             case "Regular Battle" | "regular":
                 game: str = "Regular Battle"
 
-                nodes: list[dict[str, Any]] = self.cached_schedules["regularBattle"]["nodes"]
+                nodes: list[dict[str, Any]] = self.cached_schedules["regularSchedules"]["nodes"]
 
-                if isoparse(nodes[0]["startTime"]) < datetime.now(tzutc()):
+                if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
                     nodes = nodes[1:]
 
                 schedule: dict = nodes[index]
@@ -244,9 +353,9 @@ class Splatoon3(Cog):
             case "Anarchy Battle (Series)" | "Anarchy Battle (Open)" | "open" | "series":
                 game: str = "Anarchy Battle (Series)" if game == "series" or game == "Anarchy Battle (Series)" else "Anarchy Battle (Open)"
 
-                nodes: list[dict[str, Any]] = self.cached_schedules["anarchyBattle"]["nodes"]
+                nodes: list[dict[str, Any]] = self.cached_schedules["bankaraSchedules"]["nodes"]
 
-                if isoparse(nodes[0]["startTime"]) < datetime.now(tzutc()):
+                if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
                     nodes = nodes[1:]
 
                 schedule: dict = nodes[index]
@@ -314,7 +423,7 @@ class Splatoon3(Cog):
                 else:
                     nodes: list[dict[str, Any]] = self.cached_schedules["festSchedules"]["nodes"]
 
-                    if isoparse(nodes[0]["startTime"]) < datetime.now(tzutc()):
+                    if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
                         nodes = nodes[1:]
 
                     schedule: dict = nodes[index]
@@ -380,24 +489,28 @@ class Splatoon3(Cog):
             case _:
                 return None, files, []
 
+    async def send_schedule(self, ctx: CustomContext, mode: MODE_LITERAL, index: int, send) -> Any | None:
+        """Send a schedule message with embed, file, and view."""
+
+        embed, files, timeslots = await self._compose_schedule_message(mode, index)
+
+        embed: Embed | None
+        files: list[tuple[str, bytes]]
+        timeslots: list[TimeSlotData]
+
+        return await send(
+            embed=embed,
+            files=[File(fp=BytesIO(data), filename=name) for name, data in files] if len(files) > 0 else None,
+            view=ScheduleView(ctx, timeslots, mode) if len(timeslots) > 0 else None,
+        )
+        # This could be a memory leak, but it should be cleaned up after the 180.0 second timeout.
+
     @hybrid_group(aliases=["splat", "splatoon3", "sp"], fallback="schedule")
-    @describe(game="The game mode to get information about.")
+    @describe(mode="The game mode to get information about.")
     async def splatoon(
             self,
             ctx: CustomContext,
-            game: Literal[
-                "Regular Battle",
-                "Anarchy Battle (Series)",
-                "Anarchy Battle (Open)",
-                "Salmon Run",
-                "Splatfest Battle",
-
-                "regular",
-                "open",
-                "series",
-                "salmon",
-                "splatfest"
-            ] = "Regular Battle",
+            mode: MODE_LITERAL = "Regular Battle",
     ) -> None:
         """
         Get information about the current status of different game modes in Splatoon 3.
@@ -408,18 +521,7 @@ class Splatoon3(Cog):
             return
 
         async with ctx.typing():
-            embed, files, timeslots = await self._compose_schedule_message(game, 0)
-
-            embed: Embed | None
-            files: list[tuple[str, bytes]]
-            timeslots: list[TimeSlotData]
-
-            if len(files) == 0 and embed is not None:
-                await ctx.send(embed=embed)
-            elif len(files) >= 1 and embed is not None:
-                await ctx.send(embed=embed, files=[File(fp=BytesIO(data), filename=name) for name, data in files])
-            else:
-                raise UserInputError("A valid game mode was not specified.")
+            await self.send_schedule(ctx, mode, 0, ctx.send)
 
     @splatoon.command()
     async def splatfestinfo(self, ctx: CustomContext) -> None:

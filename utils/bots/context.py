@@ -21,22 +21,25 @@ class _DefaultSendHandler(SendHandler):
         self.ctx: "CustomContext" = ctx
 
     async def send(self, *args, **kwargs) -> discord.Message:
+        message: discord.Message
         if self.ctx.interaction is None:
             if kwargs.get("ephemeral") is not None:
                 del kwargs["ephemeral"]
             if kwargs.get("reference") is None:
                 kwargs["reference"] = self.ctx.message
-            return await self.ctx.send_bare(*args, **kwargs)
+            message = await self.ctx.send_bare(*args, **kwargs)
         else:
             try:
-                return await self.ctx.send_bare(*args, **kwargs)
+                message = await self.ctx.send_bare(*args, **kwargs)
             except NotFound:
                 try:
-                    return await self.ctx.interaction.followup.send(*args, **kwargs)
+                    message = await self.ctx.interaction.followup.send(*args, **kwargs)
                 except NotFound:
                     if kwargs.get("ephemeral") is not None:
                         del kwargs["ephemeral"]
-                    return await self.ctx.channel.send(*args, **kwargs)  # Worst case
+                    message = await self.ctx.channel.send(*args, **kwargs)  # Worst case
+        self.ctx["response"] = message  # this is both neat and kinda broken
+        return message
 
 
 class CustomContext(commands.Context):

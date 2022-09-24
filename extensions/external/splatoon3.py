@@ -6,11 +6,11 @@ from typing import Literal, Any
 from PIL import Image
 from aiohttp import ClientSession
 from dateutil.parser import isoparse
-from dateutil.tz import tz
+from dateutil.tz import tzutc
 from discord import Embed, File
 from discord.app_commands import describe
 from discord.ext import tasks
-from discord.ext.commands import Cog, hybrid_group
+from discord.ext.commands import Cog, hybrid_group, UserInputError
 from discord.utils import format_dt
 from reportlab.graphics.renderPM import drawToFile
 from reportlab.graphics.shapes import Drawing
@@ -18,11 +18,11 @@ from svglib.svglib import svg2rlg
 
 from utils.bots import BOT_TYPES, CustomContext
 
-
 SPLATFEST_UNSTARTED_COLOR: int = 0x666775
 REGULAR_BATTLE_COLOR: int = 0xcff622
 RANKED_BATTLE_COLOR: int = 0xf54910
 SALMON_RUN_COLOR: int = 0xff5600
+TIMESLOT_EMOJI: str = "📆"
 
 
 def splatfest_color(colors: dict[str, float]) -> int:
@@ -72,6 +72,26 @@ def concat_pngs(png1: bytes, png2: bytes) -> bytes:
         return buffer.read()
 
 
+class TimeSlotData:
+    def __init__(self, start: datetime, end: datetime, index: int) -> None:
+        self.start: datetime = start
+        self.end: datetime = end
+        self.index: int = index
+
+    @classmethod
+    def from_nodes(cls, nodes: list[dict[str, Any]]) -> list["TimeSlotData"]:
+        return [cls(isoparse(node["startTime"]), isoparse(node["endTime"]), index) for index, node in enumerate(nodes)]
+
+    __slots__ = ("start", "end", "index")
+
+    @property
+    def name(self) -> str:
+        return f"{format_dt(self.start)} - {format_dt(self.end)}"
+
+    def __repr__(self) -> str:
+        return f"<TimeSlotData start={self.start} end={self.end} index={self.index}>"
+
+
 class Splatoon3(Cog):
     """Get information about the current status of Splatoon 3. Powered by https://splatoon3.ink/"""
 
@@ -111,350 +131,244 @@ class Splatoon3(Cog):
         if self.update_cache.is_running():
             self.update_cache.cancel()
 
-    @hybrid_group(aliases=["splat", "splatoon3", "sp"], fallback="schedule")
-    @describe(
-        game="The game mode to get information about.",
-        index="The time slot to get. 0 is right now, 1 is the next set of stages, etc."
-    )
-    async def splatoon(
-            self,
-            ctx: CustomContext,
-            game: Literal[
-                "Regular Battle",
-                "Anarchy Battle (Series)",
-                "Anarchy Battle (Open)",
-                "Salmon Run",
-                "Splatfest Battle",
-                "Tricolor Battle",
+    async def _make_thumbnail(self, mode: str, rule: str) -> bytes:
+        rule: str = convert_mode_name(rule)
+        mode_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/modes/{mode}.svg"
+        rule_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/rules/{rule}.svg"
 
-                "regular",
-                "open",
-                "series",
-                "salmon",
-                "splatfest",
-                "tricolor"
-            ] = "Regular Battle",
-            index: Literal[
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-            ] = 0  # I want to redo this with a view in the near future
-    ) -> None:
+        async with self.cs.get(mode_url) as resp:
+            mode_svg: bytes = await resp.read()
+
+        mode_png: bytes = await self.bot.loop.run_in_executor(None, svg2png, mode_svg)
+
+        async with self.cs.get(rule_url) as resp:
+            rule_svg: bytes = await resp.read()
+
+        rule_png: bytes = await self.bot.loop.run_in_executor(None, svg2png, rule_svg)
+
+        return await self.bot.loop.run_in_executor(None, concat_pngs, mode_png, rule_png)
+
+    async def _two_stage_thumbnail(self, vs_stages: list[dict[str, Any | dict[str, str]]]) -> bytes:
+        stage1_url: str = vs_stages[0]["image"]["url"]
+        stage2_url: str = vs_stages[1]["image"]["url"]
+
+        async with self.cs.get(stage1_url) as resp:
+            stage1_png: bytes = await resp.read()
+
+        async with self.cs.get(stage2_url) as resp:
+            stage2_png: bytes = await resp.read()
+
+        return await self.bot.loop.run_in_executor(None, concat_pngs, stage1_png, stage2_png)
+
+    async def _compose_schedule_message(self, game: Literal[
+        "Regular Battle",
+        "Anarchy Battle (Series)",
+        "Anarchy Battle (Open)",
+        "Salmon Run",
+        "Splatfest Battle",
+
+        "regular",
+        "open",
+        "series",
+        "salmon",
+        "splatfest"
+    ] = "Regular Battle", index: int = 0) -> tuple[
+        Embed | None,
+        list[tuple[str, bytes]],
+        list[TimeSlotData]
+    ]:
         """
-        Get information about the current status of different game modes in Splatoon 3.
-        Powered by https://splatoon3.ink/
+        Composes a message about the current schedule.
         """
-        if self.cached_schedules is None:
-            await ctx.send("The cache has not been initialized yet. Please try again in a few seconds.", ephemeral=True)
-            return
 
-        if game == "Salmon Run" and index > 4:
-            await ctx.send("Salmon Run only has 5 stages sent in advance. Please reenter your command.", ephemeral=True)
-            return
-        # We *could* cache the whole embed and the images that are generated, but we don't really need to.
-
-        final_thumbnail_png: bytes | None = None
-        final_stage_png: bytes | None = None
+        files: list[tuple[str, bytes]] = []
 
         match game:
             case "Regular Battle" | "regular":
                 game: str = "Regular Battle"
 
-                schedule: dict = self.cached_schedules["regularSchedules"]["nodes"][index]
+                nodes: list[dict[str, Any]] = self.cached_schedules["regularBattle"]["nodes"]
+
+                if isoparse(nodes[0]["startTime"]) < datetime.now(tzutc()):
+                    nodes = nodes[1:]
+
+                schedule: dict = nodes[index]
                 start_time: datetime = isoparse(schedule["startTime"])
                 end_time: datetime = isoparse(schedule["endTime"])
-                match_settings: dict = schedule["regularMatchSetting"]
+                match_settings: dict | None = schedule["regularMatchSetting"]
+                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes)
 
-                thumbnail_url: str = "https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/modes/regular.svg"
-                mode_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/rules/{convert_mode_name(match_settings['vsRule']['rule'].lower())}.svg"
-                embed: Embed
+                if match_settings is None:
+                    return (
+                               Embed(
+                                   title=game,
+                                   color=REGULAR_BATTLE_COLOR,
+                                   description="This game mode is not currently available.",
+                               )
+                           ), files, timeslots
+                else:
+                    files.append(("thumbnail.png",
+                                  await self._make_thumbnail("regular", match_settings["vsRule"]["rule"].lower())))
+                    files.append(("stages.png", await self._two_stage_thumbnail(match_settings["vsStages"])))
 
-                # Thumbnail code
-                async with self.cs.get(thumbnail_url) as resp:
-                    thumbnail_svg: bytes = await resp.read()
-                    # This could be cached, but I can't be bothered to implement a cache for this.
-
-                thumbnail_png: bytes = await ctx.bot.loop.run_in_executor(None, svg2png, thumbnail_svg)
-
-                async with self.cs.get(mode_url) as resp:
-                    mode_svg: bytes = await resp.read()
-                    # This could be cached, but I can't be bothered to implement a cache for this.
-
-                mode_png: bytes = await ctx.bot.loop.run_in_executor(
-                    None,
-                    svg2png,
-                    mode_svg
-                )
-
-                final_thumbnail_png: bytes = await ctx.bot.loop.run_in_executor(
-                    None,
-                    concat_pngs,
-                    thumbnail_png,
-                    mode_png
-                )
-
-                # Stage code
-                stage1_url: str = match_settings["vsStages"][0]["image"]["url"]
-                stage2_url: str = match_settings["vsStages"][1]["image"]["url"]
-
-                async with self.cs.get(stage1_url) as resp:
-                    stage1_png: bytes = await resp.read()
-                    # This could be cached, but I can't be bothered to implement a cache for this.
-
-                async with self.cs.get(stage2_url) as resp:
-                    stage2_png: bytes = await resp.read()
-
-                final_stage_png: bytes = await ctx.bot.loop.run_in_executor(None, concat_pngs, stage1_png, stage2_png)
-
-                embed: Embed = (
-                    Embed(
-                        title=game,
-                        color=REGULAR_BATTLE_COLOR,
-                        description=match_settings["vsRule"]["name"],
-                    )
-                    .set_thumbnail(
-                        url="attachment://thumbnail.png"
-                    )
-                    .add_field(
-                        name="Start Time",
-                        value=format_dt(start_time, "R")
-                    )
-                    .add_field(
-                        name="End Time",
-                        value=format_dt(end_time, "R")
-                    )
-                    .add_field(
-                        name="Stage 1",
-                        value=match_settings["vsStages"][0]["name"],
-                        inline=False,
-                    )
-                    .add_field(
-                        name="Stage 2",
-                        value=match_settings["vsStages"][1]["name"],
-                    )
-                    .set_image(
-                        url="attachment://stages.png"
-                    )
-                )
+                    return (
+                               Embed(
+                                   title=game,
+                                   color=REGULAR_BATTLE_COLOR,
+                                   description=match_settings["vsRule"]["name"],
+                               )
+                               .set_thumbnail(
+                                   url="attachment://thumbnail.png"
+                               )
+                               .add_field(
+                                   name="Start Time",
+                                   value=format_dt(start_time, "R")
+                               )
+                               .add_field(
+                                   name="End Time",
+                                   value=format_dt(end_time, "R")
+                               )
+                               .add_field(
+                                   name="Stage 1",
+                                   value=match_settings["vsStages"][0]["name"],
+                                   inline=False,
+                               )
+                               .add_field(
+                                   name="Stage 2",
+                                   value=match_settings["vsStages"][1]["name"],
+                               )
+                               .set_image(
+                                   url="attachment://stages.png"
+                               )
+                           ), files, timeslots
             case "Anarchy Battle (Series)" | "Anarchy Battle (Open)" | "open" | "series":
                 game: str = "Anarchy Battle (Series)" if game == "series" or game == "Anarchy Battle (Series)" else "Anarchy Battle (Open)"
 
-                schedule: dict = self.cached_schedules["bankaraSchedules"]["nodes"][index]
+                nodes: list[dict[str, Any]] = self.cached_schedules["anarchyBattle"]["nodes"]
+
+                if isoparse(nodes[0]["startTime"]) < datetime.now(tzutc()):
+                    nodes = nodes[1:]
+
+                schedule: dict = nodes[index]
                 start_time: datetime = isoparse(schedule["startTime"])
                 end_time: datetime = isoparse(schedule["endTime"])
-                match_settings: dict = schedule["bankaraMatchSettings"][0 if game == "Anarchy Battle (Series)" else 1]
+                match_settings: list[dict] | None = schedule["bankaraMatchSettings"]
+                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes)
 
-                thumbnail_url: str = "https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/modes/bankara.svg"
-                mode_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/rules/{convert_mode_name(match_settings['vsRule']['rule'].lower())}.svg"
+                if match_settings is None:
+                    return (
+                               Embed(
+                                   title=game,
+                                   color=RANKED_BATTLE_COLOR,
+                                   description="This game mode is not currently available.",
+                               )
+                           ), files, timeslots
+                else:
+                    match_settings: dict = match_settings[0 if game == "Anarchy Battle (Series)" else 1]
 
-                # Thumbnail code
-                async with self.cs.get(thumbnail_url) as resp:
-                    thumbnail_svg: bytes = await resp.read()
-                    # This could be cached, but I can't be bothered to implement a cache for this.
+                    files.append(("thumbnail.png",
+                                  await self._make_thumbnail("bankara", match_settings["vsRule"]["rule"].lower())))
+                    files.append(("stages.png", await self._two_stage_thumbnail(match_settings["vsStages"])))
 
-                thumbnail_png: bytes = await ctx.bot.loop.run_in_executor(None, svg2png, thumbnail_svg)
-
-                async with self.cs.get(mode_url) as resp:
-                    mode_svg: bytes = await resp.read()
-                    # This could be cached, but I can't be bothered to implement a cache for this.
-
-                mode_png: bytes = await ctx.bot.loop.run_in_executor(
-                    None,
-                    svg2png,
-                    mode_svg
-                )
-
-                final_thumbnail_png: bytes = await ctx.bot.loop.run_in_executor(
-                    None,
-                    concat_pngs,
-                    thumbnail_png,
-                    mode_png
-                )
-
-                # Stage code
-                stage1_url: str = match_settings["vsStages"][0]["image"]["url"]
-                stage2_url: str = match_settings["vsStages"][1]["image"]["url"]
-
-                async with self.cs.get(stage1_url) as resp:
-                    stage1_png: bytes = await resp.read()
-                    # This could be cached, but I can't be bothered to implement a cache for this.
-
-                async with self.cs.get(stage2_url) as resp:
-                    stage2_png: bytes = await resp.read()
-
-                final_stage_png: bytes = await ctx.bot.loop.run_in_executor(None, concat_pngs, stage1_png, stage2_png)
-
-                embed: Embed = (
-                    Embed(
-                        title=game,
-                        color=RANKED_BATTLE_COLOR,
-                        description=match_settings["vsRule"]["name"],
-                    )
-                    .set_thumbnail(
-                        url="attachment://thumbnail.png"
-                    )
-                    .add_field(
-                        name="Start Time",
-                        value=format_dt(start_time, "R")
-                    )
-                    .add_field(
-                        name="End Time",
-                        value=format_dt(end_time, "R")
-                    )
-                    .add_field(
-                        name="Stage 1",
-                        value=match_settings["vsStages"][0]["name"],
-                        inline=False,
-                    )
-                    .add_field(
-                        name="Stage 2",
-                        value=match_settings["vsStages"][1]["name"],
-                    )
-                    .set_image(
-                        url="attachment://stages.png"
-                    )
-                )
+                    return (
+                               Embed(
+                                   title=game,
+                                   color=RANKED_BATTLE_COLOR,
+                                   description=match_settings["vsRule"]["name"],
+                               )
+                               .set_thumbnail(
+                                   url="attachment://thumbnail.png"
+                               )
+                               .add_field(
+                                   name="Start Time",
+                                   value=format_dt(start_time, "R")
+                               )
+                               .add_field(
+                                   name="End Time",
+                                   value=format_dt(end_time, "R")
+                               )
+                               .add_field(
+                                   name="Stage 1",
+                                   value=match_settings["vsStages"][0]["name"],
+                                   inline=False,
+                               )
+                               .add_field(
+                                   name="Stage 2",
+                                   value=match_settings["vsStages"][1]["name"],
+                               )
+                               .set_image(
+                                   url="attachment://stages.png"
+                               )
+                           ), files, timeslots
             case "Splatfest Battle" | "splatfest":
                 game: str = "Splatfest Battle"
 
                 if self.cached_schedules["currentFest"] is None:
-                    embed: Embed = (
-                        Embed(
-                            title=game,
-                            description="There is no Splatfest currently running.",
-                        )
-                    )
+                    return (
+                               Embed(
+                                   title=game,
+                                   color=SPLATFEST_UNSTARTED_COLOR,
+                                   description="There is no Splatfest currently running.",
+                               )
+                           ), files, []
                 else:
-                    schedule: dict = self.cached_schedules["festSchedules"]["nodes"][index]
+                    nodes: list[dict[str, Any]] = self.cached_schedules["festSchedules"]["nodes"]
+
+                    if isoparse(nodes[0]["startTime"]) < datetime.now(tzutc()):
+                        nodes = nodes[1:]
+
+                    schedule: dict = nodes[index]
                     start_time: datetime = isoparse(schedule["startTime"])
                     end_time: datetime = isoparse(schedule["endTime"])
                     match_settings: dict | None = schedule["festMatchSetting"]
                     color: int = splatfest_color(choice(self.cached_schedules["currentFest"]["teams"])["color"])
+                    timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes)
 
                     if match_settings is None:
-                        embed: Embed = (
-                            Embed(
-                                title=game,
-                                color=color,
-                                description="The Splatfest has not yet started. Try looking in the future.",
-                            )
-                        )
+                        return (
+                                   Embed(
+                                       title=game,
+                                       color=color,
+                                       description="The Splatfest has not yet started. Try looking in the future.",
+                                   )
+                               ), files, timeslots
                     else:
-                        # fixme: Splatfest assets aren't available yet, add this when they are
-                        # thumbnail_url: str = "https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/modes/regular.svg"  # update
-                        # mode_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/rules/{convert_mode_name(match_settings['vsRule']['rule'].lower())}.svg"
-                        #
-                        # # Thumbnail code
-                        # async with self.cs.get(thumbnail_url) as resp:
-                        #     thumbnail_svg: bytes = await resp.read()
-                        #     # This could be cached, but I can't be bothered to implement a cache for this.
-                        #
-                        # thumbnail_png: bytes = await ctx.bot.loop.run_in_executor(None, svg2png, thumbnail_svg)
-                        #
-                        # async with self.cs.get(mode_url) as resp:
-                        #     mode_svg: bytes = await resp.read()
-                        #     # This could be cached, but I can't be bothered to implement a cache for this.
-                        #
-                        # mode_png: bytes = await ctx.bot.loop.run_in_executor(
-                        #     None,
-                        #     svg2png,
-                        #     mode_svg
-                        # )
-                        #
-                        # final_thumbnail_png: bytes = await ctx.bot.loop.run_in_executor(
-                        #     None,
-                        #     concat_pngs,
-                        #     thumbnail_png,
-                        #     mode_png
-                        # )
+                        # I don't think there are any special assets for a splatfest, so this is fine?
 
-                        stage1_url: str = match_settings["vsStages"][0]["image"]["url"]
-                        stage2_url: str = match_settings["vsStages"][1]["image"]["url"]
+                        files.append(("thumbnail.png",
+                                      await self._make_thumbnail("regular", match_settings["vsRule"]["rule"].lower())))
+                        files.append(("stages.png", await self._two_stage_thumbnail(match_settings["vsStages"])))
 
-                        async with self.cs.get(stage1_url) as resp:
-                            stage1_png: bytes = await resp.read()
-                            # This could be cached, but I can't be bothered to implement a cache for this.
-
-                        async with self.cs.get(stage2_url) as resp:
-                            stage2_png: bytes = await resp.read()
-
-                        final_stage_png: bytes = await ctx.bot.loop.run_in_executor(None, concat_pngs, stage1_png,
-                                                                                    stage2_png)
-
-                        embed: Embed = (
-                            Embed(
-                                title=game,
-                                color=color,
-                                description=match_settings["vsRule"]["name"],
-                            )
-                            .set_thumbnail(
-                                url="attachment://thumbnail.png"
-                            )
-                            .add_field(
-                                name="Start Time",
-                                value=format_dt(start_time, "R")
-                            )
-                            .add_field(
-                                name="End Time",
-                                value=format_dt(end_time, "R")
-                            )
-                            .add_field(
-                                name="Stage 1",
-                                value=match_settings["vsStages"][0]["name"],
-                                inline=False,
-                            )
-                            .add_field(
-                                name="Stage 2",
-                                value=match_settings["vsStages"][1]["name"],
-                            )
-                            .set_image(
-                                url="attachment://stages.png"
-                            )
-                        )
-            case "Tricolor Battle" | "tricolor":
-                game: str = "Tricolor Battle"
-
-                if self.cached_schedules["currentFest"] is None:
-                    embed: Embed = (
-                        Embed(
-                            title=game,
-                            description="There is no Splatfest currently running.",
-                        )
-                    )
-                else:
-                    color: int = splatfest_color(choice(self.cached_schedules["currentFest"]["teams"])["color"])
-                    midterm: datetime = isoparse(self.cached_schedules["currentFest"]["midtermTime"])
-                    has_started: bool = datetime.now(tz.tzutc()) > midterm
-                    embed: Embed = (
-                        Embed(
-                            title=game,
-                            color=color,
-                            description="The Tricolor Battle has not yet started."
-                                        if not has_started else "Tricolor Battle is currently running!",
-                        )
-                        .add_field(
-                            name="Start Time",
-                            value=format_dt(midterm, "R"),
-                            inline=False,
-                        )
-                        .add_field(
-                            name="Stage",
-                            value=self.cached_schedules["currentFest"]["tricolorStage"]["name"],
-                            inline=False,
-                        )
-                        .set_image(
-                            url=self.cached_schedules["currentFest"]["tricolorStage"]["image"]["url"]
-                        )
-                    )
+                        return (
+                                   Embed(
+                                       title=game,
+                                       color=color,
+                                       description=match_settings["vsRule"]["name"],
+                                   )
+                                   .set_thumbnail(
+                                       url="attachment://thumbnail.png"
+                                   )
+                                   .add_field(
+                                       name="Start Time",
+                                       value=format_dt(start_time, "R")
+                                   )
+                                   .add_field(
+                                       name="End Time",
+                                       value=format_dt(end_time, "R")
+                                   )
+                                   .add_field(
+                                       name="Stage 1",
+                                       value=match_settings["vsStages"][0]["name"],
+                                       inline=False,
+                                   )
+                                   .add_field(
+                                       name="Stage 2",
+                                       value=match_settings["vsStages"][1]["name"],
+                                   )
+                                   .set_image(
+                                       url="attachment://stages.png"
+                                   )
+                               ), files, timeslots
             # case "Salmon Run" | "salmon":
             #     schedule: dict = self.cached_schedules["coopGroupingSchedule"]["regularSchedules"][index]
             #     embed: Embed = (
@@ -464,28 +378,48 @@ class Splatoon3(Cog):
             #         )
             #     )
             case _:
-                await ctx.send(
-                    "Invalid game mode. Salmon Run and Big Run information is not yet available through this command.",
-                    ephemeral=True
-                )
-                return
+                return None, files, []
+
+    @hybrid_group(aliases=["splat", "splatoon3", "sp"], fallback="schedule")
+    @describe(game="The game mode to get information about.")
+    async def splatoon(
+            self,
+            ctx: CustomContext,
+            game: Literal[
+                "Regular Battle",
+                "Anarchy Battle (Series)",
+                "Anarchy Battle (Open)",
+                "Salmon Run",
+                "Splatfest Battle",
+
+                "regular",
+                "open",
+                "series",
+                "salmon",
+                "splatfest"
+            ] = "Regular Battle",
+    ) -> None:
+        """
+        Get information about the current status of different game modes in Splatoon 3.
+        Powered by https://splatoon3.ink/
+        """
+        if self.cached_schedules is None:
+            await ctx.send("The cache has not been initialized yet. Please try again in a few seconds.", ephemeral=True)
+            return
 
         async with ctx.typing():
-            if final_thumbnail_png is not None and final_stage_png is not None:
-                with BytesIO(final_thumbnail_png) as thumbnail_fp, BytesIO(final_stage_png) as stage_fp:
-                    thumbnail_file: File = File(thumbnail_fp, filename="thumbnail.png")
-                    stage_file: File = File(stage_fp, filename="stages.png")
-                    await ctx.send(embed=embed, files=[thumbnail_file, stage_file])
-            elif final_thumbnail_png is not None and final_stage_png is None:
-                with BytesIO(final_thumbnail_png) as thumbnail_fp:
-                    thumbnail_file: File = File(thumbnail_fp, filename="thumbnail.png")
-                    await ctx.send(embed=embed, files=[thumbnail_file,])
-            elif final_thumbnail_png is None and final_stage_png is not None:
-                with BytesIO(final_stage_png) as stage_fp:
-                    stage_file: File = File(stage_fp, filename="stages.png")
-                    await ctx.send(embed=embed, files=[stage_file,])
-            else:
+            embed, files, timeslots = await self._compose_schedule_message(game, 0)
+
+            embed: Embed | None
+            files: list[tuple[str, bytes]]
+            timeslots: list[TimeSlotData]
+
+            if len(files) == 0 and embed is not None:
                 await ctx.send(embed=embed)
+            elif len(files) >= 1 and embed is not None:
+                await ctx.send(embed=embed, files=[File(fp=BytesIO(data), filename=name) for name, data in files])
+            else:
+                raise UserInputError("A valid game mode was not specified.")
 
     @splatoon.command()
     async def splatfestinfo(self, ctx: CustomContext) -> None:
@@ -493,6 +427,10 @@ class Splatoon3(Cog):
         Get information on the currently running Splatfest, if there is one.
         Powered by https://splatoon3.ink/
         """
+        if self.cached_schedules is None:
+            await ctx.send("The cache has not been initialized yet. Please try again in a few seconds.", ephemeral=True)
+            return
+
         splatfest_info: dict | None = self.cached_schedules["currentFest"]
         if splatfest_info is None:
             embed: Embed = (
@@ -507,7 +445,7 @@ class Splatoon3(Cog):
             end_time: datetime = isoparse(splatfest_info["endTime"])
             midterm: datetime = isoparse(splatfest_info["midtermTime"])
             title: str = splatfest_info["title"]
-            state: str = splatfest_info["state"]
+            state: Literal["SCHEDULED", "FIRST_HALF", "SECOND_HALF"] = splatfest_info["state"]
 
             is_scheduled: bool = state == "scheduled"
 
@@ -517,9 +455,7 @@ class Splatoon3(Cog):
                 splatfest_color(choice(splatfest_info["teams"])["color"])
             )
 
-            # This doesn't include team names, and I have zero idea why.
-
-            # I have choesn to have the tricolor to be part of the schedules and not the splatfest info to avoid spoilers.
+            # This doesn't include team names, and I have zero idea why. Oh, well!
 
             embed: Embed = (
                 Embed(
@@ -538,9 +474,16 @@ class Splatoon3(Cog):
                     name="Midterm Time",
                     value=format_dt(midterm, "R"),
                 )
+                .add_field(
+                    name="Stage",
+                    value=splatfest_info["tricolorStage"]["name"],
+                    inline=False,
+                )
+                .set_image(
+                    url=splatfest_info["tricolorStage"]["image"]["url"]
+                )
             )
         await ctx.send(embed=embed)
-
 
     @splatoon.command()
     async def salmonrungear(self, ctx: CustomContext) -> None:
@@ -548,6 +491,10 @@ class Splatoon3(Cog):
         Get information on this month's Salmon Run gear.
         Powered by https://splatoon3.ink/
         """
+        if self.cached_coop is None:
+            await ctx.send("The cache has not been initialized yet. Please try again in a few seconds.", ephemeral=True)
+            return
+
         monthly_gear_info: dict[str, str | dict[str, str]] = self.cached_coop["monthlyGear"]
 
         embed: Embed = (
@@ -576,7 +523,6 @@ class Splatoon3(Cog):
     #     Powered by https://splatoon3.ink/
     #     """
     #     pass  # TODO: This will be a nightmare with Views, oh my!
-
 
 
 async def setup(bot: BOT_TYPES) -> None:

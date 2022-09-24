@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, tzinfo
+from datetime import datetime, tzinfo
 from io import BytesIO
 from random import choice
 from typing import Literal, Any, cast, Type
@@ -43,18 +43,12 @@ TIMESLOT_EMOJIS: dict[int, str] = {
 }
 
 MODE_LITERAL: Type = Literal[
-        "Regular Battle",
-        "Anarchy Battle (Series)",
-        "Anarchy Battle (Open)",
-        "Salmon Run",
-        "Splatfest Battle",
-
-        "regular",
-        "open",
-        "series",
-        "salmon",
-        "splatfest"
-    ]
+    "Regular Battle",
+    "Anarchy Battle (Series)",
+    "Anarchy Battle (Open)",
+    "Salmon Run",
+    "Splatfest Battle",
+]
 
 
 def splatfest_color(colors: dict[str, float]) -> int:
@@ -87,7 +81,7 @@ def svg2png(svg: bytes) -> bytes:
         return png_file.read()
 
 
-def concat_pngs(png1: bytes, png2: bytes) -> bytes:
+def vrt_concat_pngs(png1: bytes, png2: bytes) -> bytes:
     with BytesIO(png1) as png1_file, BytesIO(png2) as png2_file, BytesIO() as buffer:
         image1: Image.Image = Image.open(png1_file)
         image2: Image.Image = Image.open(png2_file)
@@ -104,25 +98,47 @@ def concat_pngs(png1: bytes, png2: bytes) -> bytes:
         return buffer.read()
 
 
+def hrz_concat_pngs(png1: bytes, png2: bytes) -> bytes:
+    with BytesIO(png1) as png1_file, BytesIO(png2) as png2_file, BytesIO() as buffer:
+        image1: Image.Image = Image.open(png1_file)
+        image2: Image.Image = Image.open(png2_file)
+
+        if image2.size != image1.size:
+            image2: Image.Image = image2.resize((image1.width, image1.height), Image.ANTIALIAS)
+
+        buffer_img: Image.Image = Image.new("RGBA", (image1.width + image2.width, image1.height))
+        buffer_img.paste(image1, (0, 0))
+        buffer_img.paste(image2, (image1.width, 0))
+
+        buffer_img.save(buffer, "PNG")
+        buffer.seek(0)
+        return buffer.read()
+
+
 class TimeSlotData:  # This could probably extend SelectOption, but this is separate for the sake of selfbot support.
-    def __init__(self, start: datetime, end: datetime, index: int) -> None:
+    def __init__(self, start: datetime, end: datetime, index: int, mode: MODE_LITERAL) -> None:
         self.start: datetime = start
         self.end: datetime = end
         self.index: int = index
+        self.mode: str = mode
 
     @classmethod
-    def from_nodes(cls, nodes: list[dict[str, Any]]) -> list["TimeSlotData"]:
-        return [cls(isoparse(node["startTime"]), isoparse(node["endTime"]), index) for index, node in enumerate(nodes)]
+    def from_nodes(cls, nodes: list[dict[str, Any]], mode: MODE_LITERAL) -> list["TimeSlotData"]:
+        return [cls(isoparse(node["startTime"]), isoparse(node["endTime"]), index, mode) for index, node in
+                enumerate(nodes)]
 
-    __slots__ = ("start", "end", "index")
+    __slots__ = ("start", "end", "index", "mode")
 
     @property
     def name(self) -> str:
         now: datetime = datetime.now()
         ctz: tzinfo = now.tzinfo
-        now = now.astimezone(ctz)  # weird.
-        return f"{self.start.astimezone(ctz).strftime(TIMESLOT_SHORT)} " \
-               f"- {self.end.astimezone(ctz).strftime(TIMESLOT_SHORT)} "
+        out: str = f"{self.start.astimezone(ctz).strftime(TIMESLOT_SHORT)} " \
+                   f"- {self.end.astimezone(ctz).strftime(TIMESLOT_SHORT)} "
+        if self.mode == "Salmon Run":
+            out += f"({self.index + 1})"
+        # Salmon run tends to run a lot longer. This is protection against two being the same
+        return out
 
     @property
     def description(self) -> str:
@@ -142,7 +158,7 @@ class TimeSlotData:  # This could probably extend SelectOption, but this is sepa
         hour_str: str = localized_start.strftime("%I")
         hour: int = int(hour_str)
 
-        if hour > 11:
+        while hour > 11:
             hour -= 12
 
         return TIMESLOT_EMOJIS[hour]
@@ -252,7 +268,7 @@ class Splatoon3(Cog):
         if self.update_cache.is_running():
             self.update_cache.cancel()
 
-    async def _make_thumbnail(self, mode: str, rule: str) -> bytes:
+    async def _make_mode_rule_thumbnail(self, mode: str, rule: str) -> bytes:
         rule: str = convert_mode_name(rule)
         mode_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/modes/{mode}.svg"
         rule_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/rules/{rule}.svg"
@@ -267,9 +283,28 @@ class Splatoon3(Cog):
 
         rule_png: bytes = await self.bot.loop.run_in_executor(None, svg2png, rule_svg)
 
-        return await self.bot.loop.run_in_executor(None, concat_pngs, mode_png, rule_png)
+        return await self.bot.loop.run_in_executor(None, vrt_concat_pngs, mode_png, rule_png)
 
-    async def _two_stage_thumbnail(self, vs_stages: list[dict[str, Any | dict[str, str]]]) -> bytes:
+    async def _make_salmon_run_thumbnail(self, weapons: list[dict[str, str | dict[str, str]]]) -> bytes | None:
+        weapon_urls: list[str] = [
+            weapon["image"]["url"]
+            for weapon in weapons
+        ]
+
+        weapon_pngs: list[bytes] = []
+
+        for weapon_url in weapon_urls:
+            async with self.cs.get(weapon_url) as resp:
+                weapon_pngs.append(await resp.read())
+
+        if len(weapons) == 4:
+            set_1: bytes = await self.bot.loop.run_in_executor(None, hrz_concat_pngs, *weapon_pngs[:2])
+            set_2: bytes = await self.bot.loop.run_in_executor(None, hrz_concat_pngs, *weapon_pngs[2:])
+            return await self.bot.loop.run_in_executor(None, vrt_concat_pngs, set_1, set_2)
+        else:
+            return None  # TODO: Handle this case (probably for special weapons)
+
+    async def _make_two_stage_image(self, vs_stages: list[dict[str, Any | dict[str, str]]]) -> bytes:
         stage1_url: str = vs_stages[0]["image"]["url"]
         stage2_url: str = vs_stages[1]["image"]["url"]
 
@@ -279,9 +314,9 @@ class Splatoon3(Cog):
         async with self.cs.get(stage2_url) as resp:
             stage2_png: bytes = await resp.read()
 
-        return await self.bot.loop.run_in_executor(None, concat_pngs, stage1_png, stage2_png)
+        return await self.bot.loop.run_in_executor(None, vrt_concat_pngs, stage1_png, stage2_png)
 
-    async def _compose_schedule_message(self, game: MODE_LITERAL = "Regular Battle", index: int = 0) -> tuple[
+    async def _compose_schedule_message(self, mode: MODE_LITERAL = "Regular Battle", index: int = 0) -> tuple[
         Embed | None,
         list[tuple[str, bytes]],
         list[TimeSlotData]
@@ -292,10 +327,8 @@ class Splatoon3(Cog):
 
         files: list[tuple[str, bytes]] = []
 
-        match game:
-            case "Regular Battle" | "regular":
-                game: str = "Regular Battle"
-
+        match mode:
+            case "Regular Battle":
                 nodes: list[dict[str, Any]] = self.cached_schedules["regularSchedules"]["nodes"]
 
                 if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
@@ -305,24 +338,25 @@ class Splatoon3(Cog):
                 start_time: datetime = isoparse(schedule["startTime"])
                 end_time: datetime = isoparse(schedule["endTime"])
                 match_settings: dict | None = schedule["regularMatchSetting"]
-                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes)
+                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
 
                 if match_settings is None:
                     return (
                                Embed(
-                                   title=game,
+                                   title=mode,
                                    color=REGULAR_BATTLE_COLOR,
                                    description="This game mode is not currently available.",
                                )
                            ), files, timeslots
                 else:
                     files.append(("thumbnail.png",
-                                  await self._make_thumbnail("regular", match_settings["vsRule"]["rule"].lower())))
-                    files.append(("stages.png", await self._two_stage_thumbnail(match_settings["vsStages"])))
+                                  await self._make_mode_rule_thumbnail("regular",
+                                                                       match_settings["vsRule"]["rule"].lower())))
+                    files.append(("stages.png", await self._make_two_stage_image(match_settings["vsStages"])))
 
                     return (
                                Embed(
-                                   title=game,
+                                   title=mode,
                                    color=REGULAR_BATTLE_COLOR,
                                    description=match_settings["vsRule"]["name"],
                                )
@@ -350,9 +384,7 @@ class Splatoon3(Cog):
                                    url="attachment://stages.png"
                                )
                            ), files, timeslots
-            case "Anarchy Battle (Series)" | "Anarchy Battle (Open)" | "open" | "series":
-                game: str = "Anarchy Battle (Series)" if game == "series" or game == "Anarchy Battle (Series)" else "Anarchy Battle (Open)"
-
+            case "Anarchy Battle (Series)" | "Anarchy Battle (Open)":
                 nodes: list[dict[str, Any]] = self.cached_schedules["bankaraSchedules"]["nodes"]
 
                 if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
@@ -362,26 +394,27 @@ class Splatoon3(Cog):
                 start_time: datetime = isoparse(schedule["startTime"])
                 end_time: datetime = isoparse(schedule["endTime"])
                 match_settings: list[dict] | None = schedule["bankaraMatchSettings"]
-                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes)
+                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
 
                 if match_settings is None:
                     return (
                                Embed(
-                                   title=game,
+                                   title=mode,
                                    color=RANKED_BATTLE_COLOR,
                                    description="This game mode is not currently available.",
                                )
                            ), files, timeslots
                 else:
-                    match_settings: dict = match_settings[0 if game == "Anarchy Battle (Series)" else 1]
+                    match_settings: dict = match_settings[0 if mode == "Anarchy Battle (Series)" else 1]
 
                     files.append(("thumbnail.png",
-                                  await self._make_thumbnail("bankara", match_settings["vsRule"]["rule"].lower())))
-                    files.append(("stages.png", await self._two_stage_thumbnail(match_settings["vsStages"])))
+                                  await self._make_mode_rule_thumbnail("bankara",
+                                                                       match_settings["vsRule"]["rule"].lower())))
+                    files.append(("stages.png", await self._make_two_stage_image(match_settings["vsStages"])))
 
                     return (
                                Embed(
-                                   title=game,
+                                   title=mode,
                                    color=RANKED_BATTLE_COLOR,
                                    description=match_settings["vsRule"]["name"],
                                )
@@ -409,13 +442,11 @@ class Splatoon3(Cog):
                                    url="attachment://stages.png"
                                )
                            ), files, timeslots
-            case "Splatfest Battle" | "splatfest":
-                game: str = "Splatfest Battle"
-
+            case "Splatfest Battle":
                 if self.cached_schedules["currentFest"] is None:
                     return (
                                Embed(
-                                   title=game,
+                                   title=mode,
                                    color=SPLATFEST_UNSTARTED_COLOR,
                                    description="There is no Splatfest currently running.",
                                )
@@ -431,12 +462,12 @@ class Splatoon3(Cog):
                     end_time: datetime = isoparse(schedule["endTime"])
                     match_settings: dict | None = schedule["festMatchSetting"]
                     color: int = splatfest_color(choice(self.cached_schedules["currentFest"]["teams"])["color"])
-                    timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes)
+                    timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
 
                     if match_settings is None:
                         return (
                                    Embed(
-                                       title=game,
+                                       title=mode,
                                        color=color,
                                        description="The Splatfest has not yet started. Try looking in the future.",
                                    )
@@ -445,12 +476,13 @@ class Splatoon3(Cog):
                         # I don't think there are any special assets for a splatfest, so this is fine?
 
                         files.append(("thumbnail.png",
-                                      await self._make_thumbnail("regular", match_settings["vsRule"]["rule"].lower())))
-                        files.append(("stages.png", await self._two_stage_thumbnail(match_settings["vsStages"])))
+                                      await self._make_mode_rule_thumbnail("regular",
+                                                                           match_settings["vsRule"]["rule"].lower())))
+                        files.append(("stages.png", await self._make_two_stage_image(match_settings["vsStages"])))
 
                         return (
                                    Embed(
-                                       title=game,
+                                       title=mode,
                                        color=color,
                                        description=match_settings["vsRule"]["name"],
                                    )
@@ -478,14 +510,54 @@ class Splatoon3(Cog):
                                        url="attachment://stages.png"
                                    )
                                ), files, timeslots
-            # case "Salmon Run" | "salmon":
-            #     schedule: dict = self.cached_schedules["coopGroupingSchedule"]["regularSchedules"][index]
-            #     embed: Embed = (
-            #         Embed(
-            #             title="Salmon Run",
-            #             color=SALMON_RUN_COLOR,
-            #         )
-            #     )
+            case "Salmon Run":
+                nodes: list[dict[str, Any]] = self.cached_schedules["coopGroupingSchedule"]["regularSchedules"]["nodes"]
+
+                if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
+                    nodes = nodes[1:]
+
+                schedule: dict = nodes[index]
+                start_time: datetime = isoparse(schedule["startTime"])
+                end_time: datetime = isoparse(schedule["endTime"])
+                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
+
+                match_settings: dict = schedule["setting"]
+
+                files.append(("weapons.png", await self._make_salmon_run_thumbnail(match_settings["weapons"])))
+
+                embed: Embed = (
+                    Embed(
+                        title="Salmon Run",
+                        color=SALMON_RUN_COLOR,
+                    )
+                    .set_thumbnail(
+                        url="attachment://weapons.png"
+                    )
+                    .add_field(
+                        name="Start Time",
+                        value=format_dt(start_time, "R")
+                    )
+                    .add_field(
+                        name="End Time",
+                        value=format_dt(end_time, "R")
+                    )
+                    .add_field(
+                        name="Stage",
+                        value=match_settings["coopStage"]["name"],
+                    )
+                    .set_image(
+                        url=match_settings["coopStage"]["image"]["url"]
+                    )
+                )
+
+                for index, weapon in enumerate(match_settings["weapons"]):
+                    embed = embed.add_field(
+                        name=f"Weapon {index + 1}",
+                        value=weapon["name"],
+                        inline=False,
+                    )
+
+                return embed, files, timeslots
             case _:
                 return None, files, []
 
@@ -503,15 +575,10 @@ class Splatoon3(Cog):
             files=[File(fp=BytesIO(data), filename=name) for name, data in files] if len(files) > 0 else None,
             view=ScheduleView(ctx, timeslots, mode) if len(timeslots) > 0 else None,
         )
-        # This could be a memory leak, but it should be cleaned up after the 180.0 second timeout.
 
-    @hybrid_group(aliases=["splat", "splatoon3", "sp"], fallback="schedule")
+    @hybrid_group(aliases=["splat", "splatoon", "sp", "sp3"], fallback="schedule")
     @describe(mode="The game mode to get information about.")
-    async def splatoon(
-            self,
-            ctx: CustomContext,
-            mode: MODE_LITERAL = "Regular Battle",
-    ) -> None:
+    async def splatoon3(self, ctx: CustomContext, *, mode: MODE_LITERAL = "Regular Battle") -> None:
         """
         Get information about the current status of different game modes in Splatoon 3.
         Powered by https://splatoon3.ink/
@@ -523,7 +590,7 @@ class Splatoon3(Cog):
         async with ctx.typing():
             await self.send_schedule(ctx, mode, 0, ctx.send)
 
-    @splatoon.command()
+    @splatoon3.command()
     async def splatfestinfo(self, ctx: CustomContext) -> None:
         """
         Get information on the currently running Splatfest, if there is one.
@@ -577,7 +644,7 @@ class Splatoon3(Cog):
                     value=format_dt(midterm, "R"),
                 )
                 .add_field(
-                    name="Stage",
+                    name="Tricolor Stage",
                     value=splatfest_info["tricolorStage"]["name"],
                     inline=False,
                 )
@@ -587,7 +654,7 @@ class Splatoon3(Cog):
             )
         await ctx.send(embed=embed)
 
-    @splatoon.command()
+    @splatoon3.command()
     async def salmonrungear(self, ctx: CustomContext) -> None:
         """
         Get information on this month's Salmon Run gear.
@@ -618,13 +685,13 @@ class Splatoon3(Cog):
         )
         await ctx.send(embed=embed)
 
-    # @splatoon.command()
-    # async def gear(self, ctx: CustomContext) -> None:
-    #     """
-    #     Get information on the currently available gear on SplatNet.
-    #     Powered by https://splatoon3.ink/
-    #     """
-    #     pass  # TODO: This will be a nightmare with Views, oh my!
+    @splatoon3.command()
+    async def gear(self, ctx: CustomContext) -> None:
+        """
+        Get information on the currently available gear on SplatNet.
+        Powered by https://splatoon3.ink/
+        """
+        await ctx.send("This command is a placeholder. Check back later for full support!", ephemeral=True)
 
 
 async def setup(bot: BOT_TYPES) -> None:

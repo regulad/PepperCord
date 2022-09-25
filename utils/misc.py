@@ -11,6 +11,10 @@ def split_iter_chunks(iterable: list, chunk_size: int = 2000) -> list[str]:
     return [iterable[i: i + chunk_size] for i in range(0, len(iterable), chunk_size)]
 
 
+def rgb_human_readable(r: int, g: int, b: int) -> str:
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
 def status_breakdown(desktop_status: Status, mobile_status: Status, web_status: Status) -> str | None:
     strings: list[str] = []
 
@@ -119,4 +123,5 @@ __all__: list[str] = [
     "random_string",
     "UTC_OFFSET",
     "status_breakdown",
+    "rgb_human_readable",
 ]

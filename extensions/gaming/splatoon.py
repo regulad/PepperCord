@@ -1,23 +1,23 @@
+from asyncio import gather
 from datetime import datetime, tzinfo
 from io import BytesIO
 from random import choice
-from typing import Literal, Any, cast, Type
+from typing import Literal, Any, cast, Type, Awaitable, Callable
 
-from PIL import Image
 from aiohttp import ClientSession
 from dateutil.parser import isoparse
 from dateutil.tz import tzutc
-from discord import Embed, File, SelectOption, Interaction
+from discord import Embed, File, SelectOption, Interaction, Message
 from discord.app_commands import describe
 from discord.ext import tasks
-from discord.ext.commands import Cog, hybrid_group
+from discord.ext.commands import Cog, hybrid_group, CheckFailure
 from discord.ui import Select, View
 from discord.utils import format_dt
-from reportlab.graphics.renderPM import drawToFile
-from reportlab.graphics.shapes import Drawing
-from svglib.svglib import svg2rlg
 
 from utils.bots import BOT_TYPES, CustomContext
+from utils.consts import TIME_EMOJIS
+from utils.images import svg2png, vrt_concat_pngs, hrz_concat_pngs
+from utils.misc import rgb_human_readable
 
 SPLATFEST_UNSTARTED_COLOR: int = 0x666775
 REGULAR_BATTLE_COLOR: int = 0xcff622
@@ -27,20 +27,8 @@ SALMON_RUN_COLOR: int = 0xff5600
 TIMESLOT_LONG: str = "%m/%d"
 TIMESLOT_SHORT: str = "%I:%M %p"
 TIMESLOT_TZ: str = "%Z"
-TIMESLOT_EMOJIS: dict[int, str] = {
-    0: "🕛",
-    1: "🕐",
-    2: "🕑",
-    3: "🕒",
-    4: "🕓",
-    5: "🕔",
-    6: "🕕",
-    7: "🕖",
-    8: "🕗",
-    9: "🕘",
-    10: "🕙",
-    11: "🕚",
-}
+
+SPLATFEST_STATES: Type = Literal["SCHEDULED", "FIRST_HALF", "SECOND_HALF"]
 
 MODE_LITERAL: Type = Literal[
     "Regular Battle",
@@ -50,11 +38,39 @@ MODE_LITERAL: Type = Literal[
     "Splatfest Battle",
 ]
 
+REGION_LITERAL: Type = Literal[
+    "US",
+    "EU",
+    "JP",
+    "AP"
+]
+REGION_FULL_NAME: dict[REGION_LITERAL, str] = {
+    "US": "The Americas, Australia, New Zealand",
+    "EU": "Europe",
+    "JP": "Japan",
+    "AP": "Hong Kong, South Korea (Asia/Pacific)"
+}
+REGION_EMOJI: dict[REGION_LITERAL, str] = {
+    "US": "🇺🇸",
+    "EU": "🇪🇺",
+    "JP": "🇯🇵",
+    "AP": "🇭🇰"
+}
+DEFAULT_REGION: REGION_LITERAL = "US"  # I guess change this if I ever move.
 
-def splatfest_color(colors: dict[str, float]) -> int:
+
+def splatfest_rgb(colors: dict[str, float]) -> tuple[int, int, int]:
     r: int = int(colors["r"] * 255)
     g: int = int(colors["g"] * 255)
     b: int = int(colors["b"] * 255)
+    return r, g, b
+
+
+def splatfest_color(colors: dict[str, float]) -> int:
+    r, g, b = splatfest_rgb(colors)
+    r: int
+    g: int
+    b: int
     return (r << 16) + (g << 8) + b
 
 
@@ -70,49 +86,6 @@ def convert_mode_name(english: str) -> str:
             return "regular"
         case _:
             return english
-
-
-def svg2png(svg: bytes) -> bytes:
-    with BytesIO(svg) as svg_file, BytesIO() as png_file:
-        drawing: Drawing = svg2rlg(svg_file)
-        drawToFile(drawing, png_file, "png",
-                   bg=0x000000)  # Transparent background doesn't want to work with this library.
-        png_file.seek(0)
-        return png_file.read()
-
-
-def vrt_concat_pngs(png1: bytes, png2: bytes) -> bytes:
-    with BytesIO(png1) as png1_file, BytesIO(png2) as png2_file, BytesIO() as buffer:
-        image1: Image.Image = Image.open(png1_file)
-        image2: Image.Image = Image.open(png2_file)
-
-        if image2.size != image1.size:
-            image2: Image.Image = image2.resize((image1.width, image1.height), Image.ANTIALIAS)
-
-        buffer_img: Image.Image = Image.new("RGBA", (image1.width, image1.height + image2.height))
-        buffer_img.paste(image1, (0, 0))
-        buffer_img.paste(image2, (0, image1.height))
-
-        buffer_img.save(buffer, "PNG")
-        buffer.seek(0)
-        return buffer.read()
-
-
-def hrz_concat_pngs(png1: bytes, png2: bytes) -> bytes:
-    with BytesIO(png1) as png1_file, BytesIO(png2) as png2_file, BytesIO() as buffer:
-        image1: Image.Image = Image.open(png1_file)
-        image2: Image.Image = Image.open(png2_file)
-
-        if image2.size != image1.size:
-            image2: Image.Image = image2.resize((image1.width, image1.height), Image.ANTIALIAS)
-
-        buffer_img: Image.Image = Image.new("RGBA", (image1.width + image2.width, image1.height))
-        buffer_img.paste(image1, (0, 0))
-        buffer_img.paste(image2, (image1.width, 0))
-
-        buffer_img.save(buffer, "PNG")
-        buffer.seek(0)
-        return buffer.read()
 
 
 class TimeSlotData:  # This could probably extend SelectOption, but this is separate for the sake of selfbot support.
@@ -161,7 +134,7 @@ class TimeSlotData:  # This could probably extend SelectOption, but this is sepa
         while hour > 11:
             hour -= 12
 
-        return TIMESLOT_EMOJIS[hour]
+        return TIME_EMOJIS[hour]
 
     def __repr__(self) -> str:
         return f"<TimeSlotData start={self.start} end={self.end} index={self.index}>"
@@ -230,7 +203,10 @@ class ScheduleView(View):
 
 
 class Splatoon3(Cog):
-    """Get information about the current status of Splatoon 3. Powered by https://splatoon3.ink/"""
+    """
+    Get information about the current status of Splatoon 3.
+    Powered by https://splatoon3.ink/ and https://splatoonwiki.org/wiki/
+    """
 
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
@@ -253,6 +229,23 @@ class Splatoon3(Cog):
                 self.cached_coop = (await resp.json())["data"]["coopResult"]
             async with self.cs.get("https://splatoon3.ink/data/festivals.json") as resp:
                 self.cached_festivals = await resp.json()
+
+    @property
+    def is_ready(self) -> bool:
+        return all(
+            (
+                self.cached_schedules is not None,
+                self.cached_gear is not None,
+                self.cached_coop is not None,
+                self.cached_festivals is not None
+            )
+        )
+
+    async def cog_check(self, ctx: CustomContext) -> bool:
+        if self.is_ready:
+            return True
+        else:
+            raise CheckFailure("We are still preparing, hold on! The cache is being populated.")
 
     @Cog.listener()
     async def on_ready(self) -> None:
@@ -561,7 +554,15 @@ class Splatoon3(Cog):
             case _:
                 return None, files, []
 
-    async def send_schedule(self, ctx: CustomContext, mode: MODE_LITERAL, index: int, send) -> Any | None:
+    async def send_schedule(
+            self,
+            ctx: CustomContext,
+            mode: MODE_LITERAL,
+            index: int,
+            send: Callable[..., Awaitable[Message]]
+            # my ass CANNOT be bothered to typehint this properly, this is good enough
+    ) -> Message:
+        # Slightly bodged, but it works real nice. TODO: Do something similar for splatfest history & splatnet gear
         """Send a schedule message with embed, file, and view."""
 
         embed, files, timeslots = await self._compose_schedule_message(mode, index)
@@ -576,114 +577,141 @@ class Splatoon3(Cog):
             view=ScheduleView(ctx, timeslots, mode) if len(timeslots) > 0 else None,
         )
 
-    @hybrid_group(aliases=["splat", "splatoon", "sp", "sp3"], fallback="schedule")
+    @hybrid_group(
+        aliases=[
+            "splat",
+            "splatoon",
+            "sp",
+            "sp3"
+        ],
+        fallback="schedule"
+    )
     @describe(mode="The game mode to get information about.")
     async def splatoon3(self, ctx: CustomContext, *, mode: MODE_LITERAL = "Regular Battle") -> None:
         """
-        Get information about the current status of different game modes in Splatoon 3.
+        Get information about the current scheduele of different game modes in Splatoon 3.
         Powered by https://splatoon3.ink/
         """
-        if self.cached_schedules is None:
-            await ctx.send("The cache has not been initialized yet. Please try again in a few seconds.", ephemeral=True)
-            return
-
         async with ctx.typing():
             await self.send_schedule(ctx, mode, 0, ctx.send)
 
+    # Todo: current version command? setup bs4 for scraping inkpedia but didnt finish
+
     @splatoon3.command()
-    async def splatfestinfo(self, ctx: CustomContext) -> None:
+    async def current_splatfest(self, ctx: CustomContext, region: REGION_LITERAL = DEFAULT_REGION) -> None:
         """
         Get information on the currently running Splatfest, if there is one.
         Powered by https://splatoon3.ink/
         """
-        if self.cached_schedules is None:
-            await ctx.send("The cache has not been initialized yet. Please try again in a few seconds.", ephemeral=True)
-            return
+        async with ctx.typing():
+            splatfest_info: dict | None = self.cached_schedules["currentFest"]
+            if splatfest_info is None:
+                embed: Embed = (
+                    Embed(
+                        title="Splatfest",
+                        color=SPLATFEST_UNSTARTED_COLOR,
+                        description="There is no Splatfest currently running.",
+                    )
+                )
 
-        splatfest_info: dict | None = self.cached_schedules["currentFest"]
-        if splatfest_info is None:
-            embed: Embed = (
-                Embed(
-                    title="Splatfest",
-                    color=SPLATFEST_UNSTARTED_COLOR,
-                    description="There is no Splatfest currently running.",
-                )
-            )
-        else:
-            start_time: datetime = isoparse(splatfest_info["startTime"])
-            end_time: datetime = isoparse(splatfest_info["endTime"])
-            midterm: datetime = isoparse(splatfest_info["midtermTime"])
-            title: str = splatfest_info["title"]
-            state: Literal["SCHEDULED", "FIRST_HALF", "SECOND_HALF"] = splatfest_info["state"]
+                await ctx.send(embed=embed)
+            else:
+                historic_splatfest_info: dict = self.cached_festivals[region]["data"]["festRecords"]["nodes"][0]
 
-            is_scheduled: bool = state == "scheduled"
+                start_time: datetime = isoparse(splatfest_info["startTime"])
+                end_time: datetime = isoparse(splatfest_info["endTime"])
+                midterm: datetime = isoparse(splatfest_info["midtermTime"])
+                title: str = splatfest_info["title"]
+                state: SPLATFEST_STATES = splatfest_info["state"]
 
-            color: int = (
-                SPLATFEST_UNSTARTED_COLOR
-                if is_scheduled else
-                splatfest_color(choice(splatfest_info["teams"])["color"])
-            )
+                is_scheduled: bool = state == "scheduled"
 
-            # This doesn't include team names, and I have zero idea why. Oh, well!
+                color: int = (
+                    SPLATFEST_UNSTARTED_COLOR
+                    if is_scheduled else
+                    splatfest_color(choice(splatfest_info["teams"])["color"])
+                )
 
-            embed: Embed = (
-                Embed(
-                    title=title,
-                    color=color,
+                # This doesn't include team names, and I have zero idea why. Oh, well!
+
+                embed: Embed = (
+                    Embed(
+                        title=title,
+                        description=state.replace("_", " ").title(),
+                        color=color,
+                    )
+                    .add_field(
+                        name="Start Time",
+                        value=format_dt(start_time, "R"),
+                    )
+                    .add_field(
+                        name="End Time",
+                        value=format_dt(end_time, "R"),
+                    )
+                    .add_field(
+                        name="Midterm Time",
+                        value=format_dt(midterm, "R"),
+                    )
+                    .add_field(
+                        name="Tricolor Stage",
+                        value=splatfest_info["tricolorStage"]["name"],
+                        inline=False,
+                    )
+                    .set_image(
+                        url="attachment://image.png"
+                    )
                 )
-                .add_field(
-                    name="Start Time",
-                    value=format_dt(start_time, "R"),
-                )
-                .add_field(
-                    name="End Time",
-                    value=format_dt(end_time, "R"),
-                )
-                .add_field(
-                    name="Midterm Time",
-                    value=format_dt(midterm, "R"),
-                )
-                .add_field(
-                    name="Tricolor Stage",
-                    value=splatfest_info["tricolorStage"]["name"],
-                    inline=False,
-                )
-                .set_image(
-                    url=splatfest_info["tricolorStage"]["image"]["url"]
-                )
-            )
-        await ctx.send(embed=embed)
+
+                # Image
+                for index, team in enumerate(historic_splatfest_info["teams"]):
+                    embed = embed.add_field(
+                        name=team["teamName"],
+                        value=f"Color: `{rgb_human_readable(*splatfest_rgb(team['color']))}`",
+                        inline=True,
+                    )
+
+                async with self.cs.get(splatfest_info["tricolorStage"]["image"]["url"]) as resp:
+                    tricolor_stage_png: bytes = await resp.read()
+
+                async with self.cs.get(historic_splatfest_info["image"]["url"]) as resp:
+                    historic_splatfest_png: bytes = await resp.read()
+
+                final_png: bytes = await self.bot.loop.run_in_executor(None, vrt_concat_pngs, historic_splatfest_png,
+                                                                       tricolor_stage_png)
+
+                with BytesIO(final_png) as image_fp:
+                    await ctx.send(
+                        embed=embed,
+                        file=File(fp=image_fp, filename="image.png"),
+                    )
 
     @splatoon3.command()
-    async def salmonrungear(self, ctx: CustomContext) -> None:
+    async def salmon_run_gear(self, ctx: CustomContext) -> None:
         """
         Get information on this month's Salmon Run gear.
         Powered by https://splatoon3.ink/
         """
-        if self.cached_coop is None:
-            await ctx.send("The cache has not been initialized yet. Please try again in a few seconds.", ephemeral=True)
-            return
+        async with ctx.typing():
+            monthly_gear_info: dict[str, str | dict[str, str]] = self.cached_coop["monthlyGear"]
 
-        monthly_gear_info: dict[str, str | dict[str, str]] = self.cached_coop["monthlyGear"]
-
-        embed: Embed = (
-            Embed(
-                title="Salmon Run Gear",
-                color=SALMON_RUN_COLOR
+            embed: Embed = (
+                Embed(
+                    title="Salmon Run Gear",
+                    color=SALMON_RUN_COLOR
+                )
+                .add_field(
+                    name="Name",
+                    value=monthly_gear_info["name"],
+                )
+                .add_field(
+                    name="Slot",
+                    value=monthly_gear_info["__typename"],
+                )
+                .set_image(
+                    url=monthly_gear_info["image"]["url"]
+                )
             )
-            .add_field(
-                name="Name",
-                value=monthly_gear_info["name"],
-            )
-            .add_field(
-                name="Slot",
-                value=monthly_gear_info["__typename"],
-            )
-            .set_image(
-                url=monthly_gear_info["image"]["url"]
-            )
-        )
-        await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
 
     @splatoon3.command()
     async def gear(self, ctx: CustomContext) -> None:
@@ -691,8 +719,87 @@ class Splatoon3(Cog):
         Get information on the currently available gear on SplatNet.
         Powered by https://splatoon3.ink/
         """
-        await ctx.send("This command is a placeholder. Check back later for full support!", ephemeral=True)
+        await ctx.send("This command is a placeholder. Check back later for full support!", ephemeral=True)  # TODO
+
+    @splatoon3.command()
+    async def splatfest_history(self, ctx: CustomContext, *, region: REGION_LITERAL = DEFAULT_REGION) -> None:
+        """
+        Get information on previous Splatfests.
+        Powered by https://splatoon3.ink/
+        """
+        await ctx.send("This command is a placeholder. Check back later for full support!", ephemeral=True)  # TODO
+
+
+class Splatoon2(Cog):
+    """
+    Get information about the current status of Splatoon 2.
+    Powered by https://splatoon2.ink/ and https://splatoonwiki.org/wiki/
+    """
+
+    def __init__(self, bot: BOT_TYPES) -> None:
+        self.bot: BOT_TYPES = bot
+        self.cs: ClientSession | None = None
+
+        self.cached_schedules: Any | None = None
+        self.cached_coop_schedules: Any | None = None
+        self.cached_merchandises: Any | None = None
+        self.cached_festivals: Any | None = None
+        self.cached_timeline: Any | None = None
+
+    @tasks.loop(hours=1)
+    async def update_cache(self) -> None:
+        # https://github.com/misenhower/splatoon2.ink/wiki/Data-access-policy recommends caching, so we will cache.
+        if self.cs is not None and not self.cs.closed:
+            async with self.cs.get("https://splatoon2.ink/data/schedules.json") as resp:
+                self.cached_schedules = await resp.json()
+            async with self.cs.get("https://splatoon2.ink/data/coop-schedules.json") as resp:
+                self.cached_coop_schedules = await resp.json()
+            async with self.cs.get("https://splatoon2.ink/data/merchandises.json") as resp:
+                self.cached_merchandises = await resp.json()
+            async with self.cs.get("https://splatoon2.ink/data/festivals.json") as resp:
+                self.cached_festivals = await resp.json()
+            async with self.cs.get("https://splatoon2.ink/data/timeline.json") as resp:
+                self.cached_timeline = await resp.json()
+            # TODO: find the useful parts of this data
+
+    async def get_splatfest_ranking(self, region: REGION_LITERAL, festival_id: str) -> Any:
+        async with self.cs.get(f"https://splatoon2.ink/data/festivals/{region}-{festival_id}-rankings.json") as resp:
+            return await resp.json()
+
+    @property
+    def is_ready(self) -> bool:
+        return all(
+            (
+                self.cached_schedules is not None,
+                self.cached_coop_schedules is not None,
+                self.cached_merchandises is not None,
+                self.cached_festivals is not None,
+                self.cached_timeline is not None
+            )
+        )
+
+    async def cog_check(self, ctx: CustomContext) -> bool:
+        if self.is_ready:
+            return True
+        else:
+            raise CheckFailure("We are still preparing, hold on! The cache is being populated.")
+
+    @Cog.listener()
+    async def on_ready(self) -> None:
+        self.update_cache.start()
+
+    async def cog_load(self) -> None:
+        self.cs = ClientSession(
+            headers={"User-Agent": "PepperCord/1.0 https://github.com/regulad/PepperCord @regulad#7959"})
+
+    async def cog_unload(self) -> None:
+        if self.cs is not None and not self.cs.closed:
+            await self.cs.close()
+        if self.update_cache.is_running():
+            self.update_cache.cancel()
+
+    # TODO: All of this. Maybe. Going to finish all of the Splatoon 3 stuff first, though.
 
 
 async def setup(bot: BOT_TYPES) -> None:
-    await bot.add_cog(Splatoon3(bot))
+    await gather(bot.add_cog(Splatoon3(bot)), bot.add_cog(Splatoon2(bot)))

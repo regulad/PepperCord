@@ -2,7 +2,7 @@ import os
 import random
 import string
 from datetime import timedelta, datetime
-from typing import Mapping
+from typing import Mapping, Any
 
 from discord import Status
 
@@ -112,7 +112,17 @@ class FrozenDict(Mapping):
         return self._hash
 
 
-UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()
+UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()  # this sucks
+
+
+def edit_with_files_send_wrapper(send, *args, **kwargs) -> Any:
+    if "files" in kwargs:
+        if kwargs["files"] is not None:
+            kwargs["attachments"] = kwargs["files"]
+        else:
+            kwargs["attachments"] = []
+        del kwargs["files"]
+    return send(*args, **kwargs)
 
 __all__: list[str] = [
     "split_iter_chunks",
@@ -124,4 +134,5 @@ __all__: list[str] = [
     "UTC_OFFSET",
     "status_breakdown",
     "rgb_human_readable",
+    "edit_with_files_send_wrapper",
 ]

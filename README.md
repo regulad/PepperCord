@@ -93,6 +93,12 @@ PepperCord uses a folder named `config/` for everything that isn't stored in con
 * `PEPPERCORD_TESTGUILDS`: Optional. A comma seperated list of Discord guild ids. The bot will only be enabled in these
   servers. If these are present, global slash commands will not be uploaded.
 * `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled.
+* `PEPPERCORD_HOME_SERVER`: Optional. The Discord guild id of the bot's home server. Used for some commands, mainly making emojis.
+
+#### Intents
+
+* `PEPPERCORD_READ_MESSAGES`: Optional. If the bot should **not** be able to read messages.
+* `PEPPERCORD_PRESENCE`: Optional. If the bot should **not** be able to see presence.
 
 # Extending
 

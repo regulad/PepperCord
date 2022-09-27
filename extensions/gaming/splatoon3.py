@@ -1,8 +1,11 @@
 from datetime import datetime, tzinfo
 from io import BytesIO
+from os import getcwd
+from os.path import join
 from random import choice
 from typing import Literal, Any, cast, Type, Awaitable, Callable
 
+from aiofiles import open as aopen
 from aiohttp import ClientSession
 from dateutil.parser import isoparse
 from dateutil.tz import tzutc
@@ -15,13 +18,16 @@ from discord.utils import format_dt, MISSING
 
 from utils.bots import BOT_TYPES, CustomContext
 from utils.consts import TIME_EMOJIS
-from utils.images import svg2png, vrt_concat_pngs, hrz_concat_pngs
-from utils.misc import rgb_human_readable, edit_with_files_send_wrapper
+from utils.images import vrt_concat_pngs, hrz_concat_pngs
+from utils.markdown_tools import bold
+from utils.misc import rgb_human_readable, edit_with_files_send_wrapper, FrozenDict
 
 SPLATFEST_UNSTARTED_COLOR: int = 0x666775
 REGULAR_BATTLE_COLOR: int = 0xcff622
-RANKED_BATTLE_COLOR: int = 0xf54910
+ANARCHY_BATTLE_COLOR: int = 0xf54910
 SALMON_RUN_COLOR: int = 0xff5600
+X_BATTLE_COLOR: int = 0x5d2eef
+LEAGUE_BATTLE_COLOR: int = 0xf02d7d
 
 TIMESLOT_LONG: str = "%m/%d"
 TIMESLOT_SHORT: str = "%I:%M %p"
@@ -35,9 +41,65 @@ MODE_LITERAL: Type = Literal[
     "Regular Battle",
     "Anarchy Battle (Series)",
     "Anarchy Battle (Open)",
+    "League Battle",
+    "X Battle",
     "Salmon Run",
     "Splatfest Battle",
 ]
+MODES: set[MODE_LITERAL] = {
+    "Regular Battle",
+    "Anarchy Battle (Series)",
+    "Anarchy Battle (Open)",
+    "League Battle",
+    "X Battle",
+    "Salmon Run",
+    "Splatfest Battle",
+}
+MODE_DATA_SLOTS: FrozenDict[MODE_LITERAL, str] = FrozenDict({
+    "Regular Battle": "regularSchedules",
+    "Anarchy Battle (Series)": "bankaraSchedules",  # special case
+    "Anarchy Battle (Open)": "bankaraSchedules",  # special case
+    "League Battle": "leagueSchedules",
+    "X Battle": "xSchedules",
+    "Salmon Run": "coopGroupingSchedules",
+    "Splatfest Battle": "festSchedules",
+})
+MODE_SETTINGS_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict({
+    "Regular Battle": "regularMatchSetting",
+    "Anarchy Battle (Series)": "bankaraMatchSettings",
+    "Anarchy Battle (Open)": "bankaraMatchSettings",
+    "X Battle": "xMatchSetting",
+    "League Battle": "leagueMatchSetting",
+    "Salmon Run": "setting",
+    "Splatfest Battle": "festMatchSetting",
+})
+MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict({
+    "Regular Battle": REGULAR_BATTLE_COLOR,
+    "Anarchy Battle (Series)": ANARCHY_BATTLE_COLOR,
+    "Anarchy Battle (Open)": ANARCHY_BATTLE_COLOR,
+    "League Battle": LEAGUE_BATTLE_COLOR,
+    "X Battle": X_BATTLE_COLOR,
+    "Salmon Run": SALMON_RUN_COLOR,
+    "Splatfest Battle": SPLATFEST_UNSTARTED_COLOR,  # special case
+})
+MODE_SVG_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict({
+    "Regular Battle": "regular",
+    "Anarchy Battle (Series)": "bankara",
+    "Anarchy Battle (Open)": "bankara",
+    "League Battle": "league",
+    "X Battle": "x",
+    "Salmon Run": "coop",  # unused
+    "Splatfest Battle": "regular",  # probably going to be updated
+})
+MODE_EMOJI_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict({  # special because weird short names n crap
+    "Regular Battle": "regular",
+    "Anarchy Battle (Series)": "bankara",
+    "Anarchy Battle (Open)": "bankara",
+    "League Battle": "league",
+    "X Battle": "xb",
+    "Salmon Run": "coop",
+    "Splatfest Battle": "tricolor",
+})
 
 REGION_LITERAL: Type = Literal[
     "US",
@@ -45,18 +107,18 @@ REGION_LITERAL: Type = Literal[
     "JP",
     "AP"
 ]
-REGION_FULL_NAME: dict[REGION_LITERAL, str] = {
+REGION_FULL_NAME: FrozenDict[REGION_LITERAL, str] = FrozenDict({
     "US": "The Americas, Australia, New Zealand",
     "EU": "Europe",
     "JP": "Japan",
     "AP": "Hong Kong, South Korea (Asia/Pacific)"
-}
-REGION_EMOJI: dict[REGION_LITERAL, str] = {
+})
+REGION_EMOJI: FrozenDict[REGION_LITERAL, str] = FrozenDict({
     "US": "🇺🇸",
     "EU": "🇪🇺",
     "JP": "🇯🇵",
     "AP": "🇭🇰"
-}
+})
 DEFAULT_REGION: REGION_LITERAL = "US"  # I guess change this if I ever move.
 
 
@@ -75,7 +137,7 @@ def splatfest_color(colors: dict[str, float]) -> int:
     return (r << 16) + (g << 8) + b
 
 
-def convert_mode_name(english: str) -> str:
+def _convert_rule_name(english: str) -> str:
     match english:
         case "clam":
             return "asari"
@@ -87,6 +149,14 @@ def convert_mode_name(english: str) -> str:
             return "regular"
         case _:
             return english
+
+
+def _convert_rule_name_emoji(english: str) -> str:
+    match english:
+        case "turf_war":
+            return "turfwar"
+        case _:
+            return _convert_rule_name(english)
 
 
 class TimeSlotData:  # This could probably extend SelectOption, but this is separate for the sake of selfbot support.
@@ -165,7 +235,6 @@ class SplatfestData:  # Same deal as above with SelectOption
                 enumerate(nodes)]
 
 
-
 class ScheduleSelectionMenu(Select):
     def __init__(self, ctx: CustomContext, data: list[TimeSlotData], mode: MODE_LITERAL, **attrs) -> None:
         self.ctx: CustomContext = ctx
@@ -207,6 +276,32 @@ class ScheduleSelectionMenu(Select):
         )
 
 
+class ModeSelectionMenu(Select):
+    def __init__(self, ctx: CustomContext, **attrs) -> None:
+        self.ctx: CustomContext = ctx
+
+        self.splatoon_3_cog: "Splatoon3" = cast("Splatoon3", self.ctx.bot.get_cog("Splatoon3"))
+
+        options: list[SelectOption] = [
+            SelectOption(
+                label=mode,
+                emoji=ctx.bot.get_custom_emoji(MODE_EMOJI_NAME[mode]),
+            ) for mode in MODES
+        ]
+
+        super().__init__(placeholder="Select Game Mode...", options=options, min_values=1, max_values=1, **attrs)
+
+    async def callback(self, interaction: Interaction) -> None:
+        await interaction.response.defer()
+
+        await self.splatoon_3_cog.send_schedule(
+            self.ctx,
+            cast(MODE_LITERAL, self.values[0]),
+            0,
+            lambda *args, **kwargs: edit_with_files_send_wrapper(self.ctx["response"].edit, *args, **kwargs)
+        )
+
+
 class SplatfestSelectionMenu(Select):
     def __init__(
             self,
@@ -225,6 +320,7 @@ class SplatfestSelectionMenu(Select):
             SelectOption(
                 label=splatfest.name,
                 description=splatfest.description,
+                emoji=ctx.bot.get_custom_emoji("tricolor.png"),
             ) for splatfest in data
         ]
 
@@ -263,10 +359,17 @@ class ScheduleView(View):
         super().__init__(**attrs)
 
         self.add_item(ScheduleSelectionMenu(ctx, data, mode))
+        self.add_item(ModeSelectionMenu(ctx))
 
 
 class SplatfestView(View):
-    def __init__(self, ctx: CustomContext, data: list[SplatfestData], region: REGION_LITERAL, **attrs) -> None:
+    def __init__(
+            self,
+            ctx: CustomContext,
+            data: list[SplatfestData],
+            region: REGION_LITERAL,
+            **attrs
+    ) -> None:
         self.ctx: CustomContext = ctx
         self.data: list[SplatfestData] = data
         self.game: REGION_LITERAL = region
@@ -335,23 +438,6 @@ class Splatoon3(Cog):
         if self.update_cache.is_running():
             self.update_cache.cancel()
 
-    async def _make_mode_rule_thumbnail(self, mode: str, rule: str) -> bytes:
-        rule: str = convert_mode_name(rule)
-        mode_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/modes/{mode}.svg"
-        rule_url: str = f"https://github.com/misenhower/splatoon3.ink/raw/main/src/assets/img/rules/{rule}.svg"
-
-        async with self.cs.get(mode_url) as resp:
-            mode_svg: bytes = await resp.read()
-
-        mode_png: bytes = await self.bot.loop.run_in_executor(None, svg2png, mode_svg)
-
-        async with self.cs.get(rule_url) as resp:
-            rule_svg: bytes = await resp.read()
-
-        rule_png: bytes = await self.bot.loop.run_in_executor(None, svg2png, rule_svg)
-
-        return await self.bot.loop.run_in_executor(None, vrt_concat_pngs, mode_png, rule_png)
-
     async def _make_salmon_run_thumbnail(self, weapons: list[dict[str, str | dict[str, str]]]) -> bytes | None:
         weapon_urls: list[str] = [
             weapon["image"]["url"]
@@ -398,186 +484,10 @@ class Splatoon3(Cog):
         embed: Embed | None = None
         timeslots: list[TimeSlotData] = []
 
+        async with aopen(join(getcwd(), "resources", "images", "splatoon3", "favicon.png"), "rb") as fp:
+            files.append(("favicon.png", await fp.read()))
+
         match mode:
-            case "Regular Battle":
-                nodes: list[dict[str, Any]] = self.cached_schedules["regularSchedules"]["nodes"]
-
-                if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
-                    nodes = nodes[1:]
-
-                schedule: dict = nodes[index]
-                start_time: datetime = isoparse(schedule["startTime"])
-                end_time: datetime = isoparse(schedule["endTime"])
-                match_settings: dict | None = schedule["regularMatchSetting"]
-                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
-
-                if match_settings is None:
-                    embed = Embed(
-                        title=mode,
-                        color=REGULAR_BATTLE_COLOR,
-                        description="This game mode is not currently available.",
-                    )
-                else:
-                    files.append(("thumbnail.png",
-                                  await self._make_mode_rule_thumbnail("regular",
-                                                                       match_settings["vsRule"]["rule"].lower())))
-                    files.append(("stages.png", await self._make_two_stage_image(match_settings["vsStages"])))
-
-                    embed = (
-                        Embed(
-                            title=mode,
-                            color=REGULAR_BATTLE_COLOR,
-                            description=match_settings["vsRule"]["name"],
-                        )
-                        .set_thumbnail(
-                            url="attachment://thumbnail.png"
-                        )
-                        .add_field(
-                            name="Start Time",
-                            value=format_dt(start_time, "R")
-                        )
-                        .add_field(
-                            name="End Time",
-                            value=format_dt(end_time, "R")
-                        )
-                        .add_field(
-                            name="Stage 1",
-                            value=match_settings["vsStages"][0]["name"],
-                            inline=False,
-                        )
-                        .add_field(
-                            name="Stage 2",
-                            value=match_settings["vsStages"][1]["name"],
-                        )
-                        .set_image(
-                            url="attachment://stages.png"
-                        )
-                    )
-            case "Anarchy Battle (Series)" | "Anarchy Battle (Open)":
-                nodes: list[dict[str, Any]] = self.cached_schedules["bankaraSchedules"]["nodes"]
-
-                if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
-                    nodes = nodes[1:]
-
-                schedule: dict = nodes[index]
-                start_time: datetime = isoparse(schedule["startTime"])
-                end_time: datetime = isoparse(schedule["endTime"])
-                match_settings: list[dict] | None = schedule["bankaraMatchSettings"]
-                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
-
-                if match_settings is None:
-                    embed = (
-                        Embed(
-                            title=mode,
-                            color=RANKED_BATTLE_COLOR,
-                            description="This game mode is not currently available.",
-                        )
-                    )
-                else:
-                    match_settings: dict = match_settings[0 if mode == "Anarchy Battle (Series)" else 1]
-
-                    files.append(("thumbnail.png",
-                                  await self._make_mode_rule_thumbnail("bankara",
-                                                                       match_settings["vsRule"]["rule"].lower())))
-                    files.append(("stages.png", await self._make_two_stage_image(match_settings["vsStages"])))
-
-                    embed = (
-                        Embed(
-                            title=mode,
-                            color=RANKED_BATTLE_COLOR,
-                            description=match_settings["vsRule"]["name"],
-                        )
-                        .set_thumbnail(
-                            url="attachment://thumbnail.png"
-                        )
-                        .add_field(
-                            name="Start Time",
-                            value=format_dt(start_time, "R")
-                        )
-                        .add_field(
-                            name="End Time",
-                            value=format_dt(end_time, "R")
-                        )
-                        .add_field(
-                            name="Stage 1",
-                            value=match_settings["vsStages"][0]["name"],
-                            inline=False,
-                        )
-                        .add_field(
-                            name="Stage 2",
-                            value=match_settings["vsStages"][1]["name"],
-                        )
-                        .set_image(
-                            url="attachment://stages.png"
-                        )
-                    )
-            case "Splatfest Battle":
-                if self.cached_schedules["currentFest"] is None:
-                    embed = (
-                        Embed(
-                            title=mode,
-                            color=SPLATFEST_UNSTARTED_COLOR,
-                            description="There is no Splatfest currently running, and there is not one scheduled.",
-                        )
-                    )
-                else:
-                    nodes: list[dict[str, Any]] = self.cached_schedules["festSchedules"]["nodes"]
-
-                    if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
-                        nodes = nodes[1:]
-
-                    schedule: dict = nodes[index]
-                    start_time: datetime = isoparse(schedule["startTime"])
-                    end_time: datetime = isoparse(schedule["endTime"])
-                    match_settings: dict | None = schedule["festMatchSetting"]
-                    color: int = splatfest_color(choice(self.cached_schedules["currentFest"]["teams"])["color"])
-                    timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
-
-                    if match_settings is None:
-                        embed = (
-                            Embed(
-                                title=mode,
-                                color=color,
-                                description="This mode is currently unavailable.",
-                            )
-                        )
-                    else:
-                        files.append(("thumbnail.png",
-                                      await self._make_mode_rule_thumbnail("regular",
-                                                                           match_settings["vsRule"]["rule"].lower())))
-                        # The special splatfest assets are not on the website.
-                        files.append(("stages.png", await self._make_two_stage_image(match_settings["vsStages"])))
-
-                        embed = (
-                            Embed(
-                                title=mode,
-                                color=color,
-                                description=match_settings["vsRule"]["name"],
-                            )
-                            .set_thumbnail(
-                                url="attachment://thumbnail.png"
-                            )
-                            .add_field(
-                                name="Start Time",
-                                value=format_dt(start_time, "R")
-                            )
-                            .add_field(
-                                name="End Time",
-                                value=format_dt(end_time, "R")
-                            )
-                            .add_field(
-                                name="Stage 1",
-                                value=match_settings["vsStages"][0]["name"],
-                                inline=False,
-                            )
-                            .add_field(
-                                name="Stage 2",
-                                value=match_settings["vsStages"][1]["name"],
-                            )
-                            .set_image(
-                                url="attachment://stages.png"
-                            )
-                        )
             case "Salmon Run":
                 nodes: list[dict[str, Any]] = self.cached_schedules["coopGroupingSchedule"]["regularSchedules"]["nodes"]
 
@@ -616,6 +526,10 @@ class Splatoon3(Cog):
                     .set_image(
                         url=match_settings["coopStage"]["image"]["url"]
                     )
+                    .set_footer(
+                        text="Powered by https://splatoon3.ink/",
+                        icon_url="attachment://favicon.png"
+                    )
                 )
 
                 for index, weapon in enumerate(match_settings["weapons"]):
@@ -623,6 +537,81 @@ class Splatoon3(Cog):
                         name=f"Weapon {index + 1}",
                         value=weapon["name"],
                         inline=False,
+                    )
+            case _:  # All other modes
+                nodes: list[dict[str, Any]] = self.cached_schedules[MODE_DATA_SLOTS[mode]]["nodes"]
+
+                if isoparse(nodes[0]["endTime"]) < datetime.now(tzutc()):
+                    nodes = nodes[1:]
+
+                timeslots: list[TimeSlotData] = TimeSlotData.from_nodes(nodes, mode)
+
+                schedule: dict = nodes[index]
+                start_time: datetime = isoparse(schedule["startTime"])
+                end_time: datetime = isoparse(schedule["endTime"])
+
+                color: int = MODE_COLORS[mode]
+
+                if mode == "Splatfest Battle" and self.cached_schedules["currentFest"] is not None:
+                    color = splatfest_color(choice(self.cached_schedules["currentFest"]["teams"])["color"])
+
+                match_settings: list[dict] | None = schedule[MODE_SETTINGS_NAME[mode]]
+
+                if match_settings is None:
+                    embed = (
+                        Embed(
+                            title=mode,
+                            color=color,
+                            description="This game mode is not currently available.",
+                        )
+                        .set_footer(
+                            text="Powered by https://splatoon3.ink/",
+                            icon_url="attachment://favicon.png"
+                        )
+                    )
+                else:
+                    if mode == "Anarchy Battle (Series)":
+                        match_settings: dict = match_settings[0]
+                    elif mode == "Anarchy Battle (Open)":
+                        match_settings: dict = match_settings[1]
+
+                    rule: str = match_settings["vsRule"]["rule"]
+                    rule_name: str = match_settings["vsRule"]["name"]
+
+                    files.append(("stages.png", await self._make_two_stage_image(match_settings["vsStages"])))
+
+                    embed = (
+                        Embed(
+                            title=f"{mode} "
+                                  f"{ctx.bot.get_custom_emoji(f'{MODE_EMOJI_NAME[mode]}.png') or ''}",
+                            color=color,
+                            description=f"{rule_name} "
+                                        f"{ctx.bot.get_custom_emoji(f'{_convert_rule_name_emoji(rule.lower())}.png') or ''}",
+                        )
+                        .add_field(
+                            name="Start Time",
+                            value=format_dt(start_time, "R")
+                        )
+                        .add_field(
+                            name="End Time",
+                            value=format_dt(end_time, "R")
+                        )
+                        .add_field(
+                            name="Stage 1",
+                            value=match_settings["vsStages"][0]["name"],
+                            inline=False,
+                        )
+                        .add_field(
+                            name="Stage 2",
+                            value=match_settings["vsStages"][1]["name"],
+                        )
+                        .set_image(
+                            url="attachment://stages.png"
+                        )
+                        .set_footer(
+                            text="Powered by https://splatoon3.ink/",
+                            icon_url="attachment://favicon.png"
+                        )
                     )
 
         return await send(
@@ -649,12 +638,19 @@ class Splatoon3(Cog):
         files: list[tuple[str, bytes]] = []
         historic_splatfests: list[SplatfestData] = SplatfestData.from_nodes(nodes)
 
+        async with aopen(join(getcwd(), "resources", "images", "splatoon3", "favicon.png"), "rb") as fp:
+            files.append(("favicon.png", await fp.read()))
+
         if current and self.cached_schedules["currentFest"] is None:
             embed: Embed = (
                 Embed(
                     title="Splatfest",
                     color=SPLATFEST_UNSTARTED_COLOR,
                     description="There is no Splatfest currently running.",
+                )
+                .set_footer(
+                    text="Powered by https://splatoon3.ink/",
+                    icon_url="attachment://favicon.png"
                 )
             )
         else:
@@ -674,8 +670,6 @@ class Splatoon3(Cog):
                 splatfest_color(choice(historic_splatfest_info["teams"])["color"])
             )
 
-            # This doesn't include team names, and I have zero idea why. Oh, well!
-
             embed: Embed = (
                 Embed(
                     title=title,
@@ -689,6 +683,10 @@ class Splatoon3(Cog):
                 .add_field(
                     name="End Time",
                     value=format_dt(end_time, "R" if current else "D"),
+                )
+                .set_footer(
+                    text="Powered by https://splatoon3.ink/",
+                    icon_url="attachment://favicon.png"
                 )
             )
 
@@ -732,14 +730,21 @@ class Splatoon3(Cog):
 
             if not current and has_results:
                 for index, team in enumerate(historic_splatfest_info["teams"]):
-                    # From what I can tell, horagaiRatio is the "pro" battles. I don't speak japanese.
+                    if team['result']['isWinner']:
+                        embed.color = splatfest_color(team['color'])  # type: ignore
+
+                    line1: str = f"Was victorious: {'Yes' if team['result']['isWinner'] else 'No'}"
+                    line2: str = f"Vote Percentage: `{team['result']['voteRatio'] * 100:.2f}`%"
+                    line3: str = f"Pro Win Rate: `{team['result']['horagaiRatio'] * 100:.2f}`%"
+                    line4: str = f"Open/Tricolor Win Rate: `{team['result']['regularContributionRatio'] * 100:.2f}`%"
+
                     embed = embed.add_field(
                         name=team["teamName"],
                         value=f"Color: `{rgb_human_readable(*splatfest_rgb(team['color']))}`\n"
-                              f"Was victorious: **{'Yes' if team['result']['isWinner'] else 'No'}**\n"
-                              f"Vote Percentage: **{team['result']['voteRatio']*100:.2f}%**\n"
-                              f"Pro Win Rate: **{team['result']['horagaiRatio']*100:.2f}%**\n"
-                              f"Regular Win Rate (includes Tricolor): **{team['result']['regularContributionRatio']*100:.2f}%**",
+                              f"{bold(line1, team['result']['isWinner'])}\n"
+                              f"{bold(line2, team['result']['isVoteRatioTop'])}\n"
+                              f"{bold(line3, team['result']['isHoragaiRatioTop'])}\n"
+                              f"{bold(line4, team['result']['isRegularContributionRatioTop'])}",
                         inline=True,
                     )
             else:
@@ -774,7 +779,7 @@ class Splatoon3(Cog):
 
         return await send(
             embed=embed,
-            files=files,
+            files=[File(fp=BytesIO(data), filename=name) for name, data in files] if len(files) > 0 else None,
             view=None if current else SplatfestView(ctx, historic_splatfests, region)
         )
 
@@ -842,8 +847,12 @@ class Splatoon3(Cog):
                 .set_image(
                     url=monthly_gear_info["image"]["url"]
                 )
+                .set_footer(
+                    text="Powered by https://splatoon3.ink/",
+                    icon_url="attachment://favicon.png"
+                )
             )
-            await ctx.send(embed=embed)
+            await ctx.send(embed=embed, file=File(join(getcwd(), "resources", "images", "splatoon3", "favicon.png")))
 
     @splatoon3.command()
     async def gear(self, ctx: CustomContext) -> None:

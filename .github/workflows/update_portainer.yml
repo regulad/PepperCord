@@ -1,0 +1,22 @@
+name: Update Portainer Instance
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy PepperCord
+      uses: fjogeleit/http-request-action@v1
+      with:
+        url: 'https://portainer.regulad.xyz/api/stacks/webhooks/aa424ff9-4516-4944-8cfe-b8ec05d6971b'
+        method: 'POST'
+    - name: Deploy CordPepperer
+      uses: fjogeleit/http-request-action@v1
+      with:
+        url: 'https://portainer.regulad.xyz/api/stacks/webhooks/1bc78e64-fcc0-4249-a896-19b1dd93694f'
+        method: 'POST'
+
+# fixme: possible security implication having these urls exposed here, but i cba.

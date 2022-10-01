@@ -177,12 +177,9 @@ class TimeSlotData:  # This could probably extend SelectOption, but this is sepa
     def name(self) -> str:
         now: datetime = datetime.now()
         ctz: tzinfo = now.tzinfo
-        out: str = f"{self.start.astimezone(ctz).strftime(TIMESLOT_SHORT)} " \
-                   f"- {self.end.astimezone(ctz).strftime(TIMESLOT_SHORT)} "
-        if self.mode == "Salmon Run":
-            out += f"({self.index + 1})"
-        # Salmon run tends to run a lot longer. This is protection against two being the same
-        return out
+        return f"{self.start.astimezone(ctz).strftime(TIMESLOT_SHORT)} " \
+               f"- {self.end.astimezone(ctz).strftime(TIMESLOT_SHORT)} " \
+               f"({self.index + 1})"
 
     @property
     def description(self) -> str:

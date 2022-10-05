@@ -1,5 +1,7 @@
 # PepperCord
 
+This branch is a self-bot version of PepperCord.
+
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)
@@ -39,11 +41,6 @@ Have an issue? Think you can make PepperCord better? Join our [support server](h
 Fully-documented source code is available for those able to make improvements.
 
 # Using
-
-## Public instance
-
-[Invite](https://discord.com/api/oauth2/authorize?client_id=839264035756310589&permissions=3157650678&scope=bot%20applications.commands)
-| [Server](https://www.regulad.xyz/discord)
 
 ## Self-host
 
@@ -90,15 +87,8 @@ PepperCord uses a folder named `config/` for everything that isn't stored in con
 * `PEPPERCORD_WEB`: Website used in some commands. Default is `https://www.regulad.xyz/PepperCord`.
 * `PEPPERCORD_WEBHOOK`: Optional. A link to a Discord webhook for logging.
 * `PEPPERCORD_DEBUG`: Optional. Enables debug information in the log.
-* `PEPPERCORD_TESTGUILDS`: Optional. A comma seperated list of Discord guild ids. The bot will only be enabled in these
-  servers. If these are present, global slash commands will not be uploaded.
-* `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled.
 * `PEPPERCORD_HOME_SERVER`: Optional. The Discord guild id of the bot's home server. Used for some commands, mainly making emojis.
-
-#### Intents
-
-* `PEPPERCORD_READ_MESSAGES`: Optional. If the bot should **not** be able to read messages.
-* `PEPPERCORD_PRESENCE`: Optional. If the bot should **not** be able to see presence.
+* `PEPPERCORD_OWNERS`: Required. A comma-separated list of Discord user ids that are considered bot owners. Used for some commands.
 
 # Extending
 

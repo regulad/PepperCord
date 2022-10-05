@@ -3,24 +3,22 @@ from io import BytesIO
 from os import getcwd
 from os.path import join
 from random import choice
-from typing import Literal, Any, cast, Type, Awaitable, Callable
+from typing import Literal, Any, Type, Awaitable, Callable
 
 from aiofiles import open as aopen
 from aiohttp import ClientSession
 from dateutil.parser import isoparse
 from dateutil.tz import tzutc
-from discord import Embed, File, SelectOption, Interaction, Message
-from discord.app_commands import describe
+from discord import Embed, File, Message
 from discord.ext import tasks
-from discord.ext.commands import Cog, hybrid_group, CheckFailure
-from discord.ui import Select, View
+from discord.ext.commands import Cog, group, CheckFailure
 from discord.utils import format_dt, MISSING
 
 from utils.bots import BOT_TYPES, CustomContext
 from utils.consts import TIME_EMOJIS
 from utils.images import vrt_concat_pngs, hrz_concat_pngs
 from utils.markdown_tools import bold
-from utils.misc import rgb_human_readable, edit_with_files_send_wrapper, FrozenDict
+from utils.misc import rgb_human_readable, FrozenDict
 
 SPLATFEST_UNSTARTED_COLOR: int = 0x666775
 REGULAR_BATTLE_COLOR: int = 0xcff622
@@ -230,150 +228,6 @@ class SplatfestData:  # Same deal as above with SelectOption
     def from_nodes(cls, nodes: list[dict[str, Any]]) -> list["SplatfestData"]:
         return [cls(node["title"], isoparse(node["startTime"]), isoparse(node["endTime"]), index) for index, node in
                 enumerate(nodes)]
-
-
-class ScheduleSelectionMenu(Select):
-    def __init__(self, ctx: CustomContext, data: list[TimeSlotData], mode: MODE_LITERAL, **attrs) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[TimeSlotData] = data
-        self.game: MODE_LITERAL = mode
-
-        self.splatoon_3_cog: "Splatoon3" = cast("Splatoon3", self.ctx.bot.get_cog("Splatoon3"))
-
-        options: list[SelectOption] = [
-            SelectOption(
-                label=timeslot.name,
-                emoji=timeslot.emoji,
-                description=timeslot.description,
-            ) for timeslot in data
-        ]
-
-        super().__init__(placeholder="Select Time Window...", options=options, min_values=1, max_values=1, **attrs)
-
-    def _get_timeslot(self, name: str) -> TimeSlotData | None:
-        """
-        Helper to get the timeslot info.
-        """
-        for timeslot in self.data:
-            if timeslot.name == name:
-                return timeslot
-        else:
-            return None
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-
-        timeslot: TimeSlotData = self._get_timeslot(interaction.data["values"][0])
-
-        await self.splatoon_3_cog.send_schedule(
-            self.ctx,
-            self.game,
-            timeslot.index,
-            lambda *args, **kwargs: edit_with_files_send_wrapper(self.ctx["response"].edit, *args, **kwargs)
-        )
-
-
-class ModeSelectionMenu(Select):
-    def __init__(self, ctx: CustomContext, **attrs) -> None:
-        self.ctx: CustomContext = ctx
-
-        self.splatoon_3_cog: "Splatoon3" = cast("Splatoon3", self.ctx.bot.get_cog("Splatoon3"))
-
-        options: list[SelectOption] = [
-            SelectOption(
-                label=mode,
-                emoji=ctx.bot.get_custom_emoji(MODE_EMOJI_NAME[mode]),
-            ) for mode in MODES
-        ]
-
-        super().__init__(placeholder="Select Game Mode...", options=options, min_values=1, max_values=1, **attrs)
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-
-        await self.splatoon_3_cog.send_schedule(
-            self.ctx,
-            cast(MODE_LITERAL, self.values[0]),
-            0,
-            lambda *args, **kwargs: edit_with_files_send_wrapper(self.ctx["response"].edit, *args, **kwargs)
-        )
-
-
-class SplatfestSelectionMenu(Select):
-    def __init__(
-            self,
-            ctx: CustomContext,
-            data: list[SplatfestData],
-            region: REGION_LITERAL = DEFAULT_REGION,
-            **attrs
-    ) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[SplatfestData] = data
-        self.region: REGION_LITERAL = region
-
-        self.splatoon_3_cog: "Splatoon3" = cast("Splatoon3", self.ctx.bot.get_cog("Splatoon3"))
-
-        options: list[SelectOption] = [
-            SelectOption(
-                label=splatfest.name,
-                description=splatfest.description,
-                emoji=ctx.bot.get_custom_emoji("tricolor.png"),
-            ) for splatfest in data
-        ]
-
-        super().__init__(placeholder="Select Splatfest...", options=options, min_values=1, max_values=1, **attrs)
-
-    def _get_splatfestdata(self, name: str) -> SplatfestData | None:
-        """
-        Helper to get the timeslot info.
-        """
-        for splatfest in self.data:
-            if splatfest.name == name:
-                return splatfest
-        else:
-            return None
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-
-        timeslot: SplatfestData = self._get_splatfestdata(interaction.data["values"][0])
-
-        await self.splatoon_3_cog.send_splatfest(
-            self.ctx,
-            False,
-            timeslot.index,
-            self.region,
-            lambda *args, **kwargs: edit_with_files_send_wrapper(self.ctx["response"].edit, *args, **kwargs)
-        )
-
-
-class ScheduleView(View):
-    def __init__(self, ctx: CustomContext, data: list[TimeSlotData], mode: MODE_LITERAL, **attrs) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[TimeSlotData] = data
-        self.game: MODE_LITERAL = mode
-
-        super().__init__(**attrs)
-
-        self.add_item(ScheduleSelectionMenu(ctx, data, mode))
-        self.add_item(ModeSelectionMenu(ctx))
-
-
-class SplatfestView(View):
-    def __init__(
-            self,
-            ctx: CustomContext,
-            data: list[SplatfestData],
-            region: REGION_LITERAL,
-            **attrs
-    ) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[SplatfestData] = data
-        self.game: REGION_LITERAL = region
-
-        super().__init__(**attrs)
-
-        self.add_item(SplatfestSelectionMenu(ctx, data, region))
 
 
 class Splatoon3(Cog):
@@ -614,7 +468,6 @@ class Splatoon3(Cog):
         return await send(
             embed=embed,
             files=[File(fp=BytesIO(data), filename=name) for name, data in files] if len(files) > 0 else None,
-            view=ScheduleView(ctx, timeslots, mode) if len(timeslots) > 0 else None,
         )
 
     async def send_splatfest(
@@ -777,10 +630,9 @@ class Splatoon3(Cog):
         return await send(
             embed=embed,
             files=[File(fp=BytesIO(data), filename=name) for name, data in files] if len(files) > 0 else None,
-            view=None if current else SplatfestView(ctx, historic_splatfests, region)
         )
 
-    @hybrid_group(
+    @group(
         aliases=[
             "splat",
             "splatoon",
@@ -789,22 +641,17 @@ class Splatoon3(Cog):
         ],
         fallback="schedule"
     )
-    @describe(mode="The game mode to get information about.")
-    async def splatoon3(self, ctx: CustomContext, *, mode: MODE_LITERAL = "Regular Battle") -> None:
+    async def splatoon3(self, ctx: CustomContext, index: int = 0, *, mode: MODE_LITERAL = "Regular Battle") -> None:
         """
         Get information about the current scheduele of different game modes in Splatoon 3.
         Powered by https://splatoon3.ink/
         """
         async with ctx.typing():
-            await self.send_schedule(ctx, mode, 0)
+            await self.send_schedule(ctx, mode, index)  # Patched in index for self
 
     # Todo: current version command? setup bs4 for scraping inkpedia but didnt finish
 
     @splatoon3.command()
-    @describe(
-        current="If information should be gathered on current or historic Splatfests.",
-        region="The region to get information about. Splatfests may vary between regions.",
-    )
     async def splatfest(
             self,
             ctx: CustomContext,

@@ -14,7 +14,7 @@ def pins_left_executor(pins_left: int) -> BytesIO:
     buffer = BytesIO()
     save_image = Image.open("resources/images/blank.png")
     arial_narrow_bold_font = ImageFont.truetype(
-        "resources/images/arial-narrow-bold.ttf", 72
+        "resources/arial-narrow-bold.ttf", 72
     )
     image_draw = ImageDraw.Draw(save_image)
     image_draw.text(

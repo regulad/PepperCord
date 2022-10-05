@@ -67,7 +67,7 @@ async def resend_as_webhook(
     return await impersonate(
         webhook,
         message.author,
-        (content if len(message.clean_content) > 0 else discord.utils.MISSING),
+        (content if len(message.clean_content) > 0 else discord.utils.MISSING),  # type: ignore
         allowed_mentions=(
             discord.AllowedMentions(
                 everyone=False,
@@ -105,7 +105,7 @@ async def filter_message(
 
     if len(filtered_message) > 2000:
         webhook_message: Optional[discord.WebhookMessage] = None
-        for message_fragment in split_iter_chunks(filtered_message, chunk_size=2000):
+        for message_fragment in split_iter_chunks(filtered_message, chunk_size=2000):  # type: ignore
             await resend_as_webhook(webhook, message, content=message_fragment)
     else:
         webhook_message: Optional[discord.WebhookMessage] = await resend_as_webhook(

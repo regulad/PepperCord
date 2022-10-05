@@ -1,4 +1,3 @@
-from asyncio import get_running_loop
 from functools import partial
 from io import BytesIO
 from os.path import splitext, split
@@ -47,26 +46,14 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
 
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
-        self.ytdl: Optional[YoutubeDL] = None
-        self.assemble_downloader()
-
-        self.reassemble_downloader.start()
-
         self.downloader: Optional[ClientSession] = None
 
     async def cog_load(self) -> None:
         self.downloader = ClientSession()
 
-    def assemble_downloader(self) -> None:
-        self.ytdl = YoutubeDL(YTDL_FORMAT_OPTIONS)
-
     async def cog_unload(self) -> None:
-        await self.downloader.close()
-        self.reassemble_downloader.cancel()
-
-    @tasks.loop(hours=6)
-    async def reassemble_downloader(self) -> None:
-        await get_running_loop().run_in_executor(None, self.assemble_downloader)
+        if self.downloader is not None and not self.downloader.closed:
+            await self.downloader.close()
 
     @command()
     @commands.cooldown(2, 120, commands.BucketType.channel)
@@ -82,13 +69,19 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
         """Download a video using YoutubeDL."""
 
         async with ctx.typing():
+            ytdl: YoutubeDL = await ctx.bot.loop.run_in_executor(
+                None,
+                lambda *args, **kwargs: YoutubeDL(*args, **kwargs),
+                YTDL_FORMAT_OPTIONS
+            )
+
             if str_is_url(query):
                 url: str = query
             else:
                 url: str = f"ytsearch:{query}"
 
             info: dict = await ctx.bot.loop.run_in_executor(
-                None, partial(self.ytdl.extract_info, url, download=False)
+                None, partial(ytdl.extract_info, url, download=False)
             )
 
             if info.get("url") is None:

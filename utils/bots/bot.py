@@ -1,9 +1,12 @@
 import logging
 from collections import deque
+from os import getcwd
+from os.path import splitext, join
 from typing import Union, Type, MutableMapping
 
+from aiofiles import open as aopen
 import discord
-from discord import Member
+from discord import Member, Guild, PartialEmoji, Emoji
 from discord.ext import commands
 from discord.user import BaseUser
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -12,6 +15,9 @@ from utils.database import Document
 from .context import CustomContext
 
 CONFIGURATION_PROVIDERS = Union[dict, MutableMapping]
+
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class CustomBotBase(commands.bot.BotBase):
@@ -42,6 +48,56 @@ class CustomBotBase(commands.bot.BotBase):
             description=description,
             **options,
         )
+
+    @property
+    def home_server(self) -> Guild | None:
+        maybe_home_server: str = self._config.get("PEPPERCORD_HOME_SERVER")
+        if maybe_home_server is not None:
+            maybe_home_guild: Guild | None = super().get_guild(int(maybe_home_server))  # type: ignore
+            if maybe_home_guild is not None:
+                return maybe_home_guild
+            else:
+                logger.critical(f"Home server is set to {maybe_home_server}, but could not find!")
+                return None
+        else:
+            return None
+
+    def get_custom_emoji(self, emoji_filename: str) -> PartialEmoji | Emoji | None:
+        """Gets a custom emoji from the bot's home server."""
+
+        home_server: Guild | None = self.home_server
+        emoji_filename_split: tuple[str, str] = splitext(emoji_filename)
+        for emoji in home_server.emojis:
+            if emoji.name == emoji_filename_split[0]:
+                return emoji
+        else:
+            return None
+
+    async def fetch_or_upload_custom_emoji(self, emoji_filename: str) -> PartialEmoji | Emoji | None:
+        """Fetches a custom emoji from the bot's home server."""
+
+        maybe_exists: PartialEmoji | Emoji | None = self.get_custom_emoji(emoji_filename)
+
+        if maybe_exists is not None:
+            return maybe_exists
+        else:
+            home_server: Guild | None = self.home_server
+            emoji_filename_split: tuple[str, str] = splitext(emoji_filename)
+            if home_server is not None:
+                if home_server.me.guild_permissions.manage_emojis:
+                    async with aopen(join(getcwd(), "resources", "emojis", emoji_filename), "rb") as f:
+                        emoji_bytes: bytes = await f.read()
+
+                    # upload
+                    return await home_server.create_custom_emoji(
+                        name=emoji_filename_split[0],
+                        image=emoji_bytes,
+                        reason="Emoji upload for PepperCord."
+                    )
+                else:
+                    return None
+            else:
+                return None
 
     @property
     def database(self) -> AsyncIOMotorDatabase:
@@ -108,10 +164,10 @@ class CustomBotBase(commands.bot.BotBase):
         pass
 
     async def wait_for_dispatch(self, event_name, *args, **kwargs):
-        await super().wait_for_dispatch(event_name, *args, **kwargs)
+        await super().wait_for_dispatch(event_name, *args, **kwargs)  # type: ignore
         ev = "on_" + event_name
         for event in self.extra_events.get(ev, []):
-            await super()._schedule_event(event, ev, *args, **kwargs)
+            await super()._schedule_event(event, ev, *args, **kwargs)  # type: ignore
 
 
 class CustomClientBase:
@@ -119,7 +175,7 @@ class CustomClientBase:
         logging.debug("Dispatching event %s", event)
         method = "on_" + event
 
-        listeners = self._listeners.get(event)
+        listeners = self._listeners.get(event)  # type: ignore
         if listeners:
             removed = []
             for i, (future, condition) in enumerate(listeners):
@@ -143,7 +199,7 @@ class CustomClientBase:
                         removed.append(i)
 
             if len(removed) == len(listeners):
-                self._listeners.pop(event)
+                self._listeners.pop(event)  # type: ignore
             else:
                 for idx in reversed(removed):
                     del listeners[idx]
@@ -153,7 +209,7 @@ class CustomClientBase:
         except AttributeError:
             pass
         else:
-            await self._schedule_event(coro, method, *args, **kwargs)
+            await self._schedule_event(coro, method, *args, **kwargs)  # type: ignore
 
 
 class CustomBot(CustomBotBase, CustomClientBase, discord.Client):

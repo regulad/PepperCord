@@ -21,9 +21,12 @@ from pretty_help import PrettyHelp
 from utils import bots, misc
 from utils.help import BetterMenu
 
-DEFUALT_LOG_LEVEL: int = logging.INFO
+DEFAULT_LOG_LEVEL: int = logging.INFO
 
 locale.setlocale(locale.LC_ALL, "")
+
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 async def async_main() -> None:
@@ -37,7 +40,7 @@ async def async_main() -> None:
     debug: bool = config_source.get("PEPPERCORD_DEBUG") is not None
 
     logging.basicConfig(
-        level=logging.DEBUG if debug else DEFUALT_LOG_LEVEL,
+        level=logging.DEBUG if debug else DEFAULT_LOG_LEVEL,
         format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
     )
 
@@ -45,13 +48,13 @@ async def async_main() -> None:
 
     if maybe_webhook is not None:
         logging.root.addHandler(
-            DiscordWebhookHandler(maybe_webhook, level=DEFUALT_LOG_LEVEL)
+            DiscordWebhookHandler(maybe_webhook, level=DEFAULT_LOG_LEVEL)
         )
 
     if not os.path.exists("config/"):
         os.mkdir("config/")
 
-    logging.info("Configuring database connection...")
+    logger.info("Configuring database connection...")
     # Configure the database
     db_client: AsyncIOMotorClient = AsyncIOMotorClient(
         config_source.get("PEPPERCORD_URI", "mongodb://mongo")
@@ -59,9 +62,9 @@ async def async_main() -> None:
     db: AsyncIOMotorDatabase = db_client[
         config_source.get("PEPPERCORD_DB_NAME", "peppercord")
     ]
-    logging.info("Done.")
+    logger.info("Done.")
 
-    logging.info("Configuring bot...")
+    logger.info("Configuring bot...")
     # Configure Sharding
     bot_class: Type[bots.BOT_TYPES] = bots.CustomBot
     # Configure bot
@@ -81,16 +84,16 @@ async def async_main() -> None:
         ]
     )
 
-    logging.info("Loading extensions...")
+    logger.info("Loading extensions...")
     extension_coros: list[Coroutine] = [
         bot.load_extension(ext) for ext in misc.get_python_modules("extensions")
     ]
 
     await gather(*extension_coros)
-    logging.info("Done.")
+    logger.info("Done.")
 
-    logging.info("Ready.")
-    logging.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")
+    logger.info("Ready.")
+    logger.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")
 
     async with bot:
         await bot.start(config_source["PEPPERCORD_TOKEN"])

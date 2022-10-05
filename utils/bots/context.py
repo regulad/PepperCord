@@ -30,7 +30,9 @@ class _DefaultSendHandler(SendHandler):
             kwargs["reference"] = self.ctx.message
         if kwargs.get("embed") is not None:
             del kwargs["embed"]
-        return await self.ctx.send_bare(*args, **kwargs)
+        message: Message = await self.ctx.send_bare(*args, **kwargs)
+        self.ctx["response"] = message  # this is both neat and kinda broken
+        return message
 
 
 class CustomContext(commands.Context):

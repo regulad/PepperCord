@@ -2,13 +2,17 @@ import os
 import random
 import string
 from datetime import timedelta, datetime
-from typing import Mapping
+from typing import Mapping, Any
 
 from discord import Status
 
 
 def split_iter_chunks(iterable: list, chunk_size: int = 2000) -> list[str]:
     return [iterable[i: i + chunk_size] for i in range(0, len(iterable), chunk_size)]
+
+
+def rgb_human_readable(r: int, g: int, b: int) -> str:
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 
 def status_breakdown(desktop_status: Status, mobile_status: Status, web_status: Status) -> str | None:
@@ -108,7 +112,17 @@ class FrozenDict(Mapping):
         return self._hash
 
 
-UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()
+UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()  # this sucks
+
+
+def edit_with_files_send_wrapper(send, *args, **kwargs) -> Any:
+    if "files" in kwargs:
+        if kwargs["files"] is not None:
+            kwargs["attachments"] = kwargs["files"]
+        else:
+            kwargs["attachments"] = []
+        del kwargs["files"]
+    return send(*args, **kwargs)
 
 __all__: list[str] = [
     "split_iter_chunks",
@@ -119,4 +133,6 @@ __all__: list[str] = [
     "random_string",
     "UTC_OFFSET",
     "status_breakdown",
+    "rgb_human_readable",
+    "edit_with_files_send_wrapper",
 ]

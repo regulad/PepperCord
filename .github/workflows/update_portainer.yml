@@ -2,7 +2,9 @@ name: Update Portainer Instance
 on:
   workflow_run:
     workflows: ["Docker"]
-    branches: [main]
+    branches:
+      - main
+      - self
     types: 
       - completed
 jobs:
@@ -11,13 +13,24 @@ jobs:
     steps:
     - name: Deploy PepperCord
       uses: fjogeleit/http-request-action@v1
+      if: contains(github.ref, "main")
       with:
         url: 'https://portainer.regulad.xyz/api/stacks/webhooks/aa424ff9-4516-4944-8cfe-b8ec05d6971b'
         method: 'POST'
+      continue-on-error: true
     - name: Deploy CordPepperer
       uses: fjogeleit/http-request-action@v1
+      if: contains(github.ref, "main")
       with:
         url: 'https://portainer.regulad.xyz/api/stacks/webhooks/1bc78e64-fcc0-4249-a896-19b1dd93694f'
         method: 'POST'
+      continue-on-error: true
+    - name: Deploy PepperSelf
+      uses: fjogeleit/http-request-action@v1
+      if: contains(github.ref, "self")
+      with:
+        url: 'https://portainer.regulad.xyz/api/stacks/webhooks/2fdea517-a3a2-40eb-8113-66ce04f6ac77'
+        method: 'POST'
+      continue-on-error: true
 
 # fixme: possible security implication having these urls exposed here, but i cba.

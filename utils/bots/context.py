@@ -2,12 +2,13 @@ import abc
 from typing import Dict, Any, Optional, cast, TYPE_CHECKING, Coroutine
 
 import discord
-from discord import Message, Webhook, Embed, Guild
+from discord import Message, Webhook, Embed, Guild, GroupChannel
 from discord.context_managers import Typing
 from discord.ext import commands
 from discord.utils import format_dt
 
 from .audio import *
+from utils.self import WrappedGroupChannel
 
 if TYPE_CHECKING:
     from .bot import BOT_TYPES
@@ -33,7 +34,7 @@ class _DefaultSendHandler(SendHandler):
         if kwargs.get("reference") is None:
             kwargs["reference"] = self.ctx.message
         if kwargs.get("embed") is not None:
-            if self.ctx.guild is not None and self.ctx.guild.me.guild_permissions.manage_webhooks:
+            if self.ctx.message.guild is not None and self.ctx.guild.me.guild_permissions.manage_webhooks:
                 embed_compat_webhook: Webhook = (
                     await get_or_create_namespaced_webhook(
                         "embed_compat",
@@ -161,7 +162,7 @@ class _DefaultSendHandler(SendHandler):
 
                 del kwargs["embed"]
 
-                if kwargs.get("content") is not None:
+                if "content" in kwargs.keys():
                     kwargs["content"] = maybe_content
                 else:
                     args = (maybe_content, )
@@ -219,8 +220,8 @@ class CustomContext(commands.Context):
         maybe_super_guild: Guild | None = self.message.guild
         if maybe_super_guild is not None:
             return maybe_super_guild
-        else:
-            pass  # fixme: do stanky group chat handling here
+        elif isinstance(self.channel, GroupChannel):
+            return WrappedGroupChannel(self.channel)
 
     def send_bare(self, *args, **kwargs) -> Coroutine[Any, Any, Message]:
         return super().send(*args, **kwargs)

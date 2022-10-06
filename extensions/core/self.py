@@ -14,7 +14,7 @@ class SelfUtils(Cog):
 
     @is_owner()
     @command()
-    async def join(self, ctx: CustomContext, *, invite: str):
+    async def join(self, ctx: CustomContext, *, invite: str) -> None:
         """
         Joins a guild using an invitation.
         """

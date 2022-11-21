@@ -120,10 +120,11 @@ async def async_main() -> None:
                 logger.info("Finished syncing guild commands.")
             elif bot.config.get("PEPPERCORD_SLASH_COMMANDS") is None:
                 await bot.tree.sync()
-                try:
-                    await gather(*[bot.tree.sync(guild=guild) for guild in bot.guilds])
-                except Forbidden:
-                    pass
+                if debug:
+                    try:
+                        await gather(*[bot.tree.sync(guild=guild) for guild in bot.guilds])
+                    except Forbidden:
+                        pass
                 logger.info("Synced global commands.")
 
         @bot.listen("on_ready")

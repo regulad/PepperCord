@@ -2,20 +2,20 @@ import logging
 from collections import deque
 from os import getcwd
 from os.path import splitext, join
-from typing import Union, Type, MutableMapping
+from typing import Union, Type, MutableMapping, Deque, Optional, Sequence
 
-from aiofiles import open as aopen
 import discord
-from discord import Member, Guild, PartialEmoji, Emoji
+from aiofiles import open as aopen
+from discord import Member, Guild, PartialEmoji, Emoji, Message, GroupChannel, DMChannel, TextChannel
 from discord.ext import commands
 from discord.user import BaseUser
+from discord.utils import SequenceProxy
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.database import Document
 from .context import CustomContext
 
 CONFIGURATION_PROVIDERS = Union[dict, MutableMapping]
-
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -171,6 +171,16 @@ class CustomBotBase(commands.bot.BotBase):
 
 
 class CustomClientBase:
+    def __init__(self, *args, **kwargs):
+        self._aux_max_messages: int | None = kwargs.get('max_messages', 1000)
+        if self._aux_max_messages is not None and self._aux_max_messages <= 0:
+            self._aux_max_messages = 1000
+        if self._aux_max_messages is not None:
+            self._aux_messages: Optional[Deque[Message]] = deque(maxlen=self._aux_max_messages)
+        else:
+            self._aux_messages: Optional[Deque[Message]] = None
+        super().__init__(*args, **kwargs)
+
     async def wait_for_dispatch(self, event: str, *args, **kwargs):
         logging.debug("Dispatching event %s", event)
         method = "on_" + event
@@ -210,6 +220,32 @@ class CustomClientBase:
             pass
         else:
             await self._schedule_event(coro, method, *args, **kwargs)  # type: ignore
+
+    cached_messages: Sequence[Message]
+
+    async def smart_fetch_message(self, channel: TextChannel | DMChannel | GroupChannel,
+                                  message_id: int) -> Message:
+        """Fetches a message from a channel, or from the cache if possible."""
+
+        maybe_cache: list[Message] = [m for m in self.cached_messages if m.id == message_id]
+        maybe_cached: Message | None = maybe_cache[0] if len(maybe_cache) > 0 else None
+        del maybe_cache  # cleaup duty
+
+        if maybe_cached is not None:
+            return maybe_cached
+        elif self._aux_messages is not None:
+            maybe_aux_cache: list[Message] = [m for m in SequenceProxy(self._aux_messages) if m.id == message_id]
+            maybe_aux_cached: Message | None = maybe_aux_cache[0] if len(maybe_aux_cache) > 0 else None
+            del maybe_aux_cache  # cleaup duty
+
+            if maybe_aux_cached is not None:
+                return maybe_aux_cached
+            else:
+                message: Message = await channel.fetch_message(message_id)
+                self._aux_messages.append(message)
+                return message
+        else:
+            return await channel.fetch_message(message_id)
 
 
 class CustomAutoShardedBot(CustomBotBase, CustomClientBase, discord.AutoShardedClient):

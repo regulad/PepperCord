@@ -7,14 +7,14 @@ import locale
 import logging
 import os
 from asyncio import run, gather, AbstractEventLoop, get_event_loop
-from typing import Optional, Type, MutableMapping, Coroutine
+from typing import Optional, Type, MutableMapping, Coroutine, TYPE_CHECKING
 
 import art
 import discord
 from discord import Object, Game, Forbidden
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorClient
 from pretty_help import PrettyHelp
 
 from utils import bots, misc
@@ -26,6 +26,10 @@ locale.setlocale(locale.LC_ALL, "")
 
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 async def async_main() -> None:
@@ -58,7 +62,7 @@ async def async_main() -> None:
     db_client: AsyncIOMotorClient = AsyncIOMotorClient(
         config_source.get("PEPPERCORD_URI", "mongodb://mongo")
     )
-    db: AsyncIOMotorDatabase = db_client[
+    db: "AsyncIOMotorDatabase" = db_client[
         config_source.get("PEPPERCORD_DB_NAME", "peppercord")
     ]
     logger.info("Done.")
@@ -75,6 +79,12 @@ async def async_main() -> None:
     else:
         bot_class = bots.CustomBot
         shards = None
+    # Build intents
+    intents: discord.Intents = discord.Intents.default()
+    intents.presences = (config_source.get("PEPPERCORD_PRESENCES") is not None) or debug
+    intents.members = (config_source.get("PEPPERCORD_MEMBERS") is not None) or debug
+    intents.message_content = (config_source.get("PEPPERCORD_MESSAGE_CONTENT") is not None) or debug
+
     # Configure bot
     bot: bots.BOT_TYPES = bot_class(
         command_prefix=config_source.get("PEPPERCORD_PREFIX", "?"),
@@ -83,7 +93,7 @@ async def async_main() -> None:
             color=discord.Colour.orange(),
             menu=BetterMenu(),
         ),
-        intents=discord.Intents.all(),
+        intents=intents,
         database=db,
         config=os.environ,
         shard_count=shards,

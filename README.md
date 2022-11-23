@@ -97,8 +97,9 @@ PepperCord uses a folder named `config/` for everything that isn't stored in con
 
 #### Intents
 
-* `PEPPERCORD_READ_MESSAGES`: Optional. If the bot should **not** be able to read messages.
-* `PEPPERCORD_PRESENCE`: Optional. If the bot should **not** be able to see presence.
+* `PEPPERCORD_MESSAGE_CONTENT`: Optional.
+* `PEPPERCORD_PRESENCE`: Optional.
+* `PEPPERCORD_MEMBERS`: Optional.
 
 # Extending
 

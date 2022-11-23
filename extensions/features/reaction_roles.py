@@ -28,12 +28,12 @@ class ReactionRoles(commands.Cog):
             return True
 
     async def _assemble_reaction(
-            self, payload: discord.RawReactionActionEvent
+            self, payload: discord.RawReactionActionEvent,
     ) -> Tuple[discord.Message, discord.Member]:
         guild: discord.Guild = self.bot.get_guild(payload.guild_id)
 
-        return await (guild.get_channel_or_thread(payload.channel_id)).fetch_message(
-            payload.message_id
+        return await self.bot.smart_fetch_message(
+            guild.get_channel_or_thread(payload.channel_id), payload.message_id
         ), guild.get_member(payload.user_id)
 
     @commands.Cog.listener()

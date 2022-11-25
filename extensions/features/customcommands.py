@@ -226,6 +226,7 @@ class CustomCommands(commands.Cog):
 
         if (
                 not ctx.author.bot
+                and ctx.author.id != self.bot.user.id
                 and ctx.guild is not None
                 and ctx["guild_document"].get("commands") is not None
                 and not ctx.valid

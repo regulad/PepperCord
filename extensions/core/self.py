@@ -1,8 +1,7 @@
-from discord import Relationship, RelationshipType
-from discord.ext.commands import Cog
+from discord import Relationship, RelationshipType, Invite
+from discord.ext.commands import Cog, is_owner, command
 
 from utils.bots import CustomContext, BOT_TYPES
-from utils.self import EmbedSendHandler
 
 
 class SelfUtils(Cog):
@@ -13,10 +12,15 @@ class SelfUtils(Cog):
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
 
-    @Cog.listener()
-    async def on_context_creation(self, ctx: CustomContext) -> None:
-        ctx.send_handler = EmbedSendHandler(ctx)
-        # I would integrate this into the default send handler, but I don't want to break anything due to circular imports.
+    @is_owner()
+    @command()
+    async def join(self, ctx: CustomContext, *, invite: str) -> None:
+        """
+        Joins a guild using an invitation.
+        """
+
+        invite: Invite = await ctx.bot.accept_invite(invite)
+        await ctx.send(f"Joined {invite.guild}.")
 
     @Cog.listener()
     async def on_relationship_add(self, relationship: Relationship) -> None:

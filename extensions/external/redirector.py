@@ -15,7 +15,7 @@ from utils.database import Document
 from utils.misc import random_string, UTC_OFFSET
 
 API_URL: str = "https://redirector.regulad.xyz/"
-SHORT_URL: str = "https://crud.space/"
+SHORT_URL: str = API_URL  # I'm not paying for two anymore.
 
 logger: Logger = getLogger(__name__)
 

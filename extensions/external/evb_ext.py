@@ -49,7 +49,7 @@ class EditVideoBot(commands.Cog):
         """Edit media with EditVideoBot."""
 
         async with ctx.typing():
-            url, source = await find_url_recurse(ctx.message)
+            url, source = await find_url_recurse(ctx.message, ctx.bot)
 
             async with self.client_session.get(url) as resp:
                 attachment_bytes = await resp.read()

@@ -342,7 +342,7 @@ class CustomCommands(commands.Cog):
         * $ban: Bans the sender.
         """
         message: str = (
-            message if message is not None else (await find_url_recurse(ctx.message))[0]
+            message if message is not None else (await find_url_recurse(ctx.message, ctx.bot))[0]
         )
         await ctx["guild_document"].update_db(
             {"$set": {f"commands.{command}": message}}

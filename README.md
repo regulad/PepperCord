@@ -75,16 +75,6 @@ PepperCord uses a folder named `config/` for everything that isn't stored in con
 
 #### Environment variables:
 
-##### Top.gg
-
-* `PEPPERCORD_TOPGG`: Top.gg Token. If you don't know what it is, don't add the var.
-
-* `PEPPERCORD_TOPGG_WH`: Port to listen for the webhook. Defaults to `5000`.
-* `PEPPERCORD_TOPGG_WH_ROUTE`: Route for the webhook. Defaults to `/topgg`.
-* `PEPPERCORD_TOPGG_WH_SECRET`: Secret for the webhook. Required.
-
-If any of the required `TOPGG_WH` params are missing, the bot will not start the webserver.
-
 ##### Secrets
 
 * `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://mongo:27107`.
@@ -103,8 +93,13 @@ If any of the required `TOPGG_WH` params are missing, the bot will not start the
 * `PEPPERCORD_TESTGUILDS`: Optional. A comma seperated list of Discord guild ids. The bot will only be enabled in these
   servers. If these are present, global slash commands will not be uploaded.
 * `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled.
-* `PEPPERCORD_UPTIMEROBOT`: Optional. If running under https://replit.com, this will allow the container to stay alive
-  forever using a UptimeRobot API token. Semi-broken.
+* `PEPPERCORD_HOME_SERVER`: Optional. The Discord guild id of the bot's home server. Used for some commands, mainly making emojis.
+
+#### Intents
+
+* `PEPPERCORD_MESSAGE_CONTENT`: Optional.
+* `PEPPERCORD_PRESENCE`: Optional.
+* `PEPPERCORD_MEMBERS`: Optional.
 
 # Extending
 

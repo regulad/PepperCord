@@ -45,7 +45,7 @@ async def send_star(
     )
 
     try:
-        url, source = await find_url(message)
+        url, source = await find_url(message, bot)
     except NoMedia:
         url, source = None, None
     else:
@@ -87,7 +87,7 @@ class Starboard(commands.Cog):
 
         guild = self.bot.get_guild(payload.guild_id)
         channel: discord.TextChannel = guild.get_channel_or_thread(payload.channel_id)
-        message: discord.Message = await channel.fetch_message(payload.message_id)
+        message: discord.Message = await self.bot.smart_fetch_message(channel, payload.message_id)
         ctx: bots.CustomContext = cast(
             bots.CustomContext, await self.bot.get_context(message)
         )
@@ -231,6 +231,7 @@ class Starboard(commands.Cog):
         await ctx["guild_document"].update_db(
             {"$set": {"starboard.threshold": threshold}}
         )
+        await ctx.send(f"Threshold set to {threshold}.", ephemeral=True)
 
     @starboard.command()
     @guild_only()

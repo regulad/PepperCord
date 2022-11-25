@@ -2,14 +2,14 @@ import logging
 from collections import deque
 from os import getcwd
 from os.path import splitext, join
-from typing import Union, Type, MutableMapping, Deque, Optional, Sequence
+from typing import Union, Type, MutableMapping, Deque, Optional, TYPE_CHECKING
 
 import discord
 from aiofiles import open as aopen
 from discord import Member, Guild, PartialEmoji, Emoji, Message, GroupChannel, DMChannel, TextChannel
 from discord.ext import commands
 from discord.user import BaseUser
-from discord.utils import SequenceProxy
+from discord.utils import find
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.database import Document
@@ -18,6 +18,9 @@ from .context import CustomContext
 CONFIGURATION_PROVIDERS = Union[dict, MutableMapping]
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from discord.state import ConnectionState
 
 
 class CustomBotBase(commands.bot.BotBase):
@@ -221,31 +224,24 @@ class CustomClientBase:
         else:
             await self._schedule_event(coro, method, *args, **kwargs)  # type: ignore
 
-    cached_messages: Sequence[Message]
+    _connection: "ConnectionState"
+
+    def _get_aux_message(self, msg_id: Optional[int]) -> Optional[Message]:
+        return find(lambda m: m.id == msg_id, reversed(self._aux_messages)) if self._aux_messages else None
 
     async def smart_fetch_message(self, channel: TextChannel | DMChannel | GroupChannel,
                                   message_id: int) -> Message:
         """Fetches a message from a channel, or from the cache if possible."""
 
-        maybe_cache: list[Message] = [m for m in self.cached_messages if m.id == message_id]
-        maybe_cached: Message | None = maybe_cache[0] if len(maybe_cache) > 0 else None
-        del maybe_cache  # cleaup duty
+        existing: Message | None = self._connection._get_message(message_id) or self._get_aux_message(message_id)
 
-        if maybe_cached is not None:
-            return maybe_cached
-        elif self._aux_messages is not None:
-            maybe_aux_cache: list[Message] = [m for m in SequenceProxy(self._aux_messages) if m.id == message_id]
-            maybe_aux_cached: Message | None = maybe_aux_cache[0] if len(maybe_aux_cache) > 0 else None
-            del maybe_aux_cache  # cleaup duty
-
-            if maybe_aux_cached is not None:
-                return maybe_aux_cached
-            else:
-                message: Message = await channel.fetch_message(message_id)
-                self._aux_messages.append(message)
-                return message
+        if existing is not None:
+            return existing
         else:
-            return await channel.fetch_message(message_id)
+            fetched: Message = await channel.fetch_message(message_id)
+            if self._aux_messages is not None:
+                self._aux_messages.append(fetched)
+            return fetched
 
 
 class CustomAutoShardedBot(CustomBotBase, CustomClientBase, discord.AutoShardedClient):

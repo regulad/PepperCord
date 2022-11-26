@@ -9,7 +9,7 @@ import discord
 from aiofiles import open as aopen
 from discord import Member, Guild, PartialEmoji, Emoji, Message, GroupChannel, DMChannel, TextChannel
 from discord.ext import commands
-from discord.user import BaseUser
+from discord.user import BaseUser, User
 from discord.utils import find
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -107,6 +107,25 @@ class CustomBotBase(commands.bot.BotBase):
                     return None
             else:
                 return None
+
+    @property
+    def owner(self) -> Optional[User]:
+        return self.get_user(self.owner_id)  # type: ignore
+
+    @property
+    def owners(self) -> list[User] | None:
+        return [self.get_user(owner_id) for owner_id in self.owner_ids] if self.owner_ids is not None else None  # type: ignore
+
+    @property
+    def effective_owners(self) -> list[User]:
+        if self.owners is not None and self.owner is not None:
+            return [self.owner] + self.owners
+        elif self.owner is not None:
+            return [self.owner]
+        elif self.owners is not None:
+            return self.owners
+        else:
+            return []
 
     @property
     def database(self) -> AsyncIOMotorDatabase:

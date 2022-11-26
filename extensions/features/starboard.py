@@ -77,7 +77,7 @@ async def pin_cm(interaction: Interaction, message: Message) -> None:
     """Pins a message to the starboard. You must link to the message."""
 
     ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    await ctx.invoke(ctx.bot.get_command("starboard pin"), message)
+    await ctx.invoke(ctx.bot.get_command("starboard pin"), message=message)
 
 
 class Starboard(commands.Cog):

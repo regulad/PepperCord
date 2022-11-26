@@ -85,6 +85,21 @@ async def async_main() -> None:
     intents.members = (config_source.get("PEPPERCORD_MEMBERS") is not None) or debug
     intents.message_content = (config_source.get("PEPPERCORD_MESSAGE_CONTENT") is not None) or debug
 
+    if intents.presences:
+        logger.info("Presences are enabled.")
+    else:
+        logger.warning("Presences are disabled.")
+
+    if intents.members:
+        logger.info("Members are enabled.")
+    else:
+        logger.warning("Members are disabled.")
+
+    if intents.message_content:
+        logger.info("Message content is enabled.")
+    else:
+        logger.warning("Message content is disabled.")
+
     # Configure bot
     bot: bots.BOT_TYPES = bot_class(
         command_prefix=config_source.get("PEPPERCORD_PREFIX", "?"),

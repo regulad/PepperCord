@@ -1,4 +1,5 @@
 import logging
+from asyncio import Semaphore
 from collections import deque
 from os import getcwd
 from os.path import splitext, join
@@ -37,9 +38,14 @@ class CustomBotBase(commands.bot.BotBase):
         self._database = database
         self._config: CONFIGURATION_PROVIDERS = config
 
-        self._context_cache: deque[tuple[discord.Message, commands.Context]] = deque(
-            maxlen=10
+        self._context_cache: deque[CustomContext] = deque(
+            maxlen=100
         )
+        self._context_semaphores: deque[tuple[int, Semaphore]] = deque(maxlen=10)
+        # theoretical max of 10 contexts processed at once
+        self._context_fetch_semaphore: Semaphore = Semaphore(1)
+        # this is a little hacky, but it beats the alternative which is wasting time and firing events more than once
+
         self._user_doc_cache: deque[tuple[BaseUser | Member, Document]] = deque(
             maxlen=30
         )
@@ -152,14 +158,31 @@ class CustomBotBase(commands.bot.BotBase):
     async def get_context(
             self, message: discord.Message, *, cls: Type[commands.Context] = CustomContext
     ):
-        for other, context in self._context_cache:
-            if isinstance(context, cls) and other == message:
-                return context
+        if cls is CustomContext:
+            async with self._context_fetch_semaphore:
+                # FIXME: There has to be a cleaner way to ensure that only one context is ever made per message and that on_context_creation" is only ever fired once per message. This is a nightmare!
+                maybe_semaphore_tuple: tuple[int, Semaphore] | None = find(lambda sema_tuple: sema_tuple[0] == message.id, reversed(self._context_semaphores))
+                processing_semaphore: Semaphore | None = maybe_semaphore_tuple[-1] if maybe_semaphore_tuple is not None else None
+
+                if processing_semaphore is None:
+                    processing_semaphore = Semaphore(1)
+                    self._context_semaphores.append((message.id, processing_semaphore))
+            async with processing_semaphore:
+                existing: CustomContext | None = find(lambda ctx: ctx.message.id == message.id,
+                                                      reversed(self._context_cache))
+
+                if existing is not None:
+                    return existing  # the existing context will already have had its hooks run, send it!
+                else:
+                    result: CustomContext = await super().get_context(message, cls=CustomContext)
+                    await self.wait_for_dispatch("context_creation", result)
+                    self.dispatch("message_context", result)
+                    # new! kind of useless because there is no way to check if it is a new message, but could be useful for analytics? maybe?
+                    self._context_cache.append(result)
+
+                return result
         else:
-            result: cls = await super().get_context(message, cls=cls)
-            await self.wait_for_dispatch("context_creation", result)
-            self._context_cache.appendleft((message, result))
-            return result
+            return await super().get_context(message, cls=cls)  # all of our fancy magic only works on customcontext
 
     async def on_context_creation(
             self, ctx: commands.Context

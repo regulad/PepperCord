@@ -73,7 +73,7 @@ class Images(commands.Cog):
         self.bot: BOT_TYPES = bot
 
     @hybrid_command(aliases=["santa"])
-    @commands.cooldown(1, 20, commands.BucketType.user)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     @describe(
         member="The member of the server to put the Santa Hat on.",
         x_offset="The x offset of the Santa Hat, from 0 to 100, moving from left to right. The default value is 0.",

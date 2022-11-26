@@ -4,6 +4,8 @@ from discord.ext import commands
 
 from utils.bots import BOT_TYPES
 
+logger: logging.Logger = logging.getLogger(__name__)
+
 
 class Startup(commands.Cog):
     """Things to do on startup."""
@@ -16,12 +18,11 @@ class Startup(commands.Cog):
         extensions: str = "\n".join(
             f"    * {extension_name}" for extension_name in self.bot.extensions.keys()
         )
-        # Why is this a thing in python?
-        logging.info(f"{len(self.bot.extensions)} extensions loaded:\n" + extensions)
+        logger.info(f"{len(self.bot.extensions)} extensions loaded:\n{extensions}")
 
     @commands.Cog.listener("on_ready")
     async def describe_user(self) -> None:
-        logging.info(
+        logger.info(
             f"Logged in as {self.bot.user.display_name}#{self.bot.user.discriminator} ({self.bot.user.id}), "
             f"in {len(self.bot.guilds)} {'guild' if len(self.bot.guilds) == 1 else 'guilds'}"
         )

@@ -56,7 +56,7 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
         if self.downloader is not None and not self.downloader.closed:
             await self.downloader.close()
 
-    @hybrid_command()
+    @hybrid_command(aliases=["yt", "dl", "ytdl"])
     @commands.cooldown(2, 120, commands.BucketType.channel)
     @commands.cooldown(1, 120, commands.BucketType.user)
     @commands.cooldown(3, 120, commands.BucketType.guild)

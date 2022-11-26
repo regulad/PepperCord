@@ -98,7 +98,7 @@ PepperCord uses a folder named `config/` for everything that isn't stored in con
 #### Intents
 
 * `PEPPERCORD_MESSAGE_CONTENT`: Optional.
-* `PEPPERCORD_PRESENCE`: Optional.
+* `PEPPERCORD_PRESENCES`: Optional.
 * `PEPPERCORD_MEMBERS`: Optional.
 
 # Extending

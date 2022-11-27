@@ -12,6 +12,11 @@ class SelfUtils(Cog):
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
 
+    @Cog.listener()
+    async def on_relationship_add(self, relationship: Relationship) -> None:
+        if relationship.type == RelationshipType.incoming_request:
+            await relationship.accept()
+
     @is_owner()
     @command()
     async def join(self, ctx: CustomContext, *, invite: str) -> None:
@@ -20,14 +25,18 @@ class SelfUtils(Cog):
         """
 
         invite: Invite = await ctx.bot.accept_invite(invite)
-        await ctx.send(f"Joined {invite.guild}.")
+        await ctx.send(f"Joined {invite.guild if invite.guild is not None else invite.channel}.")
 
-    @Cog.listener()
-    async def on_relationship_add(self, relationship: Relationship) -> None:
-        if relationship.type == RelationshipType.incoming_request:
-            await relationship.accept()
+    @command()
+    async def friendme(self, ctx: CustomContext) -> None:
+        """
+        Sends a friend request to the bot.
+        """
 
-    # TODO: Add a command to join a group chat call/ accept a friend request/ accept a group chat invite/ etc.
+        await ctx.bot.send_friend_request(ctx.author)
+        await ctx.send("Friend request sent.")
+
+    # TODO: Add a command to pickup a call.
 
 
 async def setup(bot: BOT_TYPES) -> None:

@@ -4,6 +4,7 @@ from typing import Optional, cast, Type
 import discord
 from asyncgTTS import LibraryException as TtsException
 from discord.ext import commands, menus
+from discord.ext.commands import CommandNotFound
 from evb import LibraryException as EvbException
 
 from utils import checks, bots, attachments
@@ -120,7 +121,8 @@ class ErrorHandling(commands.Cog):
     async def soft_affirm_error(
             self, ctx: bots.CustomContext, error: Exception
     ) -> None:
-        await ctx.message.add_reaction("❌")
+        if not isinstance(error, CommandNotFound):
+            await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: bots.CustomContext, error: Exception) -> None:

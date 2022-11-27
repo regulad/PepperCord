@@ -1,6 +1,8 @@
-from discord import Member, Guild, HTTPException, Status
-from discord.ext.commands import Cog, guild_only, group, Greedy
-from discord.utils import escape_markdown
+from datetime import datetime
+
+from discord import Member, Guild, HTTPException, Status, Interaction, AppCommandType, Embed
+from discord.ext.commands import Cog, guild_only, group, Greedy, Command
+from discord.utils import escape_markdown, format_dt
 
 from utils.bots import BOT_TYPES, CustomContext
 from utils.database import Document
@@ -13,8 +15,8 @@ class StatusWatch(Cog):
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
 
-    @Cog.listener()
-    async def on_presence_update(self, before: Member, after: Member) -> None:
+    @Cog.listener("on_presence_update")
+    async def notify(self, before: Member, after: Member) -> None:
         document: Document = await self.bot.get_user_document(after)
         if before.status != after.status and after.status is not Status.offline:  # We don't care about presences here.
             before_breakdown: str | None = status_breakdown(before.desktop_status, before.mobile_status,
@@ -37,6 +39,14 @@ class StatusWatch(Cog):
                         )
                 except HTTPException:
                     continue
+
+    @Cog.listener("on_presence_update")
+    async def update_last_online(self, before: Member, after: Member) -> None:
+        document: Document = await self.bot.get_user_document(after)
+        if (before.status is not Status.offline and after.status is Status.offline) \
+                or after.status is not Status.offline:
+            await document.update_db(
+                {"$set": {"last_online": datetime.utcnow()}})  # probably some mongo managed solution
 
     @group(name="watch", aliases=("w", "sw"), fallback="start")
     @guild_only()
@@ -61,6 +71,41 @@ class StatusWatch(Cog):
         document: Document = await ctx.bot.get_user_document(member)
         await document.update_db({"$pull": {"watchers": f"{ctx.guild.id}-{ctx.author.id}"}})
         await ctx.send(f"{member.mention} is no longer being watched.", ephemeral=True)
+
+    @statuswatch.command(name="last_online", aliases=["last", "online"])
+    @guild_only()
+    async def statuswatch_last_online(self, ctx: CustomContext, member: Member) -> None:
+        """Get the last time a member was online."""
+        async with ctx.typing(ephemeral=True):
+            document: Document = await ctx.bot.get_user_document(member)
+            last_online: datetime | None = document.get(
+                "last_online",
+                datetime.utcnow() if member.status is not Status.offline else None
+            )
+            if member.status is not Status.offline:
+                await ctx.send(
+                    embed=Embed(
+                        description=f"{member.mention} is currently online.",
+                        color=0x389d58
+                    ),
+                    ephemeral=True
+                )
+            elif last_online is not None:
+                await ctx.send(
+                    embed=Embed(
+                        description=f"{member.mention} was last online {format_dt(last_online)}.",
+                        color=0x747f8d
+                    ),
+                    ephemeral=True
+                )
+            else:
+                await ctx.send(
+                    embed=Embed(
+                        description=f"No data exists for {member.mention}. Please try again later.",
+                        color=0x747f8d
+                    ),
+                    ephemeral=True
+                )
 
 
 async def setup(bot: BOT_TYPES) -> None:

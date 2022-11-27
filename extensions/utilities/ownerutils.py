@@ -1,6 +1,7 @@
 from typing import Optional, Union
 
 import discord
+from discord import ButtonStyle
 from discord.ext import commands, menus
 
 from utils import checks, bots
@@ -50,7 +51,7 @@ class ShardMenu(menus.ReactionMenu):
         )
         return await channel.send(embed=embed, **self._get_kwargs())
 
-    @menus.button("🔄")
+    @menus.button("🔄", label="Reconnect Shard", style=ButtonStyle.primary)
     async def reconnect(self, payload):
         return await self.shard_info.reconnect()
 

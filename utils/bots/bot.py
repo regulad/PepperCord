@@ -216,6 +216,35 @@ class CustomBotBase(commands.bot.BotBase):
 
 
 class CustomClientBase:
+    """Helper functions for privledged intents"""
+    @property
+    def has_presences(self) -> bool:
+        """
+        Whether the bot is currently tracking presences.
+        """
+        return self._connection.intents.presences
+
+    @property
+    def has_members(self) -> bool:
+        """
+        Whether the bot is currently tracking members.
+        """
+        return self._connection.intents.members
+
+    @property
+    def has_message_content(self) -> bool:
+        """
+        Whether the bot is currently tracking message content.
+        """
+        return self._connection.intents.message_content
+
+    @property
+    def perceivable_users(self) -> int:
+        """
+        The number of users the bot can perceive.
+        """
+        return len(self.users) if self.has_members else sum((guild.member_count or 0) for guild in self.guilds)
+
     def __init__(self, *args, **kwargs):
         self._aux_max_messages: int | None = kwargs.get('max_messages', 1000)
         if self._aux_max_messages is not None and self._aux_max_messages <= 0:

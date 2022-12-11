@@ -2,7 +2,7 @@ from typing import List
 
 import discord
 from discord.ext import menus
-from pretty_help import PrettyMenu
+from pretty_help import EmojiMenu
 
 from utils.bots import CustomContext
 
@@ -12,7 +12,7 @@ class PlainListPageSource(menus.ListPageSource):
         return page
 
 
-class BetterMenu(PrettyMenu):
+class BetterMenu(EmojiMenu):
     async def send_pages(
             self,
             ctx: CustomContext,

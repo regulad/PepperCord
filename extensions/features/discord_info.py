@@ -76,7 +76,7 @@ class DiscordInfo(commands.Cog):
 
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:
-        watching_string = f"with {len(self.bot.users):n} {'user' if len(self.bot.users) == 1 else 'users'} in {len(self.bot.guilds):n} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
+        watching_string = f"with {self.bot.perceivable_users:n} {'user' if self.bot.perceivable_users == 1 else 'users'} in {len(self.bot.guilds):n} {'server' if len(self.bot.guilds) == 1 else 'servers'}"
         await self.bot.change_presence(activity=discord.Game(name=watching_string))
 
     @activity_update.before_loop

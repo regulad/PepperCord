@@ -1,3 +1,7 @@
+# NOTICE!
+
+This project is no longer being actively maintained. Any updates will be focused on QOL & hot fixes for major vulnerabilities.
+
 # PepperCord
 
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
@@ -42,8 +46,7 @@ Fully-documented source code is available for those able to make improvements.
 
 ## Public instance
 
-[Invite](https://discord.com/api/oauth2/authorize?client_id=839264035756310589&permissions=3157650678&scope=bot%20applications.commands)
-| [Server](https://www.regulad.xyz/discord)
+[Invite](https://redirector.regulad.xyz/peppercord) | [Mirror](https://redirector.regulad.xyz/mirror) | [Server](https://www.regulad.xyz/discord)
 
 ## Self-host
 

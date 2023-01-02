@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.10.7-slim-buster
+FROM python:3.10.9-slim-buster
 
 ENV DEBIAN_FRONTEND=noninteractive
 

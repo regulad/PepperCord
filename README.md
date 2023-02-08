@@ -1,7 +1,3 @@
-# NOTICE!
-
-This project is no longer being actively maintained. Any updates will be focused on QOL & hot fixes for major vulnerabilities.
-
 # PepperCord
 
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)

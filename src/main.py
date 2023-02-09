@@ -116,11 +116,19 @@ async def async_main() -> None:
         activity=Game("Starting PepperCord..."),
     )
 
+    async def load_with_safety(ext: str) -> None:
+        try:
+            await bot.load_extension(ext.strip())
+        except Exception as e:
+            logger.exception(f"Failed to load extension {ext}", exc_info=e)
+        else:
+            logger.debug(f"Loaded extension {ext}")
+
     logger.info("Loading extensions...")
     extension_coros: list[Coroutine] = [
-        bot.load_extension(ext) for ext in misc.get_python_modules("extensions")
+        load_with_safety(ext) for ext in misc.get_python_modules("extensions")
     ]
-    extension_coros.append(bot.load_extension("jishaku"))
+    extension_coros.append(load_with_safety("jishaku"))
 
     await gather(*extension_coros)
     logger.info("Done.")

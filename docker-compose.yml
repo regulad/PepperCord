@@ -1,15 +1,18 @@
 version: '3'
 services:
+  mongo:
+    restart: unless-stopped
+    image: mongo:5
   peppercord:
     image: ghcr.io/regulad/peppercord:latest
+    build: .
+    restart: unless-stopped
     environment:
       - PEPPERCORD_TOKEN=YOUR_TOKEN
       - PEPPERCORD_MESSAGE_COMMANDS=True
-    ports:
-      - "5000:5000/tcp"
     volumes:
       - config:/app/config
-  mongo:
-    image: mongo
+    depends_on:
+      - mongo
 volumes:
   config:

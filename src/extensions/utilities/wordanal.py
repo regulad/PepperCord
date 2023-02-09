@@ -16,6 +16,7 @@ from discord.ext.commands import (
 )
 from discord.ext.menus import ListPageSource, ViewMenuPages
 
+from utils import checks
 from utils.bots import BOT_TYPES, CustomContext
 
 
@@ -58,6 +59,8 @@ class WordAnalysis(Cog):
         should_dump="Dump the word analysis to a file.",
         length="The length of the word to find. Leave empty for any length.",
     )
+    @checks.check_message_content_enabled
+    @checks.check_members_enabled
     async def wordanal(
         self,
         ctx: CustomContext,

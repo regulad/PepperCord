@@ -3,36 +3,12 @@
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/regulad/PepperCord/main.svg)](https://results.pre-commit.ci/latest/github/regulad/PepperCord/main)
+[![Docker status](https://github.com/regulad/PepperCord/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/regulad/PepperCord/actions/workflows/docker-publish.yml)
 
 # About
 
-PepperCord was born out of necessity for a simpler alternative to other utility bots.
-
-PepperCord gives you all the features you need to enrich your server.
-
-* Utility
-    * Admin Tools
-    * Mod Tools
-    * Privilege System
-* Server personality
-    * Custom Commands
-    * Custom Messages
-* Fun
-    * Levels
-    * Reaction Roles
-    * Starboard
-* Music
-    * Playlist load/save
-    * Text-To-Speech
-    * Group music control
-* APIs
-    * Video Editing
-    * Things to do
-    * Cryptocurrencies
-* Gaming
-    * Minecraft
-        * Player status
-        * Server status
+PepperCord was born out of necessity for an open-source alternative to other utility bots.
 
 Have an issue? Think you can make PepperCord better? Join our [support server](https://www.regulad.xyz/discord).
 
@@ -42,11 +18,7 @@ Fully-documented source code is available for those able to make improvements.
 
 ## Public instance
 
-[Invite](https://redirector.regulad.xyz/peppercord) | [Mirror](https://redirector.regulad.xyz/mirror) | [Server](https://www.regulad.xyz/discord)
-
-## Self-host
-
-If you want to host an instance of the bot yourself, feel free to do so!
+[Primary](https://redirector.regulad.xyz/peppercord) | [Mirror](https://redirector.regulad.xyz/mirror) | [Server](https://www.regulad.xyz/discord)
 
 ### Setup
 

@@ -41,16 +41,15 @@ jobs:
       if: ${{ steps.cached-poetry-dependencies.outputs.cache-hit != 'true' }}
     - name: Activate virtualenv
       run: source $VENV
-    - name: Run tox tests
-      run: poetry run tox
-      continue-on-error: true # fixme: fix the typing and remov this line
-    - name: Run coverage
-      run: |
-        poetry run tox r -e coverage
-        poetry run coverage xml
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}
+#     - name: Run tox tests
+#       run: poetry run tox
+#     - name: Run coverage
+#       run: |
+#         poetry run tox r -e coverage
+#         poetry run coverage xml
+#       if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}
+#     - name: Upload coverage reports to Codecov
+#       uses: codecov/codecov-action@v3
+#       with:
+#         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+#       if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}

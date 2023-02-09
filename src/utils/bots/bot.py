@@ -1,4 +1,6 @@
 import logging
+import sys
+import traceback
 from asyncio import Semaphore
 from collections import deque
 from os import getcwd
@@ -359,7 +361,21 @@ class ClientMixin:
             return fetched
 
     async def on_error(self, event_method: str, /, *args: Any, **kwargs: Any) -> None:
-        logger.exception("Ignoring exception in %s", event_method, exc_info=True)
+        log = f"A critical exception occurred in {event_method}!"
+
+        exc_info = sys.exc_info()
+
+        if not any(exc_info) and len(args) > 1 and isinstance(args[1], Exception):
+            exc_info = (type(args[1]), args[1], args[1].__traceback__)
+
+        if exc_info[0] is not None:
+            log += (
+                f"\nException: {exc_info[0].__name__}: {exc_info[1]}"
+                f"\nTraceback:\n"
+                "".join(traceback.format_tb(exc_info[2]))
+            )
+
+        logger.exception(log, exc_info=exc_info if exc_info[0] is not None else None)
 
 
 class CustomAutoShardedBot(CustomBotBase, ClientMixin, discord.AutoShardedClient):

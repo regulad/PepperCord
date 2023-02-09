@@ -2,7 +2,7 @@ import os
 import random
 import string
 from datetime import timedelta, datetime
-from typing import Mapping, Any
+from typing import Mapping, Any, Callable
 
 from discord import Status
 
@@ -129,7 +129,7 @@ def edit_with_files_send_wrapper(send, *args, **kwargs) -> Any:
     return send(*args, **kwargs)
 
 
-def name_of_func(func) -> str:
+def name_of_func(func: Callable) -> str:
     unknown_name = repr(func)
     try:
         # get function name

@@ -231,6 +231,29 @@ class ErrorHandling(commands.Cog):
                 ):
                     await ctx.reinvoke()
 
+    @commands.Cog.listener("on_command_error")
+    async def determine_if_critical(
+        self, ctx: bots.CustomContext, error: Exception
+    ) -> None:
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+
+        critical: bool = not isinstance(
+            error,
+            (
+                commands.UserInputError,
+                commands.CommandOnCooldown,
+                commands.CheckFailure,
+                commands.CommandInvokeError,
+                commands.CommandNotFound,
+                commands.DisabledCommand,
+                commands.CommandError,
+            ),
+        )
+
+        if critical:
+            await self.bot.on_error("command", ctx, error)
+
 
 async def setup(bot: bots.BOT_TYPES) -> None:
     await bot.add_cog(ErrorHandling(bot))

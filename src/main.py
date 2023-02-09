@@ -135,7 +135,9 @@ async def async_main() -> None:
     extension_coros.append(load_with_safety("jishaku"))
 
     await gather(*extension_coros)
-    logger.info("Done.")
+    logger.info(
+        f"Done loading {len(bot.extensions)} extensions with {len(bot.commands)} root commands."
+    )
 
     if intents != discord.Intents.all():
         logger.warning("All intents are not enabled! Pruning unusable commands...")

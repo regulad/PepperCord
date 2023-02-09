@@ -10,6 +10,7 @@ from discord.ext.commands import (
     guild_only,
 )
 
+from utils import checks
 from utils.bots import BOT_TYPES, CustomContext
 
 TITLE: list[str] = [
@@ -90,6 +91,7 @@ class Regal(Cog):
     @default_permissions(manage_nicknames=True)
     @ac_guild_only()
     @guild_only()
+    @checks.check_members_enabled
     async def regalize(self, ctx: CustomContext) -> None:
         """Make all the members of the server regal."""
         async with ctx.typing(ephemeral=True):

@@ -129,6 +129,21 @@ def edit_with_files_send_wrapper(send, *args, **kwargs) -> Any:
     return send(*args, **kwargs)
 
 
+def name_of_func(func) -> str:
+    unknown_name = repr(func)
+    try:
+        # get function name
+        name = func.__name__
+    except AttributeError:
+        # check partial
+        try:
+            name = func.func.__name__  # type: ignore[attr-defined]
+        except AttributeError:
+            # unknown
+            name = unknown_name
+    return name
+
+
 __all__: list[str] = [
     "split_iter_chunks",
     "FrozenDict",
@@ -140,4 +155,5 @@ __all__: list[str] = [
     "status_breakdown",
     "rgb_human_readable",
     "edit_with_files_send_wrapper",
+    "name_of_func",
 ]

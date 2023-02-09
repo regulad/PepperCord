@@ -3,7 +3,7 @@ from asyncio import Semaphore
 from collections import deque
 from os import getcwd
 from os.path import splitext, join
-from typing import Union, Type, MutableMapping, Deque, Optional, TYPE_CHECKING
+from typing import Union, Type, MutableMapping, Deque, Optional, TYPE_CHECKING, Any
 
 import discord
 from aiofiles import open as aopen
@@ -357,6 +357,9 @@ class ClientMixin:
             if self._aux_messages is not None:
                 self._aux_messages.append(fetched)
             return fetched
+
+    async def on_error(self, event_method: str, /, *args: Any, **kwargs: Any) -> None:
+        logger.exception("Ignoring exception in %s", event_method, exc_info=True)
 
 
 class CustomAutoShardedBot(CustomBotBase, ClientMixin, discord.AutoShardedClient):

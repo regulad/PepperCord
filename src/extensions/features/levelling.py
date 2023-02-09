@@ -241,6 +241,7 @@ class Levels(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @hybrid_command()
+    @checks.check_members_enabled
     async def rank(self, ctx: CustomContext, *, user: Optional[discord.Member]) -> None:
         """Displays your current rank."""
         async with ctx.typing(ephemeral=True):
@@ -256,6 +257,7 @@ class Levels(commands.Cog):
     @hybrid_command()
     @guild_only()
     @ac_guild_only()
+    @checks.check_members_enabled
     async def leaderboard(self, ctx: CustomContext) -> None:
         """Displays the level of all members of the server relative to each other."""
         async with ctx.typing():

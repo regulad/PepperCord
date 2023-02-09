@@ -38,9 +38,19 @@ dislog = "^2.1.0"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"
 tox = "^4.4.5"
+
+[tool.poetry.group.ci]
+optional = true
+
+[tool.poetry.group.ci.dependencies]
+tox-gh-actions = "^3.0.0"
+
+[tool.poetry.group.test.dependencies]
 pytest = "^7.2.1"
-mypy = "^1.0.0"
+coverage = "^7.1.0"
+pytest-asyncio = "^0.20.3"
 
 [tool.poetry.group.type.dependencies]
+mypy = "^1.0.0"
 types-aiofiles = "^22.1.0.6"
 types-python-dateutil = "^2.8.19.6"

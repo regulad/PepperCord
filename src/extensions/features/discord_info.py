@@ -12,7 +12,7 @@ from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
 from git import Repo
 
-from utils import bots
+from utils import bots, checks
 from utils.bots import CustomContext
 from utils.misc import status_breakdown
 
@@ -108,6 +108,8 @@ class DiscordInfo(commands.Cog):
     @describe(
         user="The user that will have their info displayed. This can be any user, in or outside this server."
     )
+    @checks.check_members_enabled
+    @checks.check_presences_enabled
     async def whois(
         self,
         ctx: bots.CustomContext,
@@ -156,6 +158,8 @@ class DiscordInfo(commands.Cog):
     @hybrid_command()
     @commands.guild_only()
     @ac_guild_only()
+    @checks.check_members_enabled
+    @checks.check_presences_enabled
     async def serverinfo(
         self,
         ctx: bots.CustomContext,

@@ -12,6 +12,7 @@ from typing import Optional, Type, MutableMapping, Coroutine, TYPE_CHECKING
 import art
 import discord
 from discord import Object, Game, Forbidden
+from discord.ext.commands import Group, Command
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -19,6 +20,7 @@ from pretty_help import PrettyHelp
 
 from utils import bots, misc
 from utils.help import BetterMenu
+from utils.misc import name_of_func
 
 DEFAULT_LOG_LEVEL: int = logging.INFO
 
@@ -134,6 +136,33 @@ async def async_main() -> None:
 
     await gather(*extension_coros)
     logger.info("Done.")
+
+    if intents != discord.Intents.all():
+        logger.warning("All intents are not enabled! Pruning unusable commands...")
+        should_prune_count = 0
+        pruned_count = 0
+        for command in bot.walk_commands():
+            should_remove = False
+            for check in command.checks:
+                match name_of_func(check):
+                    case "check_message_content_enabled":
+                        should_remove = not intents.message_content
+                    case "check_members_enabled":
+                        should_remove = not intents.members
+                    case "check_presences_enabled":
+                        should_remove = not intents.presences
+            if should_remove:
+                should_prune_count += 1
+
+                removed_command: Command
+                if command.parent is not None:
+                    removed_command = command.parent.remove_command(command.name)
+                else:
+                    removed_command = bot.remove_command(command.qualified_name)
+
+                if removed_command is not None:
+                    pruned_count += 1
+        logger.info(f"Pruned {pruned_count}/{should_prune_count} unusable commands.")
 
     logger.info("Ready.")
     logger.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")

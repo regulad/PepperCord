@@ -8,7 +8,7 @@ from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, menus
 from discord.ext.commands import hybrid_group, guild_only
 
-from utils import bots
+from utils import bots, checks
 from utils.attachments import find_url_recurse
 
 KEYWORD_PREFIX: str = "$"
@@ -259,6 +259,7 @@ class CustomCommands(commands.Cog):
     @hybrid_group(aliases=["cc"], fallback="list")
     @ac_guild_only()
     @guild_only()
+    @checks.check_message_content_enabled
     async def customcommands(self, ctx: bots.CustomContext) -> None:
         """Lists all custom commands currently on the server."""
         commands_dict = ctx["guild_document"].get("commands", {})
@@ -270,6 +271,7 @@ class CustomCommands(commands.Cog):
     @customcommands.command()
     @commands.has_permissions(administrator=True)
     @guild_only()
+    @checks.check_message_content_enabled
     async def find(
         self, ctx: bots.CustomContext, *, query: CustomCommandConverter
     ) -> None:
@@ -283,11 +285,13 @@ class CustomCommands(commands.Cog):
     @customcommands.group(aliases=["m"], invoke_without_command=True)
     @commands.has_permissions(administrator=True)
     @guild_only()
+    @checks.check_message_content_enabled
     async def match(self, ctx: bots.CustomContext) -> None:
         pass
 
     @match.command()
     @guild_only()
+    @checks.check_message_content_enabled
     async def case(
         self, ctx: bots.CustomContext, *, is_case_sensitive: bool = False
     ) -> None:
@@ -299,6 +303,7 @@ class CustomCommands(commands.Cog):
 
     @match.command()
     @guild_only()
+    @checks.check_message_content_enabled
     async def firstword(self, ctx: bots.CustomContext, *, first_word_only: bool = True):
         """Configures if only the first word of a message should be checked for a custom command."""
         await ctx["guild_document"].update_db(
@@ -308,6 +313,7 @@ class CustomCommands(commands.Cog):
 
     @match.command()
     @guild_only()
+    @checks.check_message_content_enabled
     async def startswith(
         self, ctx: bots.CustomContext, *, must_start_with: bool = True
     ):
@@ -318,6 +324,7 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @match.command()
+    @checks.check_message_content_enabled
     async def exact(self, ctx: bots.CustomContext, *, must_be_exact: bool = True):
         """Configures if only the start of a message should be checked for a custom command."""
         await ctx["guild_document"].update_db({"$set": {"cc_exact": must_be_exact}})
@@ -330,6 +337,7 @@ class CustomCommands(commands.Cog):
         message="The message that the bot will respond with. Defaults to the most recently sent image.",
     )
     @guild_only()
+    @checks.check_message_content_enabled
     async def add(
         self,
         ctx: bots.CustomContext,
@@ -362,6 +370,7 @@ class CustomCommands(commands.Cog):
     @commands.has_permissions(administrator=True)
     @describe(command="The command to be removed.")
     @guild_only()
+    @checks.check_message_content_enabled
     async def delete(
         self,
         ctx: bots.CustomContext,

@@ -9,6 +9,7 @@ from discord.app_commands import describe
 from discord.ext import commands
 from discord.ext.commands import hybrid_command
 
+from utils import checks
 from utils.bots import CustomContext, BOT_TYPES
 
 
@@ -83,6 +84,7 @@ class Images(commands.Cog):
         flip='Whether to flip the Santa Hat left-right. This is on ("True") by default.',
         size="The size of the Santa Hat. The default value is 70. (70% of the PFP size)",
     )
+    @checks.check_members_enabled
     async def santa_hat(
         self,
         ctx: CustomContext,

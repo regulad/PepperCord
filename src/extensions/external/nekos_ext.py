@@ -8,7 +8,7 @@ from discord.app_commands import describe, default_permissions
 from discord.ext import commands
 from discord.ext.commands import Context, hybrid_group
 
-from utils import bots, webhook
+from utils import bots, webhook, checks
 from utils.bots import BOT_TYPES, CustomContext
 from utils.misc import split_iter_chunks
 
@@ -151,6 +151,7 @@ class Nekos(commands.Cog):
     @commands.has_permissions(administrator=True)
     @default_permissions(administrator=True)
     @describe(channel="The channel to set to OwO mode.")
+    @checks.check_message_content_enabled
     async def canowo(
         self,
         ctx: bots.CustomContext,
@@ -166,6 +167,7 @@ class Nekos(commands.Cog):
     @commands.has_permissions(administrator=True)
     @default_permissions(administrator=True)
     @describe(channel="The channel to be unset from OwO mode.")
+    @checks.check_message_content_enabled
     async def cannotowo(
         self,
         ctx: bots.CustomContext,
@@ -181,6 +183,7 @@ class Nekos(commands.Cog):
     @commands.has_permissions(administrator=True)
     @default_permissions(administrator=True)
     @describe(member="The member to set to OwO mode.")
+    @checks.check_message_content_enabled
     async def canowomember(
         self,
         ctx: bots.CustomContext,
@@ -196,6 +199,7 @@ class Nekos(commands.Cog):
     @commands.has_permissions(administrator=True)
     @default_permissions(administrator=True)
     @describe(member="The member to be unset from OwO mode.")
+    @checks.check_message_content_enabled
     async def cannotowomember(
         self,
         ctx: bots.CustomContext,

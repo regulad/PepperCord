@@ -8,7 +8,7 @@ from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command, guild_only
 
-from utils import bots, database, converters
+from utils import bots, database, converters, checks
 from utils.bots import BOT_TYPES
 
 
@@ -106,6 +106,7 @@ class Moderation(commands.Cog):
     )
     @ac_guild_only()
     @guild_only()
+    @checks.check_members_enabled
     async def timeban(
         self,
         ctx: bots.CustomContext,

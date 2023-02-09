@@ -15,6 +15,7 @@ from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import Cog, guild_only, hybrid_group, Greedy, Command
 from discord.utils import escape_markdown, format_dt
 
+from utils import checks
 from utils.bots import BOT_TYPES, CustomContext
 from utils.database import Document
 from utils.misc import status_breakdown
@@ -114,6 +115,8 @@ class StatusWatch(Cog):
     @describe(
         member="The member to watch. This will be in the context of server this command is executed in."
     )
+    @checks.check_presences_enabled
+    @checks.check_members_enabled
     async def statuswatch(self, ctx: CustomContext, member: Member) -> None:
         """Watch a member's status. You'll receive updates in a DM."""
         document: Document = await ctx.bot.get_user_document(member)
@@ -128,6 +131,7 @@ class StatusWatch(Cog):
         members="The members to watch. This will be in the context of server this command is executed in.\n"
         "This can be in any format, comma seperated."
     )
+    @checks.check_presences_enabled
     async def statuswatch_bulk(
         self, ctx: CustomContext, members: Greedy[Member]
     ) -> None:
@@ -141,6 +145,7 @@ class StatusWatch(Cog):
     @describe(
         member="The member to stop watching. This will be in the context of server this command is executed in."
     )
+    @checks.check_presences_enabled
     async def statuswatch_stop(self, ctx: CustomContext, member: Member) -> None:
         """Stop watching a member's status."""
         document: Document = await ctx.bot.get_user_document(member)
@@ -152,6 +157,7 @@ class StatusWatch(Cog):
     @statuswatch.command(name="last_online", aliases=["last", "online"])
     @guild_only()
     @describe(member="The member to get the last online time of.")
+    @checks.check_presences_enabled
     async def statuswatch_last_online(self, ctx: CustomContext, member: Member) -> None:
         """Get the last time a member was online."""
         async with ctx.typing(ephemeral=True):

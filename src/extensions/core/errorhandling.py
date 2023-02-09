@@ -229,38 +229,7 @@ class ErrorHandling(commands.Cog):
                 if ctx.valid and isinstance(
                     error, (commands.CommandOnCooldown, commands.CheckFailure)
                 ):
-                    await ctx.reinvoke()  # fixme: this seems to be broken in current versions of discord.py
-
-    @commands.Cog.listener("on_command_error")
-    async def determine_if_critical(
-        self, ctx: bots.CustomContext, error: Exception
-    ) -> None:
-        if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-
-        critical: bool = not isinstance(
-            error,
-            (
-                commands.UserInputError,
-                commands.CommandOnCooldown,
-                commands.CheckFailure,
-                commands.CommandInvokeError,
-                commands.CommandNotFound,
-                commands.DisabledCommand,
-                commands.CommandError,
-                RuntimeError,
-            ),
-        )
-
-        if critical:
-            ctx.bot.dispatch("critical_error", ctx, error)
-
-    @commands.Cog.listener("on_critical_error")
-    async def log_critical_error(self, ctx: bots.CustomContext, error: Exception):
-        try:
-            raise error  # CBT
-        except Exception as error:  # noqa
-            logger.exception("Critical error occurred!", exc_info=True)
+                    await ctx.reinvoke()
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

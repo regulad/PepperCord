@@ -4,6 +4,7 @@ import discord
 from discord.app_commands import guild_only
 from discord.ext import commands
 
+from utils import checks
 from utils.bots import BOT_TYPES, CustomContext
 from utils.database import Document
 
@@ -32,6 +33,7 @@ class CustomPrefix(commands.Cog):
     @commands.command()
     @guild_only()
     @commands.has_permissions(administrator=True)
+    @checks.check_message_content_enabled
     async def prefix(
         self,
         ctx: CustomContext,

@@ -12,7 +12,7 @@ from discord.ext import commands, tasks, menus
 from discord.ext.commands import hybrid_group, guild_only
 from discord.ui import Button
 
-from utils import bots, misc
+from utils import bots, misc, checks
 from utils.database import Document
 from .abstract import *
 from .render import *
@@ -418,6 +418,7 @@ class FiveNightsAtFreddys(commands.Cog):
 
     @fnaf.command()
     @guild_only()
+    @checks.check_members_enabled
     async def fpleaderboard(self, ctx: bots.CustomContext) -> None:
         """Displays the fazpoints all members of the server relative to each other."""
         async with ctx.typing():

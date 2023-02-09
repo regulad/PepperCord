@@ -31,6 +31,7 @@ class Blacklist(commands.Cog):
         return await ctx.bot.is_owner(ctx.author)
 
     @commands.command()
+    @checks.check_members_enabled
     async def blacklist(
         self,
         ctx: CustomContext,
@@ -47,6 +48,7 @@ class Blacklist(commands.Cog):
         await ctx.send(f"Blacklisted {entity.name}.", ephemeral=True)
 
     @commands.command()
+    @checks.check_members_enabled
     async def unblacklist(
         self,
         ctx: CustomContext,

@@ -112,6 +112,10 @@ class OwnerUtils(commands.Cog):
             )
         ).start(ctx, ephemeral=True)
 
+    @commands.command()
+    async def throw(self, ctx: bots.CustomContext) -> None:
+        raise KeyError
+
 
 async def setup(bot: bots.BOT_TYPES) -> None:
     await bot.add_cog(OwnerUtils(bot))

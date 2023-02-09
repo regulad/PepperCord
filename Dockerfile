@@ -12,7 +12,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
   PIP_DISABLE_PIP_VERSION_CHECK=on \
   PIP_DEFAULT_TIMEOUT=100 \
   POETRY_HOME=/opt/poetry \
-  POETRY_VERSION=1.3.1
+  POETRY_VERSION=1.3.1 \
+  PYTHONPATH="${PYTHONPATH}:/app"
 
 # Add dependencies
 RUN apt update && apt upgrade -y && apt install -y curl git ffmpeg gcc python3-dev g++

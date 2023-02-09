@@ -49,7 +49,9 @@ async def async_main() -> None:
 
     if maybe_webhook is not None:
         logging.root.addHandler(
-            DiscordWebhookHandler(maybe_webhook, level=DEFAULT_LOG_LEVEL)
+            DiscordWebhookHandler(
+                maybe_webhook, level=DEFAULT_LOG_LEVEL, run_async=True
+            )
         )
 
     if not os.path.exists("config/"):

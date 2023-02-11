@@ -55,8 +55,6 @@ class Minecraft(commands.Cog):
                 status = await server_lookup.async_status()
             except OSError as e:
                 raise MinecraftServerError(f"{server}: {e}")
-            except Exception:
-                raise
 
             decoded = BytesIO(
                 b64decode(status.favicon.replace("data:image/png;base64,", ""))
@@ -145,8 +143,6 @@ class Minecraft(commands.Cog):
                 status = await server_lookup.async_status()
             except OSError as e:
                 raise MinecraftServerError(f"{server}: {e}")
-            except Exception:
-                raise
 
             embed: discord.Embed = (
                 discord.Embed(colour=discord.Colour.dark_gold(), title=server)

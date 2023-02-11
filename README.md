@@ -6,6 +6,7 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/regulad/PepperCord/main.svg)](https://results.pre-commit.ci/latest/github/regulad/PepperCord/main)
 [![Docker status](https://github.com/regulad/PepperCord/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/regulad/PepperCord/actions/workflows/docker-publish.yml)
 [![CI status](https://github.com/regulad/PepperCord/actions/workflows/ci.yml/badge.svg)](https://github.com/regulad/PepperCord/actions/workflows/ci.yml)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/regulad/PepperCord?label=Latest%20Stable)
 
 # About
 

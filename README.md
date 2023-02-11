@@ -72,15 +72,3 @@ PepperCord uses a folder named `config/` for everything that isn't stored in con
 * `PEPPERCORD_MESSAGE_CONTENT`: Optional.
 * `PEPPERCORD_PRESENCES`: Optional.
 * `PEPPERCORD_MEMBERS`: Optional.
-
-# Extending
-
-If you want to extend PepperCord as a contribution to the main project or to make it your own, there are a couple of
-things you should know.
-
-1. Extensions are split into different folders.
-    1. Each subfolder is fairly self-explanatory.
-        1. `core` is for extensions that are critical to the bot's functioning.
-        2. `external` is for interactions with external APIs
-        3. `features` is for self-contained features added to the bot.
-        4. You can make a new folder if you do not fit into any of the categories.

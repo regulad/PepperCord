@@ -6,7 +6,7 @@ from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands
 from discord.ext.commands import hybrid_group, guild_only
 
-from utils import bots
+from utils import bots, checks
 from utils.bots import CustomContext, BOT_TYPES
 
 
@@ -43,11 +43,13 @@ class Alerts(commands.Cog):
     @guild_only()
     @default_permissions(administrator=True)
     @commands.has_permissions(administrator=True)
+    @checks.check_members_enabled
     async def events(self, ctx: CustomContext) -> None:
         pass
 
     @events.command()
     @guild_only()
+    @checks.check_members_enabled
     async def disable(self, ctx: CustomContext) -> None:
         """Removes all event data from the bot."""
         if ctx["guild_document"].get("reactions") is None:
@@ -62,6 +64,7 @@ class Alerts(commands.Cog):
         message="The message to send, not including the member mention.",
     )
     @guild_only()
+    @checks.check_members_enabled
     async def add(
         self,
         ctx: CustomContext,

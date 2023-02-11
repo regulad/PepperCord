@@ -13,7 +13,7 @@ from discord.ext.commands import (
     guild_only,
 )
 
-from utils import bots
+from utils import bots, checks
 
 
 class ReactionRoles(commands.Cog):
@@ -87,6 +87,7 @@ class ReactionRoles(commands.Cog):
     @hybrid_group()
     @ac_guild_only()
     @guild_only()
+    @checks.check_members_enabled
     async def reactionrole(self, ctx: bots.CustomContext) -> None:
         """
         Reaction Roles are a system that allow users to get a role by reacting to a message.
@@ -95,6 +96,7 @@ class ReactionRoles(commands.Cog):
 
     @reactionrole.command()
     @guild_only()
+    @checks.check_members_enabled
     async def disable(self, ctx: bots.CustomContext) -> None:
         """Disables all existing reaction roles. You will need to readd them to have them work again"""
         if ctx["guild_document"].get("reactions") is None:
@@ -110,6 +112,7 @@ class ReactionRoles(commands.Cog):
         emoji="The emoji that will trigger the reaction role.",
         role="The role that will be given to the user.",
     )
+    @checks.check_members_enabled
     async def add(
         self,
         ctx: bots.CustomContext,

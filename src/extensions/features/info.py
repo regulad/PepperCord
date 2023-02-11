@@ -15,6 +15,7 @@ from git import Repo
 from utils import bots, checks
 from utils.bots import CustomContext
 from utils.misc import status_breakdown
+from utils.version import get_version
 
 WHOIS_CM_NAME: str = "Get User Information"
 
@@ -50,10 +51,7 @@ async def whois_cm(interaction: Interaction, user: Member | User) -> None:
     await ctx.send(embed=embed, ephemeral=True)
 
 
-GIT_REPO: Repo = Repo()
-
-
-class DiscordInfo(commands.Cog):
+class Info(commands.Cog):
     """Get information about things here on Discord."""
 
     def __init__(self, bot: bots.BOT_TYPES) -> None:
@@ -200,6 +198,8 @@ class DiscordInfo(commands.Cog):
 
         async with ctx.typing(ephemeral=True):
             try:
+                peppercord_version, peppercord_commit = get_version()
+
                 base = ctx.bot.config.get(
                     "PEPPERCORD_WEB", "https://www.regulad.xyz/PepperCord"
                 )
@@ -233,16 +233,15 @@ class DiscordInfo(commands.Cog):
                         f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
                         f"{psutil.cpu_count(logical=False)} physical cores",
                     )
-                )
-                if GIT_REPO.active_branch is not None:
-                    embed.add_field(
+                    .add_field(
                         name="Versions:",
                         value=f"OS: {platform.system()} (`{platform.release()}`)"
                         f"\nPython: `{version}`"
                         f"\ndiscord.py: `{discord.__version__}`"
-                        f"\nBot Version: `{GIT_REPO.active_branch.name}` (`{GIT_REPO.active_branch.commit}`)",
+                        f"\nBot Version: `{peppercord_version}` (`{peppercord_commit}`)",
                         inline=False,
                     )
+                )
             except psutil.Error:
                 await ctx.send(
                     "Had trouble fetching information about the bot. Try again later."
@@ -254,4 +253,4 @@ class DiscordInfo(commands.Cog):
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:
-    await bot.add_cog(DiscordInfo(bot))
+    await bot.add_cog(Info(bot))

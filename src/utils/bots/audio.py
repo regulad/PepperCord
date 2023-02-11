@@ -113,8 +113,6 @@ class CustomVoiceClient(VoiceClient):
             if self.bound is not None:
                 await self.bound.send("Ran out of tracks to play. Leaving...")
             self.wait_for: int = 120  # Reset this
-        except Exception:
-            raise
         finally:
             if self.is_connected():
                 await self.disconnect(force=False)

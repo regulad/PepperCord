@@ -27,8 +27,6 @@ async def get_or_create_namespaced_webhook(
     except discord.HTTPException:
         await guild_doc.update_db({"$unset": {f"{namespace}_webhooks.{channel.id}": 1}})
         maybe_webhook: Optional[discord.Webhook] = None
-    except Exception:
-        raise
     if maybe_webhook is None:
         if kwargs.get("name") is None:
             kwargs["name"] = namespace.upper()

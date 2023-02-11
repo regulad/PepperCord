@@ -22,8 +22,6 @@ async def can_have_voice_client(ctx: CustomContext) -> bool:
         return False
     except AssertionError:
         return False
-    except Exception:
-        raise
     else:
         return True
 

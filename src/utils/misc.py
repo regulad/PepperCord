@@ -82,7 +82,9 @@ def get_python_modules(basedir: str) -> list[str]:
     source_root = os.path.dirname(os.path.dirname(__file__))
     basedir = os.path.join(source_root, basedir)
     return [
-        os.path.splitext(os.path.relpath(module))[0].replace(os.path.sep, ".")
+        os.path.splitext(os.path.relpath(module, source_root))[0].replace(
+            os.path.sep, "."
+        )
         for module in get_list_of_files_in_base(basedir)
         if is_module(module)
     ]

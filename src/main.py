@@ -7,6 +7,7 @@ import locale
 import logging
 import os
 from asyncio import run, gather, AbstractEventLoop, get_event_loop
+from copy import copy
 from typing import Optional, Type, MutableMapping, Coroutine, TYPE_CHECKING
 
 import art
@@ -21,6 +22,7 @@ from pretty_help import PrettyHelp
 from utils import bots, misc
 from utils.help import BetterMenu
 from utils.misc import name_of_func
+from utils.version import get_version
 
 DEFAULT_LOG_LEVEL: int = logging.INFO
 
@@ -139,35 +141,81 @@ async def async_main() -> None:
         f"Done loading {len(bot.extensions)} extensions with {len(bot.commands)} root commands."
     )
 
-    if intents != discord.Intents.all():
-        logger.warning("All intents are not enabled! Pruning unusable commands...")
-        should_prune_count = 0
-        pruned_count = 0
-        for command in bot.walk_commands():
-            should_remove = False
-            for check in command.checks:
-                match name_of_func(check):
-                    case "check_message_content_enabled":
-                        should_remove = not intents.message_content
-                    case "check_members_enabled":
-                        should_remove = not intents.members
-                    case "check_presences_enabled":
-                        should_remove = not intents.presences
+    # filter out unusable commands/cogs/extensions
+    logger.info("Checking for unusable cogs...")
+    prunable_command_count = 0
+    pruned_command_count = 0
+    for command in bot.walk_commands():
+        should_remove = False
+        for check in command.checks:
+            match name_of_func(check):
+                case "check_message_content_enabled":
+                    should_remove = not intents.message_content
+                case "check_members_enabled":
+                    should_remove = not intents.members
+                case "check_presences_enabled":
+                    should_remove = not intents.presences
+
             if should_remove:
-                should_prune_count += 1
+                break
+        if should_remove:
+            prunable_command_count += 1
 
-                removed_command: Command
-                if command.parent is not None:
-                    removed_command = command.parent.remove_command(command.name)
-                else:
-                    removed_command = bot.remove_command(command.qualified_name)
+            removed_command: Command
+            if command.parent is not None:
+                removed_command = command.parent.remove_command(command.name)
+            else:
+                removed_command = bot.remove_command(command.qualified_name)
 
-                if removed_command is not None:
-                    pruned_count += 1
-        logger.info(f"Pruned {pruned_count}/{should_prune_count} unusable commands.")
+            if removed_command is not None:
+                pruned_command_count += 1
+    logger.info(
+        f"Pruned {pruned_command_count}/{prunable_command_count} unusable commands."
+    )
 
-    logger.info("Ready.")
-    logger.info(f"\n{art.text2art('PepperCord', font='rnd-large')}")
+    logger.info("Checking for empty cogs...")
+    prunable_cog_count = 0
+    pruned_cog_count = 0
+    for cog in set(bot.cogs.values()):  # can't iterate over dict while removing items
+        full_module_name = cog.__class__.__module__
+
+        if not full_module_name.startswith("extensions."):
+            continue  # this is a special cog, not a command cog (i.e. jishaku)
+
+        cog_module_name_components = full_module_name.split(".")
+
+        assert (
+            len(cog_module_name_components) >= 3
+        ), f"Cog module name {full_module_name} is too short!"
+
+        if cog_module_name_components[1] not in [
+            "features",
+            "fun",
+            "games",
+            "external",
+        ]:
+            continue  # this is a special cog, not a command cog (i.e. a util)
+
+        cog_has_registered_commands = False
+
+        for command in cog.walk_commands():
+            if command.parent is None and command in bot.commands:
+                cog_has_registered_commands = True
+                break
+
+        if not cog_has_registered_commands:
+            prunable_cog_count += 1
+            removed_cog = await bot.remove_cog(cog.qualified_name)
+
+            if removed_cog is not None:
+                pruned_cog_count += 1
+    logger.info(f"Pruned {pruned_cog_count}/{prunable_cog_count} empty cogs.")
+
+    # ready
+    version, commit = get_version()
+    logger.info(
+        f"Ready. Loading PepperCord version {version}@{commit}\n{art.text2art('PepperCord', font='rnd-large')}"
+    )
 
     async with bot:
 
@@ -208,6 +256,7 @@ async def async_main() -> None:
                 )
                 logger.info("Finished uploading emojis.")
 
+        await bot.wait_for_dispatch("startup")
         await bot.start(config_source["PEPPERCORD_TOKEN"])
 
 

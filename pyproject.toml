@@ -17,7 +17,7 @@ asyncio-dgram = "^2"
 beautifulsoup4 = "^4.11.1"
 discord-ext-hybrid-menus = "^1.0.3"
 discord-pretty-help = "^2"
-"discord.py" = {version = "^2", extras = ["voice"]}
+"discord.py" = {version = "^2", extras = ["voice", "speed"]}
 dnspython = "^2.2.1"  # ignore, required by mcstatus
 "evb.py" = "^1.1.1"
 gitpython = "^3.1.31"
@@ -34,7 +34,6 @@ reportlab = "^3.5.68"
 svglib = "^1.1.0"
 youtube-dl = ">=2021.12"
 dislog = "^2.1.0"
-orjson = "^3.8.6"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"

@@ -33,7 +33,7 @@ python-dotenv = "^0.21.1"
 reportlab = "^3.5.68"
 svglib = "^1.1.0"
 youtube-dl = ">=2021.12"
-dislog = "^2.1.0"
+dislog = "^2.2.1"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"

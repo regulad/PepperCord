@@ -23,7 +23,7 @@ def vrt_concat_pngs(png1: bytes, png2: bytes) -> bytes:
 
         if image2.width != image1.width:
             image2_aspect_ratio: float = image2.height / image2.width
-            image2: Image.Image = image2.resize(
+            image2 = image2.resize(
                 (image1.width, int(image2_aspect_ratio * image1.width)), Image.ANTIALIAS
             )
 
@@ -45,7 +45,7 @@ def hrz_concat_pngs(png1: bytes, png2: bytes) -> bytes:
 
         if image2.height != image1.height:
             image2_aspect_ratio: float = image2.width / image2.height
-            image2: Image.Image = image2.resize(
+            image2 = image2.resize(
                 (int(image1.height * image2_aspect_ratio), image1.height),
                 Image.ANTIALIAS,
             )

@@ -9,12 +9,16 @@ from discord import File
 from discord.app_commands import describe
 from discord.ext import commands
 from discord.ext.commands import hybrid_command
-from youtube_dl import YoutubeDL
 
 from utils.attachments import MediaTooLong
 from utils.bots import BOT_TYPES, CustomContext
 from utils.misc import FrozenDict
 from utils.validators import str_is_url
+
+try:
+    from yt_dlp import YoutubeDL  # type: ignore
+except ImportError:
+    from youtube_dl import YoutubeDL  # type: ignore
 
 
 class MiscHTTPException(discord.HTTPException):
@@ -71,16 +75,13 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
         """Download a video using YoutubeDL."""
 
         async with ctx.typing():
-            ytdl: YoutubeDL = await ctx.bot.loop.run_in_executor(
-                None,
-                lambda *args, **kwargs: YoutubeDL(*args, **kwargs),
-                YTDL_FORMAT_OPTIONS,
-            )
+            ytdl = YoutubeDL(params=dict(YTDL_FORMAT_OPTIONS))
 
+            url: str
             if str_is_url(query):
-                url: str = query
+                url = query
             else:
-                url: str = f"ytsearch:{query}"
+                url = f"ytsearch:{query}"
 
             info: dict = await ctx.bot.loop.run_in_executor(
                 None, partial(ytdl.extract_info, url, download=False)

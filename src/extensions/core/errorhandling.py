@@ -15,7 +15,6 @@ from evb import LibraryException as EvbException
 from utils import checks, bots, attachments
 from utils.bots import CustomContext
 
-
 logger = getLogger(__name__)
 
 known_errors: dict[Type, str] = {

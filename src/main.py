@@ -7,13 +7,12 @@ import locale
 import logging
 import os
 from asyncio import run, gather, AbstractEventLoop, get_event_loop
-from copy import copy
 from typing import Optional, Type, MutableMapping, Coroutine, TYPE_CHECKING
 
 import art
 import discord
 from discord import Object, Game, Forbidden
-from discord.ext.commands import Group, Command
+from discord.ext.commands import Command
 from dislog import DiscordWebhookHandler
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient

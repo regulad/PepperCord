@@ -10,7 +10,6 @@ from discord.app_commands import describe, context_menu
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
-from git import Repo
 
 from utils import bots, checks
 from utils.bots import CustomContext

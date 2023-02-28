@@ -3,7 +3,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from discord import abc, FFmpegPCMAudio
-from youtube_dl import YoutubeDL
+
+try:
+    from yt_dlp import YoutubeDL  # type: ignore
+except ImportError:
+    from youtube_dl import YoutubeDL  # type: ignore
 
 from utils.bots import CustomVoiceClient
 from .common import *

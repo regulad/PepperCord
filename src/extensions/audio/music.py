@@ -2,7 +2,11 @@ from discord.app_commands import describe
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import hybrid_command, Cog, guild_only
 from discord.ext.menus import ViewMenuPages
-from youtube_dl import YoutubeDL
+
+try:
+    from yt_dlp import YoutubeDL  # type: ignore
+except ImportError:
+    from youtube_dl import YoutubeDL  # type: ignore
 
 from extensions.audio.control import QueueMenuSource, AudioSourceMenu
 from utils.bots import BOT_TYPES, CustomContext
@@ -16,7 +20,7 @@ class Music(Cog):
 
     def __init__(self, bot: BOT_TYPES) -> None:
         self.bot: BOT_TYPES = bot
-        self._file_downloader: YoutubeDL = YoutubeDL(YTDL_FORMAT_OPTIONS)
+        self._file_downloader: YoutubeDL = YoutubeDL(dict(YTDL_FORMAT_OPTIONS))
 
     async def cog_check(self, ctx: CustomContext) -> bool:
         return await check_voice_client_predicate(ctx)

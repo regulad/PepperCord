@@ -104,27 +104,7 @@ jobs:
       #   # against the sigstore community Fulcio instance.
       #   run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.build-and-push.outputs.digest }}
       # TODO: doesn't work
-
-      # CD
-      # TODO: make these secrets & change the token, low priority
-      - name: Deploy PepperCord
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: 'https://portainer.regulad.xyz/api/stacks/webhooks/aa424ff9-4516-4944-8cfe-b8ec05d6971b'
-          method: 'POST'
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}}
-        continue-on-error: true
-      - name: Deploy CordPepperer
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: 'https://portainer.regulad.xyz/api/stacks/webhooks/1bc78e64-fcc0-4249-a896-19b1dd93694f'
-          method: 'POST'
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}}
-        continue-on-error: true
-      - name: Deploy PepperSelf
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: 'https://portainer.regulad.xyz/api/stacks/webhooks/2fdea517-a3a2-40eb-8113-66ce04f6ac77'
+cks/webhooks/2fdea517-a3a2-40eb-8113-66ce04f6ac77'
           method: 'POST'
         continue-on-error: true
         if: ${{ github.ref == 'refs/heads/self' && github.event_name != 'pull_request' }}

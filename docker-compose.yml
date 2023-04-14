@@ -4,7 +4,7 @@ services:
     image: "mongo:4"
     hostname: "mongo"
     restart: always
-    volumes: 
+    volumes:
       - "db:/data/db"
   peppercord:
     image: "ghcr.io/regulad/peppercord:latest"
@@ -13,13 +13,9 @@ services:
     environment:
       - PEPPERCORD_TOKEN=YOUR_TOKEN
       - PEPPERCORD_MESSAGE_COMMANDS=True
-    restart: unless-stopped
-    dns:
-      - "1.1.1.1"
-      - "1.0.0.1"
     depends_on:
       - "mongo"
-    volumes: 
+    volumes:
       - "config:/app/config"
       - "/etc/default/locale:/etc/default/locale:ro"
       - "/usr/share/locale:/usr/share/locale:ro"
@@ -27,4 +23,5 @@ services:
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
 volumes:
+  db:
   config:

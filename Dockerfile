@@ -1,8 +1,8 @@
 FROM python:3.11.2-slim-bullseye
 
 LABEL name="peppercord" \
-  version="9.0.0" \
-  maintainer="Parker Wahle"
+  version="9.1.0" \
+  maintainer="Parker Wahle <regulad@regulad.xyz>"
 
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONFAULTHANDLER=1 \
@@ -14,25 +14,37 @@ ENV DEBIAN_FRONTEND=noninteractive \
   POETRY_HOME=/opt/poetry \
   POETRY_VERSION=1.3.1
 
-# Add dependencies
-RUN apt update && apt upgrade -y && apt install -y curl git ffmpeg gcc python3-dev g++
+ARG USERNAME=peppercord
+ARG USER_UID=1008
+ARG USER_GID=$USER_UID
+
+# Add dependencies & do setup
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && apt update -y \
+    && apt upgrade -y \
+    && apt install -y curl git ffmpeg gcc python3-dev g++ \
+    && apt autoremove -y \
+    && apt clean
 
 # Install poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
-# Safe working directory
+# Safe working directory for our user
 WORKDIR /app
+RUN chown -R $USERNAME:$USERNAME /app
 
-# Copy dependencies
+# Switch to our user (mainly for security)
+USER $USERNAME
+
+# Copy packaging files
 COPY poetry.lock pyproject.toml /app/
 
-# Project initialization:
+# Download dependencies and setup venv
 RUN /opt/poetry/bin/poetry install --only main --no-interaction --no-ansi --no-root
 
-# Creating folders, and files for a project:
+# Copy in rest of project excluding packaging files
 COPY . /app
 
-# TODO: Configure environment variables
-
-# Startup command:
+# Run
 CMD ["/opt/poetry/bin/poetry", "run", "python", "src/main.py"]

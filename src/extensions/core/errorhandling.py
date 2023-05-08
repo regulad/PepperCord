@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from logging import getLogger
 from typing import Optional, cast, Type
 
@@ -14,6 +15,14 @@ from evb import LibraryException as EvbException
 
 from utils import checks, bots, attachments
 from utils.bots import CustomContext
+
+# What is about to happen is nothing short of disgusting.
+try:
+    from yt_dlp import DownloadError  # type: ignore
+except ImportError:
+    from youtube_dl import DownloadError  # type: ignore
+YoutubeDLError = inspect.getmro(DownloadError)[1]
+del DownloadError
 
 logger = getLogger(__name__)
 
@@ -134,10 +143,14 @@ class ErrorMenu(menus.ViewMenu):
             colour=discord.Colour.red(), title="An error has occurred."
         )
 
-        if len(str(self.error)) > 0:
+        error_string = str(self.error)
+        if isinstance(self.error, YoutubeDLError):
+            error_string = self.error.msg  # type: ignore
+
+        if len(str(error_string)) > 0:
             embed.add_field(
                 name=f"Type: {self.error.__class__.__name__}",
-                value=f"```{str(self.error)}```",
+                value=f"```{error_string}```",
             )
         else:
             embed.description = f"**Type: {self.error.__class__.__name__}**"

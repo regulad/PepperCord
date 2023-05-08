@@ -15,6 +15,8 @@ services:
       - PEPPERCORD_MESSAGE_COMMANDS=True
     depends_on:
       - "mongo"
+    tmpfs:
+      - /tmp
     volumes:
       - "config:/app/config"
       - "/etc/default/locale:/etc/default/locale:ro"

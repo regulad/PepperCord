@@ -114,7 +114,7 @@ class OwnerUtils(commands.Cog):
 
     @commands.command()
     async def throw(self, ctx: bots.CustomContext) -> None:
-        raise KeyError
+        raise Exception("My dick fell off!")
 
 
 async def setup(bot: bots.BOT_TYPES) -> None:

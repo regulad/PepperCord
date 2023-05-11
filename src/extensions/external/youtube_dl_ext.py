@@ -1,7 +1,6 @@
 import os
 from functools import partial
 from os import sep
-from typing import AnyStr
 
 import discord
 from aiofiles.tempfile import TemporaryDirectory
@@ -28,30 +27,26 @@ class BadVideo(commands.CommandError):
     pass
 
 
-FILESIZE_SELECTOR = "filesize<={filesize}"
-
-BEST_VIDEO_AUDIO = (
-    f"bestvideo[ext=mp4][{FILESIZE_SELECTOR}]+bestaudio[ext=m4a][{FILESIZE_SELECTOR}]"
-    f"/best[ext=mp4][{FILESIZE_SELECTOR}]"
-    f"/best[{FILESIZE_SELECTOR}]"
-    # f"/worst"  # if it can't select by file size
+BEST_VIDEO = (
+    "best[ext=mp4][filesize<={filesize}]"
+    "/best[ext=webm][filesize<={filesize}]"
+    "/worst[ext=mp4]"
+    "/worst[ext=webm]"
 )
 BEST_AUDIO = (
-    f"bestaudio[ext=m4a][{FILESIZE_SELECTOR}]"
-    f"/best[ext=mp4][{FILESIZE_SELECTOR}]"
-    f"/best[{FILESIZE_SELECTOR}]"
-    # f"/worst"  # if it can't select by file size
-)
-BEST_VIDEO = (
-    f"bestvideo[ext=mp4][{FILESIZE_SELECTOR}]"
-    f"/best[ext=mp4][{FILESIZE_SELECTOR}]"
-    f"/best[{FILESIZE_SELECTOR}]"
-    # f"/worst"  # if it can't select by file size
+    "bestaudio[ext=m4a][filesize<={filesize}]"
+    "/bestaudio[ext=ogg][filesize<={filesize}]"
+    "/bestaudio[ext=wav][filesize<={filesize}]"
+    "/bestaudio[ext=flac][filesize<={filesize}]"
+    "/worstaudio[ext=m4a]"
+    "/worstaudio[ext=ogg]"
+    "/worstaudio[ext=wav]"
+    "/worstaudio[ext=flac]"
 )
 
 YTDL_FORMAT_INITIAL_OPTIONS: FrozenDict = FrozenDict(
     {
-        "format": BEST_VIDEO_AUDIO,  # favor MP4s
+        "format": BEST_VIDEO,  # favor MP4s
         "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
         "restrictfilenames": True,
         "nocheckcertificate": True,
@@ -76,12 +71,14 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
     @hybrid_command(aliases=["yt", "dl", "ytdl"])
     @commands.cooldown(4, 120, commands.BucketType.channel)
     @commands.cooldown(10, 120, commands.BucketType.guild)
-    @describe(query="The query for youtubedl")
+    @describe(
+        query="The query for youtubedl",
+        audio_only="Download only the audio of the video. Useful for soundboards.",
+    )
     async def download(
         self,
         ctx: CustomContext,
-        audio: bool = True,
-        video: bool = True,
+        audio_only: bool = False,
         *,
         query: str,
     ) -> None:
@@ -93,12 +90,10 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
             filesize_bytes = ctx.guild.filesize_limit
             filesize_mi_b = round(filesize_bytes / 1.049e6)  # Mebibytes, not megabytes!
 
-            if audio and not video:
+            if audio_only:
                 ytdl_params["format"] = BEST_AUDIO
-            elif video and not audio:
+            else:
                 ytdl_params["format"] = BEST_VIDEO
-            elif audio and video:
-                ytdl_params["format"] = BEST_VIDEO_AUDIO
             # else, just let ytdl figure it out
 
             if "format" in ytdl_params:
@@ -122,19 +117,21 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
                         None, partial(ytdl.extract_info, url)
                     )
                 except DownloadError as e:
-                    e.msg += (
-                        "\n\n"
-                        "NOTE: This can also occur if PepperCord couldn't find a file small enough to send in "
-                        "your server with respect to the maximum file size. Boosting your server could mitigate"
-                        "this error in the future."
-                    )
+                    if "Requested format" in e.msg:
+                        e.msg += (
+                            "\n\n"
+                            "NOTE: This can also occur if PepperCord couldn't find a file small enough to send in "
+                            "your server with respect to the maximum file size. Boosting your server could mitigate"
+                            "this error in the future."
+                        )
+
                     raise
 
                 # No check for an oversize file should be required, since YTDL won't fetch one.
 
-                files = os.listdir()
+                files = list(os.listdir())
 
-                if not files:
+                if len(files) == 0:
                     await ctx.send(
                         "Sorry, but I couldn't find anything for that! Please try with another link."
                     )

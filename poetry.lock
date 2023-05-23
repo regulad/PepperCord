@@ -2362,14 +2362,14 @@ testing = ["black", "devpi-process", "flake8 (>=6,<7)", "mypy", "pytest (>=7,<8)
 
 [[package]]
 name = "types-aiofiles"
-version = "22.1.0.9"
+version = "23.1.0.3"
 description = "Typing stubs for aiofiles"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-aiofiles-22.1.0.9.tar.gz", hash = "sha256:d46712556746cb4c9b63f86217c8cc0e9c54b5cf228ed9d8c1c21e38c2d9de99"},
-    {file = "types_aiofiles-22.1.0.9-py3-none-any.whl", hash = "sha256:d0bdc4d978528c6df37816879b7ff9dc0096dd70483d885e9c8624a560f31cc5"},
+    {file = "types-aiofiles-23.1.0.3.tar.gz", hash = "sha256:ccd7b4db06c66cb7145802b1d9cf33bd6d8e88c7fe63a3ba5551671faac32648"},
+    {file = "types_aiofiles-23.1.0.3-py3-none-any.whl", hash = "sha256:9634f06c5fc331ec660d1e80faa031aa2e0aa388fbb6312f936c7076ac8a9fd3"},
 ]
 
 [[package]]
@@ -2647,4 +2647,4 @@ websockets = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "8bfb6002980e3fb8fa148b2dd541d9fcf99f9a4ffbe9c16b8165d2848644057f"
+content-hash = "a02d3b330af50b5c6a3fea927af0ab2b3de0205c79c3870bd440bced3b7770b9"

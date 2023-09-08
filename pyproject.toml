@@ -20,7 +20,7 @@ discord-pretty-help = "^2"
 "discord.py" = {version = "^2", extras = ["voice", "speed"]}
 dnspython = "^2.2.1"  # ignore, required by mcstatus
 "evb.py" = "^1.1.1"
-gitpython = "^3.1.31"
+gitpython = "^3.1.35"
 jishaku = "^2.3.2"
 lxml = "^4.9.1"
 mcstatus = "^10.0.1"

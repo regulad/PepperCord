@@ -1,4 +1,4 @@
-FROM python:3.11.2-slim-bullseye
+FROM python:3.12.0-slim-bullseye
 
 LABEL name="peppercord" \
   version="9.1.4" \

@@ -1,4 +1,4 @@
-# PepperCord
+# PepperCord Legacy (don't use unless you really, really want to!)
 
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
 

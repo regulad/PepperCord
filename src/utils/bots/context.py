@@ -2,7 +2,7 @@ import abc
 from typing import Dict, Any, Optional, cast, TYPE_CHECKING, Coroutine
 
 import discord
-from discord import Interaction, Message, NotFound
+from discord import Interaction, Message, HTTPException
 from discord.ext import commands
 
 from .audio import *
@@ -31,10 +31,10 @@ class _DefaultSendHandler(SendHandler):
         else:
             try:
                 message = await self.ctx.send_bare(*args, **kwargs)
-            except NotFound:
+            except HTTPException:
                 try:
                     message = await self.ctx.interaction.followup.send(*args, **kwargs)
-                except NotFound:
+                except HTTPException:
                     if kwargs.get("ephemeral") is not None:
                         del kwargs["ephemeral"]
                     message = await self.ctx.channel.send(*args, **kwargs)  # Worst case

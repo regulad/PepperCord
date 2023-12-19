@@ -28,6 +28,9 @@ DEFAULT_LOG_LEVEL: int = logging.INFO
 locale.setlocale(locale.LC_ALL, "")
 
 logger: logging.Logger = logging.getLogger(__name__)
+logging.getLogger("discord").setLevel(
+    logging.WARNING
+)  # We aren't debugging discord.py; just our program
 
 if TYPE_CHECKING:
     from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -84,11 +87,14 @@ async def async_main() -> None:
         shards = None
     # Build intents
     intents: discord.Intents = discord.Intents.default()
-    intents.presences = (config_source.get("PEPPERCORD_PRESENCES") is not None) or debug
-    intents.members = (config_source.get("PEPPERCORD_MEMBERS") is not None) or debug
-    intents.message_content = (
-        config_source.get("PEPPERCORD_MESSAGE_CONTENT") is not None
-    ) or debug
+
+    presence_ok = config_source.get("PEPPERCORD_PRESENCES") is not None
+    member_ok = config_source.get("PEPPERCORD_MEMBERS") is not None
+    content_ok = config_source.get("PEPPERCORD_MESSAGE_CONTENT") is not None
+
+    intents.presences = presence_ok or debug
+    intents.members = member_ok or debug
+    intents.message_content = content_ok or debug
 
     if intents.presences:
         logger.info("Presences are enabled.")

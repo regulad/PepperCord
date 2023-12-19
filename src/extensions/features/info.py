@@ -1,7 +1,7 @@
 import platform
 from asyncio import sleep
 from sys import version
-from typing import Union, Optional
+from typing import Union, Optional, cast
 
 import discord
 import psutil
@@ -21,33 +21,9 @@ WHOIS_CM_NAME: str = "Get User Information"
 
 @context_menu(name=WHOIS_CM_NAME)
 async def whois_cm(interaction: Interaction, user: Member | User) -> None:
-    ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    embed = (
-        discord.Embed(
-            colour=user.colour,
-            title=f"All about {user.name}#{user.discriminator}\n({user.id})",
-        )
-        .set_thumbnail(url=user.avatar.url)
-        .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-        .add_field(
-            name="Account creation date:",
-            value=f"<t:{user.created_at.timestamp():.0f}:R>",
-        )
-    )
-    if isinstance(user, discord.Member):
-        embed = embed.insert_field_at(0, name="Status:", value=f"{user.status}")
-        if user.name != user.display_name:
-            embed = embed.insert_field_at(0, name="Nickname:", value=user.display_name)
-        embed = embed.add_field(
-            name="Server join date:",
-            value=f"<t:{user.joined_at.timestamp():.0f}:R>",
-        )
-        if user.premium_since:
-            embed = embed.add_field(
-                name="Server boosting since:",
-                value=f"<t:{user.premium_since.timestamp():.0f}:R>",
-            )
-    await ctx.send(embed=embed, ephemeral=True)
+    ctx = await CustomContext.from_interaction(interaction)
+    info = cast(Info, ctx.bot.get_cog("Info"))
+    await info.whois(ctx, user=user)
 
 
 class Info(commands.Cog):
@@ -114,43 +90,44 @@ class Info(commands.Cog):
         user: Optional[Union[discord.Member, discord.User]],
     ) -> None:
         """Get information on you, a Member of this server, or any User of Discord."""
-        if not user:
-            user = ctx.author
-        embed = (
-            discord.Embed(
-                colour=user.colour,
-                title=f"All about {user.name}#{user.discriminator}\n({user.id})",
+        async with ctx.typing(ephemeral=True):
+            if not user:
+                user = ctx.author
+            embed = (
+                discord.Embed(
+                    colour=user.colour,
+                    title=f"All about {user.name}#{user.discriminator}\n({user.id})",
+                )
+                .set_thumbnail(url=user.avatar.url)
+                .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
+                .add_field(
+                    name="Account creation date:",
+                    value=f"<t:{user.created_at.timestamp():.0f}:R>",
+                )
             )
-            .set_thumbnail(url=user.avatar.url)
-            .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-            .add_field(
-                name="Account creation date:",
-                value=f"<t:{user.created_at.timestamp():.0f}:R>",
-            )
-        )
-        after_breakdown: str = status_breakdown(
-            user.desktop_status, user.mobile_status, user.web_status
-        )
-        if isinstance(user, discord.Member):
-            embed = embed.insert_field_at(
-                0,
-                name="Status:",
-                value=f"{user.status}{f' ({after_breakdown})' if after_breakdown else ''}",
-            )
-            if user.name != user.display_name:
+            if isinstance(user, discord.Member):
+                after_breakdown: str = status_breakdown(
+                    user.desktop_status, user.mobile_status, user.web_status
+                )
                 embed = embed.insert_field_at(
-                    0, name="Nickname:", value=user.display_name
+                    0,
+                    name="Status:",
+                    value=f"{user.status}{f' ({after_breakdown})' if after_breakdown else ''}",
                 )
-            embed = embed.add_field(
-                name="Server join date:",
-                value=f"<t:{user.joined_at.timestamp():.0f}:R>",
-            )
-            if user.premium_since:
+                if user.name != user.display_name:
+                    embed = embed.insert_field_at(
+                        0, name="Nickname:", value=user.display_name
+                    )
                 embed = embed.add_field(
-                    name="Server boosting since:",
-                    value=f"<t:{user.premium_since.timestamp():.0f}:R>",
+                    name="Server join date:",
+                    value=f"<t:{user.joined_at.timestamp():.0f}:R>",
                 )
-        await ctx.send(embed=embed, ephemeral=True)
+                if user.premium_since:
+                    embed = embed.add_field(
+                        name="Server boosting since:",
+                        value=f"<t:{user.premium_since.timestamp():.0f}:R>",
+                    )
+            await ctx.send(embed=embed, ephemeral=True)
 
     @hybrid_command()
     @commands.guild_only()

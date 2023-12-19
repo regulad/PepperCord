@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+from copy import copy
 from logging import getLogger
 from typing import Optional, cast, Type
 
@@ -241,7 +242,27 @@ class ErrorHandling(commands.Cog):
                 if ctx.valid and isinstance(
                     error, (commands.CommandOnCooldown, commands.CheckFailure)
                 ):
-                    await ctx.reinvoke()
+                    if ctx.interaction is None:
+                        await ctx.reinvoke()
+                    else:
+                        # We have to make this interaction into a regular message command.
+                        # At this point in time, the interaction is already responded to.
+                        # We will need to make sure our context is aware.
+                        bodged_ctx = copy(ctx)  # Avoid mutating the original context.
+                        await bodged_ctx.send(
+                            f"You're the boss! Original error: {type(error)} Reinvoking...",
+                            ephemeral=True,
+                        )
+                        # The reinvoke command is broken with interactions, so we have to do this.
+                        # The reason why it is broken is weird: the context is never prepared!
+                        # We can wait a couple seconds.
+                        # Special case: abort the cooldown for this command.
+                        if isinstance(error, commands.CommandOnCooldown):
+                            bodged_ctx.command.reset_cooldown(bodged_ctx)
+                        await bodged_ctx.command.prepare(bodged_ctx)  # Mutates context
+                        # Additonally, reinvoking is broken for interactions.
+                        bodged_ctx.interaction = None
+                        await bodged_ctx.reinvoke(restart=False)
 
     @commands.Cog.listener("on_command_error")
     async def determine_if_critical(

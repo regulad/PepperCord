@@ -1,10 +1,11 @@
+import math
 from functools import partial
 from io import BytesIO
 from typing import Optional
 
 import discord
 from PIL import Image, ImageDraw, ImageFont
-from discord import Member, File
+from discord import Member, File, Attachment, User
 from discord.app_commands import describe
 from discord.ext import commands
 from discord.ext.commands import hybrid_command
@@ -37,32 +38,37 @@ def santa_hat_executor(
     flip: bool,
     size: int,
 ) -> bytes:
-    pfp_image: Image = Image.open(BytesIO(pfp)).convert("RGBA")
-
-    # The scalar is needed to keep everything relative to the size of the pfp
-    scalar: float = pfp_image.height / 100
-
-    pfp_size_float: float = 100 * scalar
-    pfp_size: int = round(pfp_size_float)
-    santa_size: int = round(size * scalar)
-
-    pfp_image = pfp_image.resize(
-        (round(pfp_image.height / pfp_image.width * pfp_size_float), pfp_size)
-    )
-    pfp_image.thumbnail(
-        (pfp_size, pfp_size)
-    )  # serves to center image if it is wider than it is tall
-
-    x_offset: int = round(x_offset * scalar)
-    y_offset: int = round(y_offset * scalar)
-
+    pfp_image = Image.open(BytesIO(pfp)).convert("RGBA")
     santa_hat_image = Image.open("resources/images/santa.png")
+
     if flip:
         santa_hat_image = santa_hat_image.transpose(Image.FLIP_LEFT_RIGHT)
-    santa_hat_image.thumbnail((santa_size, santa_size))
 
+    # The scalar is needed to keep everything relative to the size of the pfp
+    pfp_small_dimension = min(pfp_image.size)
+    scalar: float = pfp_small_dimension / 100
+
+    # Prepare the pfp
+    pfp_image.thumbnail(
+        (pfp_small_dimension, pfp_small_dimension)
+    )  # takes square out of the middle of the image
+
+    # Get the dimensions of the santa hat
+    santa_hat_size = math.floor(size * scalar)
+    santa_hat_original_small_dimension = min(santa_hat_image.size)
+
+    # Prepare the santa hat
+    santa_hat_image.thumbnail(
+        (santa_hat_original_small_dimension, santa_hat_original_small_dimension)
+    )  # thumbnail only makes things smaller, lets make it the proper aspect ratio since resize cant
+    santa_hat_image = santa_hat_image.resize((santa_hat_size, santa_hat_size))
+
+    # Paste the santa hat onto the pfp
+    x_offset = math.floor(x_offset * scalar)
+    y_offset = math.floor(y_offset * scalar)
     pfp_image.paste(santa_hat_image, (x_offset, y_offset), santa_hat_image)
 
+    # Save the image
     buffer: BytesIO = BytesIO()
     pfp_image.save(buffer, "PNG")
     buffer.seek(0)
@@ -88,16 +94,61 @@ class Images(commands.Cog):
     async def santa_hat(
         self,
         ctx: CustomContext,
-        member: Member | None = None,
+        member: Member | User | None = None,
         x_offset: int = 0,
         y_offset: int = -10,
         flip: bool = True,
         size: int = 70,
     ) -> None:
         """Put a Santa Hat on a member."""
-        member: Member = member or ctx.author
         async with ctx.typing():
-            pfp_bytes: bytes = await member.display_avatar.read()
+            pfp_bytes: bytes
+            if isinstance(member, (Member, User)):
+                pfp_bytes = await member.display_avatar.read()
+            elif (
+                member is None and ctx.message.attachments
+            ):  # special case for message commands
+                pfp_bytes = await ctx.message.attachments[0].read()
+            elif member is None:
+                pfp_bytes = await ctx.author.display_avatar.read()
+
+            hat_bytes: bytes = await ctx.bot.loop.run_in_executor(
+                None,
+                partial(santa_hat_executor, pfp_bytes, x_offset, y_offset, flip, size),
+            )
+            with BytesIO(hat_bytes) as buffer:
+                await ctx.send(file=File(buffer, "santa.png"))
+
+    @hybrid_command(aliases=["santa2"])
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    @describe(
+        member="The member of the server to put the Santa Hat on.",
+        x_offset="The x offset of the Santa Hat, from 0 to 100, moving from left to right. The default value is 0.",
+        y_offset="The y offset of the Santa Hat, from 0 to 100, moving from top to bottom. The default value is -10.",
+        flip='Whether to flip the Santa Hat left-right. This is on ("True") by default.',
+        size="The size of the Santa Hat. The default value is 70. (70% of the PFP size)",
+    )
+    async def santa_hat_file(
+        self,
+        ctx: CustomContext,
+        member: Attachment | None = None,
+        x_offset: int = 0,
+        y_offset: int = -10,
+        flip: bool = True,
+        size: int = 70,
+    ) -> None:
+        """Put a Santa Hat on a file."""
+        async with ctx.typing():
+            pfp_bytes: bytes
+            if isinstance(member, Attachment):
+                pfp_bytes = await member.read()
+            elif (
+                member is None and ctx.message.attachments
+            ):  # special case for message commands
+                pfp_bytes = await ctx.message.attachments[0].read()
+            elif member is None:
+                pfp_bytes = await ctx.author.display_avatar.read()
+
             hat_bytes: bytes = await ctx.bot.loop.run_in_executor(
                 None,
                 partial(santa_hat_executor, pfp_bytes, x_offset, y_offset, flip, size),

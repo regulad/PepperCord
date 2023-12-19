@@ -20,6 +20,7 @@ from discord import (
     TextChannel,
 )
 from discord.ext import commands
+from discord.ext.commands.bot import CFT
 from discord.user import BaseUser, User
 from discord.utils import find
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -36,6 +37,12 @@ if TYPE_CHECKING:
 
 
 class CustomBotBase(commands.bot.BotBase):
+    @staticmethod
+    async def store_original_kwargs(ctx: CustomContext, *args, **kwargs):
+        # On custom contexts with interactions, the original kwargs can be discarded when a command is re-prepared
+        if ctx.interaction is not None:
+            ctx["original_kwargs"] = ctx.kwargs
+
     def __init__(
         self,
         command_prefix,
@@ -66,6 +73,8 @@ class CustomBotBase(commands.bot.BotBase):
             description=description,
             **options,
         )
+
+        self.before_invoke(self.store_original_kwargs)
 
     @property
     def home_server(self) -> Guild | None:

@@ -4,6 +4,8 @@ services:
     image: "mongo:4"
     hostname: "mongo"
     restart: always
+    ports:
+      - "27017:27017"
     volumes:
       - "db:/data/db"
   peppercord:

@@ -125,9 +125,11 @@ class Audio(Cog):
                 QueueMenuSource(
                     list(ctx.voice_client.queue.deque),
                     ctx.voice_client,
-                    "Tracks on queue (Loop is on):"
-                    if ctx.voice_client.should_loop
-                    else "Tracks on queue:",
+                    (
+                        "Tracks on queue (Loop is on):"
+                        if ctx.voice_client.should_loop
+                        else "Tracks on queue:"
+                    ),
                 )
             ).start(ctx, ephemeral=False)
 

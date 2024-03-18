@@ -192,9 +192,11 @@ class GameStateHolder:
                     # Behaves very weirdly when this isn't sent via a webhook.
                     await message.edit(
                         content="__**Five Nights At Freddy's**__",
-                        view=possible_view
-                        if possible_view is not None
-                        else discord.utils.MISSING,
+                        view=(
+                            possible_view
+                            if possible_view is not None
+                            else discord.utils.MISSING
+                        ),
                         attachments=(discord.File(fp, filename="game.png"),),
                     )
 

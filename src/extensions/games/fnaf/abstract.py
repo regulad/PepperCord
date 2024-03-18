@@ -369,7 +369,19 @@ class Room(Enum):
     @property
     def has_camera(self) -> bool:
         match self:
-            case Room.CAM_6 | Room.CAM_5 | Room.CAM_4_B | Room.CAM_4_A | Room.CAM_3 | Room.CAM_2_B | Room.CAM_2_A | Room.CAM_1_C | Room.CAM_1_A | Room.CAM_1_B | Room.CAM_7:
+            case (
+                Room.CAM_6
+                | Room.CAM_5
+                | Room.CAM_4_B
+                | Room.CAM_4_A
+                | Room.CAM_3
+                | Room.CAM_2_B
+                | Room.CAM_2_A
+                | Room.CAM_1_C
+                | Room.CAM_1_A
+                | Room.CAM_1_B
+                | Room.CAM_7
+            ):
                 return True
             case _:
                 return False

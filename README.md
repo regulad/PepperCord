@@ -1,5 +1,7 @@
 # PepperCord Legacy (don't use unless you really, really want to!)
 
+Although PepperCord still receives some updates, its codebase is rickety. A new bot is planned. Stay tuned!
+
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)

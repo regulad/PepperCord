@@ -32,6 +32,7 @@ class MinecraftServerType(Enum):
 
 class ComponentDict(TypedDict):
     """Represents a Minecraft component dict."""
+
     # https://minecraft.fandom.com/wiki/Raw_JSON_text_format#Java_Edition
     # this is only a plaintext component because server MOTDs cannot be localized
 
@@ -127,7 +128,11 @@ def minecraft_component_to_ansi(component: ComponentDict) -> str:
         else:
             # hex color
             hex_color = color.lstrip("#")
-            r, g, b = int(hex_color[:2], 16), int(hex_color[2:4], 16), int(hex_color[4:], 16)
+            r, g, b = (
+                int(hex_color[:2], 16),
+                int(hex_color[2:4], 16),
+                int(hex_color[4:], 16),
+            )
             text = f"\033[38;2;{r};{g};{b}m{text}\033[0m"
 
     if component.get("bold"):
@@ -160,13 +165,15 @@ async def generate_minecraft_embed(
     server_type: MinecraftServerType,
     *,
     include_latency: bool = True,
-    timeout: int = 30  # this is ludicrously high, but aternos servers take FOREVER to respond
+    timeout: int = 30,  # this is ludicrously high, but aternos servers take FOREVER to respond
 ) -> tuple[Embed, File | None]:
     server_lookup: JavaServer | BedrockServer
     status: PingResponse | BedrockStatusResponse | QueryResponse
     match server_type:
         case MinecraftServerType.JAVA:
-            server_lookup = await JavaServer.async_lookup(server_address, timeout=timeout)
+            server_lookup = await JavaServer.async_lookup(
+                server_address, timeout=timeout
+            )
         case MinecraftServerType.BEDROCK:
             server_lookup = BedrockServer.lookup(server_address, timeout=timeout)
     try:
@@ -228,9 +235,13 @@ async def generate_minecraft_embed(
     if hasattr(status, "players"):
         players_max = status.players.max
         players_online = status.players.online
-        if hasattr(status.players, "sample") and isinstance(status.players.sample, Iterable):
+        if hasattr(status.players, "sample") and isinstance(
+            status.players.sample, Iterable
+        ):
             player_list = [player.name for player in status.players.sample]
-        elif hasattr(status.players, "names") and isinstance(status.players.names, list):
+        elif hasattr(status.players, "names") and isinstance(
+            status.players.names, list
+        ):
             player_list = status.players.names.copy()
     elif hasattr(status, "players_max") and hasattr(status, "players_online"):
         players_max = status.players_max
@@ -281,24 +292,34 @@ class Minecraft(commands.Cog):
     def cog_unload(self) -> None:
         self.check_for_server_status_changes.stop()
 
-    async def _check_for_server_updates_single_server(self, document: Document, server: dict) -> None:
-        logger.debug(f"Checking for server status changes in {document._collection.name} {document['_id']} {server}...")
+    async def _check_for_server_updates_single_server(
+        self, document: Document, server: dict
+    ) -> None:
+        logger.debug(
+            f"Checking for server status changes in {document._collection.name} {document['_id']} {server}..."
+        )
 
         server_address = server["address"]
         server_type = MinecraftServerType(server["type"])
         channel_id = server["channel"]
         previous_status_json = server["previous_status"]
-        previous_status_dict = loads(previous_status_json) if previous_status_json is not None else None
+        previous_status_dict = (
+            loads(previous_status_json) if previous_status_json is not None else None
+        )
         channel = self.bot.get_channel(channel_id)
 
         if channel is None:
-            logger.warning(f"Could not find channel {channel_id} in {document._collection.name} {document['_id']}")
+            logger.warning(
+                f"Could not find channel {channel_id} in {document._collection.name} {document['_id']}"
+            )
             return
 
         embed: Embed | None = None
         file: File | None = None
         try:
-            embed, file = await generate_minecraft_embed(server_address, server_type, include_latency=False)
+            embed, file = await generate_minecraft_embed(
+                server_address, server_type, include_latency=False
+            )
         except Exception as e:
             pass
 
@@ -311,26 +332,38 @@ class Minecraft(commands.Cog):
                 elif embed is not None and previous_status_dict is not None:
                     message = "Server status changed."
                 else:
-                    message = ("Server could not be reached, it's likely offline. "
-                               "Updates will resume when it comes back online.")
+                    message = (
+                        "Server could not be reached, it's likely offline. "
+                        "Updates will resume when it comes back online."
+                    )
                 await channel.send(content=message, embed=embed, file=file)
             except discord.Forbidden:
-                logger.warning(f"Could not send message to {channel_id} in {document._collection.name} {document['_id']}")
+                logger.warning(
+                    f"Could not send message to {channel_id} in {document._collection.name} {document['_id']}"
+                )
                 pass
             await document.update_db(
                 {
                     "$set": {
-                        "minecraft_servers.$[server].previous_status": dumps(embed_serialized) if embed_serialized is not None else None
+                        "minecraft_servers.$[server].previous_status": dumps(
+                            embed_serialized
+                        )
+                        if embed_serialized is not None
+                        else None
                     }
                 },
-                array_filters=[{"server.address": server_address}]
+                array_filters=[{"server.address": server_address}],
             )
 
     async def _check_for_server_updates_document(self, document: Document) -> None:
-        logger.debug(f"Checking for server status changes in {document._collection.name} {document['_id']}...")
+        logger.debug(
+            f"Checking for server status changes in {document._collection.name} {document['_id']}..."
+        )
         async with TaskGroup() as tg:
             for server in document.get("minecraft_servers", []):
-                tg.create_task(self._check_for_server_updates_single_server(document, server))
+                tg.create_task(
+                    self._check_for_server_updates_single_server(document, server)
+                )
 
     @tasks.loop(minutes=1)
     async def check_for_server_status_changes(self) -> None:
@@ -338,20 +371,30 @@ class Minecraft(commands.Cog):
 
         # first step: get any documents in either the users or guild collection that have minecraft_servers set
         user_collection = self.bot.database.get_collection("user")
-        user_query = {
-            "minecraft_servers": {"$exists": True}
-        }
+        user_query = {"minecraft_servers": {"$exists": True}}
         raw_user_documents = await user_collection.find(user_query).to_list(length=None)
-        user_documents = [Document(document, collection=user_collection, query=user_query | {"_id": document["_id"]})
-                          for document in raw_user_documents]
+        user_documents = [
+            Document(
+                document,
+                collection=user_collection,
+                query=user_query | {"_id": document["_id"]},
+            )
+            for document in raw_user_documents
+        ]
 
         guild_collection = self.bot.database.get_collection("guild")
-        guild_query = {
-            "minecraft_servers": {"$exists": True}
-        }
-        raw_guild_documents = await guild_collection.find(guild_query).to_list(length=None)
-        guild_documents = [Document(document, collection=guild_collection, query=guild_query | {"_id": document["_id"]})
-                           for document in raw_guild_documents]
+        guild_query = {"minecraft_servers": {"$exists": True}}
+        raw_guild_documents = await guild_collection.find(guild_query).to_list(
+            length=None
+        )
+        guild_documents = [
+            Document(
+                document,
+                collection=guild_collection,
+                query=guild_query | {"_id": document["_id"]},
+            )
+            for document in raw_guild_documents
+        ]
 
         all_documents = user_documents + guild_documents
 
@@ -399,9 +442,13 @@ class Minecraft(commands.Cog):
                 if channel not in ctx.guild.text_channels:
                     raise Exception("This channel does not belong to this server.")
                 elif channel.permissions_for(ctx.author).send_messages is False:
-                    raise Exception("You do not have permission to send messages in this channel.")
+                    raise Exception(
+                        "You do not have permission to send messages in this channel."
+                    )
                 elif channel.permissions_for(ctx.guild.me).send_messages is False:
-                    raise Exception("I do not have permission to send messages in this channel.")
+                    raise Exception(
+                        "I do not have permission to send messages in this channel."
+                    )
                 final_channel = channel
             elif dms:
                 final_channel = ctx.author.dm_channel or await ctx.author.create_dm()
@@ -409,9 +456,14 @@ class Minecraft(commands.Cog):
                 final_channel = ctx.channel
 
             message = await ctx.send("Testing connection to the server...")
-            embed, file = await generate_minecraft_embed(server_address, server_type, include_latency=False)
-            await message.edit(content="Connected to the server. Registering server to watch...", embed=embed,
-                               attachments=(file,))
+            embed, file = await generate_minecraft_embed(
+                server_address, server_type, include_latency=False
+            )
+            await message.edit(
+                content="Connected to the server. Registering server to watch...",
+                embed=embed,
+                attachments=(file,),
+            )
 
             if isinstance(final_channel, DMChannel):
                 await ctx["author_document"].update_db(
@@ -421,7 +473,7 @@ class Minecraft(commands.Cog):
                                 "address": server_address,
                                 "type": server_type.value,
                                 "channel": final_channel.id,
-                                "previous_status": dumps(embed.to_dict())
+                                "previous_status": dumps(embed.to_dict()),
                             }
                         }
                     }
@@ -434,13 +486,15 @@ class Minecraft(commands.Cog):
                                 "address": server_address,
                                 "type": server_type.value,
                                 "channel": final_channel.id,
-                                "previous_status": dumps(embed.to_dict())
+                                "previous_status": dumps(embed.to_dict()),
                             }
                         }
                     }
                 )
 
-            await message.edit(content="Server registered. You will now receive updates on the server status.")
+            await message.edit(
+                content="Server registered. You will now receive updates on the server status."
+            )
 
     @hybrid_command()
     @describe(
@@ -463,9 +517,13 @@ class Minecraft(commands.Cog):
                 if channel not in ctx.guild.text_channels:
                     raise Exception("This channel does not belong to this server.")
                 elif channel.permissions_for(ctx.author).send_messages is False:
-                    raise Exception("You do not have permission to send messages in this channel.")
+                    raise Exception(
+                        "You do not have permission to send messages in this channel."
+                    )
                 elif channel.permissions_for(ctx.guild.me).send_messages is False:
-                    raise Exception("I do not have permission to send messages in this channel.")
+                    raise Exception(
+                        "I do not have permission to send messages in this channel."
+                    )
                 final_channel = channel
             else:
                 final_channel = ctx.channel
@@ -477,7 +535,7 @@ class Minecraft(commands.Cog):
                             "minecraft_servers": {
                                 "address": server_address,
                                 "type": server_type.value,
-                                "channel": final_channel.id
+                                "channel": final_channel.id,
                             }
                         }
                     }
@@ -489,13 +547,15 @@ class Minecraft(commands.Cog):
                             "minecraft_servers": {
                                 "address": server_address,
                                 "type": server_type.value,
-                                "channel": final_channel.id
+                                "channel": final_channel.id,
                             }
                         }
                     }
                 )
 
-            await ctx.send("Server unregistered. You will no longer receive updates on the server status.")
+            await ctx.send(
+                "Server unregistered. You will no longer receive updates on the server status."
+            )
 
 
 async def setup(bot: BOT_TYPES) -> None:

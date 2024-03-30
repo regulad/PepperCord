@@ -44,7 +44,9 @@ class Document(dict):
 
         async with await self._collection.database.client.start_session() as session:
             async with session.start_transaction():
-                await self._collection.update_one(self._query, update, **kwargs, upsert=True)
+                await self._collection.update_one(
+                    self._query, update, **kwargs, upsert=True
+                )
                 self.clear()
                 self.update(await self._collection.find_one(self._query))
 

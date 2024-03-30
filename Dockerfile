@@ -1,7 +1,7 @@
 FROM python:3.11.2-slim-bullseye
 
 LABEL name="peppercord" \
-  version="9.3.1" \
+  version="9.3.2" \
   maintainer="Parker Wahle <regulad@regulad.xyz>"
 
 ENV DEBIAN_FRONTEND=noninteractive \

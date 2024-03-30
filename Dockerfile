@@ -1,7 +1,7 @@
 FROM python:3.11.2-slim-bullseye
 
 LABEL name="peppercord" \
-  version="9.3.0" \
+  version="9.3.1" \
   maintainer="Parker Wahle <regulad@regulad.xyz>"
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
   PIP_DISABLE_PIP_VERSION_CHECK=on \
   PIP_DEFAULT_TIMEOUT=100 \
   POETRY_HOME=/opt/poetry \
-  POETRY_VERSION=1.3.1
+  POETRY_VERSION=1.8.2
 
 ARG USERNAME=peppercord
 ARG USER_UID=1008

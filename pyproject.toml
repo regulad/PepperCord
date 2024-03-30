@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "peppercord"
-version = "9.3.0"
+version = "9.3.10"
 description = "A multi-purpose Discord bot written in Python."
 authors = ["Parker Wahle <regulad@regulad.xyz>"]
 license = "GPLv3"

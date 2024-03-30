@@ -1,12 +1,13 @@
 [tool.poetry]
 name = "peppercord"
-version = "9.2.0"
+version = "9.3.0"
 description = "A multi-purpose Discord bot written in Python."
 authors = ["Parker Wahle <regulad@regulad.xyz>"]
 license = "GPLv3"
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 aiocoingecko = "^1.0.0"
 aiofiles = "^23.1.0"
 aiohttp = "^3.8.4"
@@ -35,6 +36,7 @@ svglib = "^1.1.0"
 youtube-dl = ">=2021.12"
 dislog = "^2.1.0"
 yt-dlp = "^2023.2.17"
+mc-formatting-sirnapkin1334 = {git = "https://github.com/Moire9/MC-Formatting.git"}
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"

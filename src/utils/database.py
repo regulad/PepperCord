@@ -39,12 +39,12 @@ class Document(dict):
             else None
         )
 
-    async def update_db(self, query: dict) -> None:
+    async def update_db(self, update: dict, **kwargs) -> None:
         """Performs an update query on the database with the document."""
 
         async with await self._collection.database.client.start_session() as session:
             async with session.start_transaction():
-                await self._collection.update_one(self._query, query, upsert=True)
+                await self._collection.update_one(self._query, update, **kwargs, upsert=True)
                 self.clear()
                 self.update(await self._collection.find_one(self._query))
 

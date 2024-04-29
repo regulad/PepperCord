@@ -50,7 +50,11 @@ class OfficeImage(Enum):
     @property
     def offset(self) -> Literal[-1, 1, 0]:
         match self:
-            case OfficeImage.BONNIE_AT_DOOR | OfficeImage.LEFT_HALL_LIGHT | OfficeImage.FREDDY:
+            case (
+                OfficeImage.BONNIE_AT_DOOR
+                | OfficeImage.LEFT_HALL_LIGHT
+                | OfficeImage.FREDDY
+            ):
                 return -1
             case OfficeImage.RIGHT_HALL_LIGHT | OfficeImage.CHICA_AT_DOOR:
                 return 1

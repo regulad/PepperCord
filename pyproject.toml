@@ -35,7 +35,7 @@ reportlab = "^3.5.68"
 svglib = "^1.1.0"
 youtube-dl = ">=2021.12"
 dislog = "^2.1.0"
-yt-dlp = "^2023.2.17"
+yt-dlp = "^2024.7.1"
 mc-formatting-sirnapkin1334 = {git = "https://github.com/Moire9/MC-Formatting.git"}
 
 [tool.poetry.group.dev.dependencies]

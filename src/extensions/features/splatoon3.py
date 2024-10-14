@@ -691,9 +691,11 @@ class Splatoon3(Cog):
 
         return await send(
             embed=embed,
-            files=[File(fp=BytesIO(data), filename=name) for name, data in files]
-            if len(files) > 0
-            else None,
+            files=(
+                [File(fp=BytesIO(data), filename=name) for name, data in files]
+                if len(files) > 0
+                else None
+            ),
             view=ScheduleView(ctx, timeslots, mode) if len(timeslots) > 0 else None,
         )
 
@@ -810,14 +812,18 @@ class Splatoon3(Cog):
                     if team["result"]["isWinner"]:
                         embed.color = splatfest_color(team["color"])  # type: ignore
 
-                    line1: str = f"Was victorious: {'Yes' if team['result']['isWinner'] else 'No'}"
+                    line1: str = (
+                        f"Was victorious: {'Yes' if team['result']['isWinner'] else 'No'}"
+                    )
                     line2: str = (
                         f"Vote Percentage: `{team['result']['voteRatio'] * 100:.2f}`%"
                     )
                     line3: str = (
                         f"Pro Win Rate: `{team['result']['horagaiRatio'] * 100:.2f}`%"
                     )
-                    line4: str = f"Open/Tricolor Win Rate: `{team['result']['regularContributionRatio'] * 100:.2f}`%"
+                    line4: str = (
+                        f"Open/Tricolor Win Rate: `{team['result']['regularContributionRatio'] * 100:.2f}`%"
+                    )
 
                     embed = embed.add_field(
                         name=team["teamName"],
@@ -857,9 +863,11 @@ class Splatoon3(Cog):
 
         return await send(
             embed=embed,
-            files=[File(fp=BytesIO(data), filename=name) for name, data in files]
-            if len(files) > 0
-            else None,
+            files=(
+                [File(fp=BytesIO(data), filename=name) for name, data in files]
+                if len(files) > 0
+                else None
+            ),
             view=None if current else SplatfestView(ctx, historic_splatfests, region),
         )
 

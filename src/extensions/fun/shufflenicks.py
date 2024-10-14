@@ -81,12 +81,12 @@ class ShuffleNicks(commands.Cog):
                     Union[discord.Member, discord.User],
                 ] = {}
                 for one_id_as_str, two_id in db_pairings.items():
-                    one: Optional[
-                        Union[discord.Member, discord.User]
-                    ] = await get_any_id(ctx, int(one_id_as_str))
-                    two: Optional[
-                        Union[discord.Member, discord.User]
-                    ] = await get_any_id(ctx, two_id)
+                    one: Optional[Union[discord.Member, discord.User]] = (
+                        await get_any_id(ctx, int(one_id_as_str))
+                    )
+                    two: Optional[Union[discord.Member, discord.User]] = (
+                        await get_any_id(ctx, two_id)
+                    )
 
                     assert one is not None, two is not None
 

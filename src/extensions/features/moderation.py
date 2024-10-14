@@ -15,9 +15,9 @@ from utils.bots import BOT_TYPES
 async def get_any_id(
     ctx: commands.Context, uid: int
 ) -> Optional[Union[discord.Member, discord.User]]:
-    possible_object: Optional[
-        Union[discord.Member, discord.User]
-    ] = ctx.guild.get_member(uid) or ctx.bot.get_user(uid)
+    possible_object: Optional[Union[discord.Member, discord.User]] = (
+        ctx.guild.get_member(uid) or ctx.bot.get_user(uid)
+    )
     if possible_object is not None:
         return possible_object
     else:

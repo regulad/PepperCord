@@ -352,11 +352,11 @@ class Minecraft(commands.Cog):
             await document.update_db(
                 {
                     "$set": {
-                        "minecraft_servers.$[server].previous_status": dumps(
-                            embed_serialized
+                        "minecraft_servers.$[server].previous_status": (
+                            dumps(embed_serialized)
+                            if embed_serialized is not None
+                            else None
                         )
-                        if embed_serialized is not None
-                        else None
                     }
                 },
                 array_filters=[{"server.address": server_address}],

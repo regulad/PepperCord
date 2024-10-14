@@ -102,9 +102,11 @@ class ErrorSupportModal(Modal, title="Support Form"):
                         title=f"**{self.ctx.author.display_name}** (`{self.ctx.author.id}`) encountered an error in "
                         f"**{self.ctx.guild.name}** (`{self.ctx.guild.id}`) "
                         f"with the command `{self.ctx.command}`.",
-                        description=f"Type: **{self.error.__class__.__name__}**\n```{str(self.error)}```"
-                        if len(str(self.error)) > 0
-                        else f"Type: **{self.error.__class__.__name__}**",
+                        description=(
+                            f"Type: **{self.error.__class__.__name__}**\n```{str(self.error)}```"
+                            if len(str(self.error)) > 0
+                            else f"Type: **{self.error.__class__.__name__}**"
+                        ),
                     )
                     .add_field(
                         name="Intended Action",

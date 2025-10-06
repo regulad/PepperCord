@@ -99,9 +99,11 @@ class Regal(Cog):
                 display_name_regal: str = regalize(member.display_name)
                 try:
                     await member.edit(
-                        nick=display_name_regal
-                        if member.display_name != display_name_regal
-                        else regalize(member.name)
+                        nick=(
+                            display_name_regal
+                            if member.display_name != display_name_regal
+                            else regalize(member.name)
+                        )
                     )
                 except Forbidden:
                     continue

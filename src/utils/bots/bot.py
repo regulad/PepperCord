@@ -172,9 +172,11 @@ class CustomBotBase(commands.bot.BotBase):
             self._database["commands"],
             {
                 "name": command.name,
-                "cog": command.cog_name
-                if (hasattr(command, "cog_name") and command.cog_name is not None)
-                else None,
+                "cog": (
+                    command.cog_name
+                    if (hasattr(command, "cog_name") and command.cog_name is not None)
+                    else None
+                ),
             },
         )
 

@@ -76,7 +76,9 @@ class StatusWatch(Cog):
             after_breakdown: str | None = status_breakdown(
                 after.desktop_status, after.mobile_status, after.web_status
             )
-            from_text: str = f"\nfrom `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''}"
+            from_text: str = (
+                f"\nfrom `{str(before.status).title()}`{f' ({before_breakdown})' if before_breakdown else ''}"
+            )
             for guild_id, user_id in [
                 (int(scope.split("-")[0]), int(scope.split("-")[-1]))
                 for scope in document.get("watchers", [])

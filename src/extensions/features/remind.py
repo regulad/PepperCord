@@ -41,9 +41,9 @@ class Remind(Cog):
             for reminder in document.get("remind", []).copy():
                 if reminder["time"] < datetime.utcnow():
                     try:
-                        maybe_channel: None | Thread | ForumChannel | TextChannel | CategoryChannel = self.bot.get_channel(
-                            reminder["channel"]
-                        )
+                        maybe_channel: (
+                            None | Thread | ForumChannel | TextChannel | CategoryChannel
+                        ) = self.bot.get_channel(reminder["channel"])
                         if maybe_channel is not None:
                             await user.send(
                                 f"Reminder from {maybe_channel.mention}:\n{reminder['message']}"
@@ -64,9 +64,9 @@ class Remind(Cog):
         async with semaphore:
             if after.status is not Status.offline and before.status is Status.offline:
                 for reminder in document.get("remind_online", []).copy():
-                    maybe_channel: None | Thread | ForumChannel | TextChannel | CategoryChannel = after.guild.get_channel_or_thread(
-                        reminder["channel"]
-                    )
+                    maybe_channel: (
+                        None | Thread | ForumChannel | TextChannel | CategoryChannel
+                    ) = after.guild.get_channel_or_thread(reminder["channel"])
                     if maybe_channel is not None:
                         await after.send(
                             f"Reminder from {maybe_channel.mention}:\n{reminder['message']}"

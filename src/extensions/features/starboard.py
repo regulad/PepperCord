@@ -1,7 +1,14 @@
-from typing import Optional, cast
+from typing import Optional, Protocol, cast
 
 import discord
-from discord import Interaction, Message, AppCommandType
+from discord import (
+    ClientUser,
+    DeletedReferencedMessage,
+    Interaction,
+    Message,
+    AppCommandType,
+    TextChannel,
+)
 from discord.app_commands import describe, context_menu
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands
@@ -11,11 +18,14 @@ from discord.ext.commands import (
     BadArgument,
     MessageConverter,
     guild_only,
+    Command,
 )
 
-from utils import bots, database
+from utils import database
 from utils.attachments import find_url, NoMedia
-from utils.bots import CustomContext
+from utils.bots.bot import CustomBot
+from utils.bots.commands import NotConfigured
+from utils.bots.context import CustomContext
 
 
 class AlreadyPinned(RuntimeError):
@@ -25,16 +35,23 @@ class AlreadyPinned(RuntimeError):
 
 
 async def send_star(
-    document: database.Document,
+    document: database.PCDocument,
     message: discord.Message,
-    bot: bots.BOT_TYPES,
+    bot: CustomBot,
 ) -> discord.Message:
+    assert message.guild is not None  # will not get called in dm environment
+
     send_channel_id: Optional[int] = document.get("starboard", {}).get("channel")
 
     if send_channel_id is None:
-        raise bots.NotConfigured
+        raise NotConfigured
 
-    send_channel: discord.TextChannel = message.guild.get_channel(send_channel_id)
+    send_channel = message.guild.get_channel(send_channel_id)
+
+    if send_channel is None:
+        raise RuntimeError("Channel couldn't be found!")
+    elif not isinstance(send_channel, TextChannel):
+        raise RuntimeError("Channel was not a TextChannel!")
 
     messages = document.get("starboard", {}).get("messages", [])
 
@@ -44,7 +61,7 @@ async def send_star(
     embed = discord.Embed(
         colour=message.author.colour, description=message.clean_content
     ).set_author(
-        name=f"Sent by {message.author.display_name} in {message.channel.name}",
+        name=f"Sent by {message.author.display_name} in {getattr(message.channel, "name", f"Channel ID {message.channel.id}")}",
         url=message.jump_url,
         icon_url=message.author.display_avatar.url,
     )
@@ -54,8 +71,10 @@ async def send_star(
     except NoMedia:
         url, source = None, None
     else:
-        if isinstance(source, discord.Attachment) and source.content_type.startswith(
-            "image"
+        if (
+            isinstance(source, discord.Attachment)
+            and source.content_type is not None
+            and source.content_type.startswith("image")
         ):
             embed.set_image(url=url)
         elif (
@@ -74,20 +93,24 @@ PIN_CM_NAME: str = "Pin to Starboard"
 
 @context_menu(name=PIN_CM_NAME)
 @ac_guild_only()
-async def pin_cm(interaction: Interaction, message: Message) -> None:
+async def pin_cm(interaction: Interaction[CustomBot], message: Message) -> None:
     """Pins a message to the starboard. You must link to the message."""
 
-    ctx: CustomContext = await CustomContext.from_interaction(interaction)
-    await ctx.invoke(ctx.bot.get_command("starboard pin"), message=message)
+    ctx = await CustomContext.from_interaction(interaction)
+    await ctx.invoke(
+        # this Command cast is needed because it cannot infer the type from the below definition of Starboard.pin
+        cast(Command[Starboard, ..., None], ctx.bot.get_command("starboard pin")),
+        message=message,
+    )
 
 
 class Starboard(commands.Cog):
     """Alternative way to "pin" messages."""
 
-    def __init__(self, bot: bots.BOT_TYPES) -> None:
+    def __init__(self, bot: CustomBot) -> None:
         self.bot = bot
 
-    async def cog_check(self, ctx: bots.CustomContext) -> bool:
+    async def cog_check(self, ctx: CustomContext) -> bool:  # type: ignore[override]  # bad d.py type
         if not ctx.guild:
             raise commands.NoPrivateMessage
         return True
@@ -102,17 +125,27 @@ class Starboard(commands.Cog):
     async def on_raw_reaction_add(
         self, payload: discord.RawReactionActionEvent
     ) -> None:
-        if payload.guild_id is None or payload.user_id == self.bot.user.id:
+        if (
+            payload.guild_id is None
+            or payload.user_id == cast(ClientUser, self.bot.user).id
+        ):  # can't be None if we are receiving these events
             return
 
         guild = self.bot.get_guild(payload.guild_id)
-        channel: discord.TextChannel = guild.get_channel_or_thread(payload.channel_id)
-        message: discord.Message = await self.bot.smart_fetch_message(
-            channel, payload.message_id
-        )
-        ctx: bots.CustomContext = cast(
-            bots.CustomContext, await self.bot.get_context(message)
-        )
+
+        if guild is None:
+            # Don't need to do any handling in a DM.
+            return
+
+        send_channel = guild.get_channel_or_thread(payload.channel_id)
+
+        if send_channel is None:
+            raise RuntimeError("Channel couldn't be found!")
+        elif not isinstance(send_channel, TextChannel):
+            raise RuntimeError("Channel was not a TextChannel!")
+
+        message = await send_channel.fetch_message(payload.message_id)
+        ctx: CustomContext = cast(CustomContext, await self.bot.get_context(message))
 
         if not isinstance(ctx.author, discord.Member) or ctx.guild is None:
             return
@@ -138,18 +171,25 @@ class Starboard(commands.Cog):
         if react_count >= threshold or manager:
             try:
                 await send_star(ctx["guild_document"], ctx.message, self.bot)
-            except bots.NotConfigured:
+            except NotConfigured:
                 pass
         else:
             return
 
-    @hybrid_group(fallback="status", aliases=["sb"])
+    @hybrid_group(fallback="status", aliases=["sb"])  # type: ignore[arg-type]  # bad d.py export
     @ac_guild_only()
     @guild_only()
-    async def starboard(self, ctx: bots.CustomContext) -> None:
+    async def starboard(self, ctx: CustomContext) -> None:
         """Shows all the settings of the currently configured starboard."""
+        assert ctx.guild is not None  # guaranteed at runtime by check
+
         if ctx["guild_document"].get("starboard", {}).get("channel") is None:
-            raise bots.NotConfigured
+            raise NotConfigured
+        channel = ctx.guild.get_channel(ctx["guild_document"]["starboard"]["channel"])
+        if not isinstance(channel, TextChannel):
+            raise RuntimeError(
+                "This server has a Starboard configured, but I can't access it. You'll need to reconfigure the starboard."
+            )
 
         try:
             emoji = await commands.EmojiConverter().convert(
@@ -162,9 +202,7 @@ class Starboard(commands.Cog):
             discord.Embed(title="Starboard Config")
             .add_field(
                 name="Channel:",
-                value=ctx.guild.get_channel(
-                    ctx["guild_document"]["starboard"]["channel"]
-                ).mention,
+                value=channel.mention,
             )
             .add_field(name="Emoji:", value=emoji)
             .add_field(
@@ -175,34 +213,34 @@ class Starboard(commands.Cog):
 
         await ctx.send(embed=embed, ephemeral=True)
 
-    @starboard.group(name="config", fallback="status", aliases=["sbconf"])
+    @starboard.group(name="config", fallback="status", aliases=["sbconf"])  # type: ignore[arg-type]  # bad d.py export
     @commands.has_permissions(administrator=True)
     @guild_only()
-    async def sbconfig(self, ctx: bots.CustomContext) -> None:
+    async def sbconfig(self, ctx: CustomContext) -> None:
         """
         Commands for configuring the starboard.
         """
         pass
 
-    @sbconfig.command()
+    @sbconfig.command()  # type: ignore[arg-type]  # bad d.py export
     @guild_only()
-    async def disable(self, ctx: bots.CustomContext) -> None:
+    async def disable(self, ctx: CustomContext) -> None:
         """
         Disables and deletes all starboard data.
         You'll need to reconfigure it before you use it again.
         """
         if ctx["guild_document"].get("starboard") is None:
-            raise bots.NotConfigured
+            raise NotConfigured
         else:
             await ctx["guild_document"].update_db({"$unset": {"starboard": 1}})
             await ctx.send("Starboard disabled.", ephemeral=True)
 
-    @sbconfig.command()
+    @sbconfig.command()  # type: ignore[arg-type]  # bad d.py export
     @describe(channel="The channel to be used as a starboard.")
     @guild_only()
     async def channel(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
         *,
         channel: discord.TextChannel,
     ) -> None:
@@ -210,18 +248,17 @@ class Starboard(commands.Cog):
         Sets the channel that will be used as a starboard.
         To activate the starboard, change this setting.
         """
-        channel = channel or ctx.channel
         await ctx["guild_document"].update_db(
             {"$set": {"starboard.channel": channel.id}}
         )
         await ctx.send(f"Channel set to {channel.mention}.", ephemeral=True)
 
-    @sbconfig.command()
+    @sbconfig.command()  # type: ignore[arg-type]  # bad d.py export
     @guild_only()
     @describe(emoji="The emoji that people can react to a message with to pin it.")
     async def emoji(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
         *,
         emoji: str,
     ) -> None:
@@ -230,25 +267,27 @@ class Starboard(commands.Cog):
         This (rather intuitively) defaults to a star.
         """
 
+        # There's a chance this is a custom emoji, we need to do some processing if this is the case.
+        converted_emoji: discord.Emoji | discord.PartialEmoji | None
         try:
-            converter: EmojiConverter = EmojiConverter()
-            emoji: discord.Emoji = await converter.convert(ctx, emoji)
+            converter = EmojiConverter()
+            converted_emoji = await converter.convert(ctx, emoji)
         except BadArgument:
-            pass
+            converted_emoji = None
+        if isinstance(converted_emoji, (discord.Emoji, discord.PartialEmoji)):
+            emoji = converted_emoji.name
 
-        if isinstance(emoji, (discord.Emoji, discord.PartialEmoji)):
-            emoji = emoji.name
         await ctx["guild_document"].update_db({"$set": {"starboard.emoji": emoji}})
         await ctx.send(f"Emoji set to :{emoji}:.", ephemeral=True)
 
-    @sbconfig.command()
+    @sbconfig.command()  # type: ignore[arg-type]  # bad d.py export
     @guild_only()
     @describe(
         threshold="The amount of people that must react to the message in order for it to be pinned."
     )
     async def threshold(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
         *,
         threshold: int,
     ) -> None:
@@ -261,35 +300,56 @@ class Starboard(commands.Cog):
         )
         await ctx.send(f"Threshold set to {threshold}.", ephemeral=True)
 
-    @starboard.command()
+    @starboard.command()  # type: ignore[arg-type]  # bad d.py export
     @guild_only()
     @describe(
         message="The message to be pinned to the starboard. Can be provided as a link, or by shift clicking. You can omit this if you are replying to a message."
     )
+    @commands.bot_has_guild_permissions(read_message_history=True)
     async def pin(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
         *,
         message: MessageConverter | None,
     ) -> None:
         """Pins a message to the starboard. You must link to the message."""
-        if not isinstance(message, (discord.Message, discord.PartialMessage)):
-            if ctx.message.reference:
-                message = ctx.message.reference.resolved
-            else:
-                messages = await ctx.channel.history(
-                    before=ctx.message.created_at, limit=1
-                ).flatten()
-                message = messages[0]
-        message: discord.Message = await send_star(
-            ctx["guild_document"], message, ctx.bot
-        )
+        message_converter = message
+        del message  # I don't want to juggle this, it's confusing to have a variable named message that is not a message.
+
+        message_to_pin: discord.Message
+        if isinstance(message_converter, discord.Message):
+            message_to_pin = message_converter  # type: ignore  # these converters don't work into typing systems well
+        elif isinstance(message_converter, discord.PartialMessage):
+            message_to_pin = await message_converter.fetch()  # type: ignore  # these converters don't work into typing systems well
+        elif ctx.message.reference and ctx.message.reference.cached_message is not None:
+            message_to_pin = ctx.message.reference.cached_message
+        elif ctx.message.reference and isinstance(
+            ctx.message.reference.resolved, Message
+        ):
+            message_to_pin = ctx.message.reference.resolved
+        elif ctx.message.reference and isinstance(
+            ctx.message.reference.resolved, DeletedReferencedMessage
+        ):
+            raise RuntimeError("Can't pin a deleted message.")
+        elif ctx.message.reference and ctx.message.reference.resolved is None:
+            raise RuntimeError(
+                "This message can't be pinned."
+            )  # Not sure when this would occur, but the docs said it can...
+        else:
+            # Nothing for us to use directly, pull from the history
+            messages_aiter = ctx.channel.history(before=ctx.message.created_at, limit=1)
+            # The async iterator returned used to have a "flatten" method, but no longer does. This will do instead.
+            async for historical_message in messages_aiter:
+                message_to_pin = historical_message
+                break
+
+        star_message = await send_star(ctx["guild_document"], message_to_pin, ctx.bot)
         await ctx.send(
-            f"Your pinned message can now be found at {message.jump_url}",
+            f"Your pinned message can now be found at {star_message.jump_url}",
             ephemeral=True,
         )
 
-    @starboard.command(
+    @starboard.command(  # type: ignore[arg-type]  # bad d.py export
         name="convert",
         brief="Converts pins in channel to pins on starboard.",
         description="Converts pins in channel to pins on starboard. Does not unpin channels.",
@@ -298,7 +358,7 @@ class Starboard(commands.Cog):
     @describe(channel="The channel to convert pins from.")
     async def sconvert(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
         *,
         channel: discord.TextChannel,
     ) -> None:
@@ -311,5 +371,5 @@ class Starboard(commands.Cog):
             await ctx.send("Done moving pins!", ephemeral=True)
 
 
-async def setup(bot: bots.BOT_TYPES) -> None:
+async def setup(bot: CustomBot) -> None:
     await bot.add_cog(Starboard(bot))

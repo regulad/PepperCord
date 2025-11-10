@@ -1,9 +1,12 @@
-from discord import abc, PCMVolumeTransformer, AudioSource
+from typing import TypeVar
+from discord import AudioSource, abc, PCMVolumeTransformer
 
-from utils.bots import EnhancedSource
+from utils.bots.audio import EnhancedSource
 from utils.misc import FrozenDict
 
-YTDL_FORMAT_OPTIONS: FrozenDict = FrozenDict(
+YTDLOptionsType = FrozenDict[str, str | bool]
+
+YTDL_AUDIO_FORMAT_OPTIONS: YTDLOptionsType = FrozenDict(
     {
         "format": "bestaudio/best",
         "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
@@ -15,15 +18,18 @@ YTDL_FORMAT_OPTIONS: FrozenDict = FrozenDict(
         "quiet": True,
         "no_warnings": True,
         "default_search": "auto",
-        "source_address": "0.0.0.0",  # bind to ipv4 since ipv6 addresses cause issues sometimes
+        "source_address": "0.0.0.0",
+        # bind to ipv4 since ipv6 addresses cause issues sometimes
+        # TODO: Why do we need to bind to ipv4 listener only?
     }
 )
 
-FFMPEG_OPTIONS: FrozenDict = FrozenDict({"options": "-vn"})
+
+S = TypeVar("S", bound="AudioSource")
 
 
-class EnhancedSourceWrapper(PCMVolumeTransformer, EnhancedSource):
-    def __init__(self, source: AudioSource, volume=0.5, *, invoker: abc.User) -> None:
+class EnhancedPCMVolumeTransformer(PCMVolumeTransformer[S], EnhancedSource):
+    def __init__(self, source: S, volume: float = 0.5, *, invoker: abc.User) -> None:
         self._invoker: abc.User = invoker
 
         super().__init__(source, volume)
@@ -34,7 +40,7 @@ class EnhancedSourceWrapper(PCMVolumeTransformer, EnhancedSource):
 
 
 __all__: list[str] = [
-    "YTDL_FORMAT_OPTIONS",
-    "FFMPEG_OPTIONS",
-    "EnhancedSourceWrapper",
+    "YTDL_AUDIO_FORMAT_OPTIONS",
+    "YTDLOptionsType",
+    "EnhancedPCMVolumeTransformer",
 ]

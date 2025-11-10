@@ -1,39 +1,35 @@
-from typing import Optional
+from typing import Iterable, Optional, Sequence
 
 import discord
 from discord.app_commands import guild_only
 from discord.ext import commands
 
-from utils import checks
-from utils.bots import BOT_TYPES, CustomContext
-from utils.database import Document
+from utils.bots.bot import CustomBot
+from utils.bots.context import CustomContext
+from utils.database import PCDocument
 
 
-async def get_prefix(bot: BOT_TYPES, message: discord.Message) -> list[str]:
+async def get_prefix(bot: CustomBot, message: discord.Message) -> Iterable[str]:
     prefix: str = bot.config.get("PEPPERCORD_PREFIX", "?")
     if message.guild is not None:
-        if not hasattr(bot, "__p_cache"):
-            bot.__p_cache = {}
-
-        if bot.__p_cache.get(message.guild.id) is None:
-            guild_document: Document = await bot.get_guild_document(message.guild)
-            prefix: str = guild_document.get("prefix", prefix)
-            bot.__p_cache[message.guild.id] = prefix
+        if bot["prefix_cache"].get(message.guild.id) is None:
+            guild_document: PCDocument = await bot.get_guild_document(message.guild)
+            prefix = guild_document.get("prefix", prefix)
+            bot["prefix_cache"][message.guild.id] = prefix
         else:
-            prefix: str = bot.__p_cache[message.guild.id]
+            prefix = bot["prefix_cache"][message.guild.id]
     return commands.when_mentioned_or(f"{prefix} ", prefix)(bot, message)
 
 
 class CustomPrefix(commands.Cog):
     """Allows you to have a custom prefix for commands just in this guild."""
 
-    def __init__(self, bot: BOT_TYPES) -> None:
-        self.bot: BOT_TYPES = bot
+    def __init__(self, bot: CustomBot) -> None:
+        self.bot = bot
 
     @commands.command()
     @guild_only()
     @commands.has_permissions(administrator=True)
-    @checks.check_message_content_enabled
     async def prefix(
         self,
         ctx: CustomContext,
@@ -50,18 +46,18 @@ class CustomPrefix(commands.Cog):
             f"The prefix is now "
             f"{ctx['guild_document'].get('prefix', ctx.bot.config.get('PEPPERCORD_PREFIX', '?'))}."
         )
-        if not hasattr(ctx.bot, "__p_cache"):
-            ctx.bot.__p_cache = {}
-        ctx.bot.__p_cache[ctx.guild.id] = ctx["guild_document"].get(
+        ctx.bot["prefix_cache"][ctx.guild.id] = ctx["guild_document"].get(  # type: ignore[union-attr]  # guaranteed at runtime
             "prefix", ctx.bot.config.get("PEPPERCORD_PREFIX", "?")
         )
 
 
-async def setup(bot: BOT_TYPES) -> None:
-    bot.command_prefix = get_prefix
+async def setup(bot: CustomBot) -> None:
+    bot["prefix_cache"] = {}
+    bot.command_prefix = get_prefix  # type: ignore[assignment]  # this does work
     await bot.add_cog(CustomPrefix(bot))
 
 
-async def teardown(bot: BOT_TYPES) -> None:
+async def teardown(bot: CustomBot) -> None:
+    del bot["prefix_cache"]
     bot.command_prefix = bot.config.get("PEPPERCORD_PREFIX", "?")
     await bot.remove_cog("CustomPrefix")

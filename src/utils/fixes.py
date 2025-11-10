@@ -1,3 +1,6 @@
+# mypy: ignore-errors
+# This code works, and was copied from another source
+
 import shlex
 import subprocess
 from io import BytesIO

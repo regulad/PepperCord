@@ -1,7 +1,7 @@
 import datetime
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 
-from discord.ext import commands
+from discord.ext.commands import Converter, Context, BadArgument, CommandError
 
 
 def duration_to_str(seconds: int) -> str:  # TODO: Make this take a timedelta.
@@ -36,14 +36,14 @@ def duration_to_str(seconds: int) -> str:  # TODO: Make this take a timedelta.
     return ", ".join(duration_strings)
 
 
-class TimedeltaShorthand(commands.Converter):
-    async def convert(self, ctx: commands.Context, argument: str) -> datetime.timedelta:
+class TimedeltaShorthand(Converter[datetime.timedelta]):
+    async def convert(self, ctx: Context[Any], argument: str) -> datetime.timedelta:
         try:
             return shorthand_to_timedelta(argument)
         except TypeError as exception:
-            raise commands.BadArgument(str(exception))
+            raise BadArgument(str(exception))
         except Exception as exception:
-            raise commands.CommandError(str(exception))
+            raise CommandError(str(exception))
 
 
 shorthands: List[str] = [

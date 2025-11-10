@@ -3,7 +3,13 @@ services:
   mongo:
     image: "mongo:5"
     hostname: "mongo"
-    restart: always
+    restart: unless-stopped
+    read_only: true
+    # I'm not 100% sure if mongo needs a tmpfs mount, but I don't see how it would hurt it.
+    tmpfs:
+      - /tmp
+    networks:
+      - backend
     ports:
       - "27017:27017"
     volumes:
@@ -11,19 +17,25 @@ services:
   peppercord:
     image: "ghcr.io/regulad/peppercord:latest"
     dns:
+      # Discord uses rapidly-reconfigured domain names to direct traffic to its WS and RTC gateways.
+      # With PepperCord in production, I've had the best experience with the Google DNS servers
+      # I suspect this is because Discord uses GCP and updates propagate the fastest internally.
       - "8.8.8.8"
       - "8.8.4.4"
+      # These will go unused with the default configuration, unless the daemon is configured to allocate IPv6 subnets to all docker networks
+      - "2001:4860:4860::8888"
+      - "2001:4860:4860::8844"
     build: .
     restart: unless-stopped
-    environment:
-      - PEPPERCORD_TOKEN=YOUR_TOKEN
-      - PEPPERCORD_MESSAGE_COMMANDS=True
+    read_only: true
     depends_on:
       - "mongo"
     tmpfs:
       - /tmp
+    networks:
+      - backend
+      - frontend
     volumes:
-      - "config:/app/config"
       - "/etc/default/locale:/etc/default/locale:ro"
       - "/usr/share/locale:/usr/share/locale:ro"
       - "/usr/lib/locale:/usr/lib/locale:ro"
@@ -32,3 +44,8 @@ services:
 volumes:
   db:
   config:
+networks:
+  backend:
+    internal: true  # MongoDB is fine without internet
+  frontend:
+    internal: false

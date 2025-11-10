@@ -1,9 +1,8 @@
-from typing import Optional, Tuple, Union, TYPE_CHECKING
+from typing import Optional, Tuple, Union, TYPE_CHECKING, cast
 
 import discord
 
-if TYPE_CHECKING:
-    from utils.bots import BOT_TYPES
+from utils.bots.bot import CustomBot
 
 
 class NoMedia(Exception):
@@ -13,8 +12,6 @@ class NoMedia(Exception):
 
 
 class BadMedia(Exception):
-    """Raised when"""
-
     pass
 
 
@@ -31,10 +28,10 @@ class MediaTooLong(BadMedia):
 
 
 async def find_url(
-    message: discord.Message, bot: "BOT_TYPES"
+    message: discord.Message, bot: CustomBot
 ) -> Tuple[str, Union[discord.Attachment, discord.Embed]]:
     """
-    Finds the URL of media attached to a message.
+    Finds the URL of the first media attached to a message.
 
     If a message is replying to another message, recurse on that message.
 
@@ -45,33 +42,37 @@ async def find_url(
 
     if not isinstance(message, discord.Message):  # Must be a _FakeSlashMessage
         raise NoMedia
+
     if message.attachments:
-        attachment: discord.Attachment = message.attachments[0]
-
+        attachment = message.attachments[0]
         return attachment.url, attachment
-    elif message.embeds and message.embeds[0].type != "rich":
-        embed: discord.Embed = message.embeds[0]
+    elif message.embeds:
+        for embed in message.embeds:
+            match embed.type:
+                case "image":
+                    # Won't be None with this type
+                    return cast(str, embed.url), embed
+                case "gifv":
+                    # Won't be None with this type
+                    return cast(str, embed.video.url), embed
+                case _:
+                    continue
 
-        if embed.type == "gifv":
-            embed_url = embed.video.url
-        else:
-            embed_url = embed.url
-
-        return embed_url, embed
-    elif message.reference:
+    if message.reference:
         referenced_message: Optional[discord.Message] = message.reference.cached_message
         if referenced_message is None:
-            referenced_message = await bot.smart_fetch_message(
-                message.channel, message.reference.message_id
+            # reference.message_id is only None when the reference is a system message, and to my knowledge users can't reply to those directly with normal messages
+            referenced_message = await message.channel.fetch_message(
+                cast(int, message.reference.message_id)
             )
 
         return await find_url(referenced_message, bot)
-    else:
-        raise NoMedia
+
+    raise NoMedia
 
 
 async def find_url_recurse(
-    message: discord.Message, bot: "BOT_TYPES"
+    message: discord.Message, bot: CustomBot
 ) -> Tuple[str, Union[discord.Attachment, discord.Embed]]:
     """Attempts to find the media URL of a message,
     and if no message is found, iterate over messages in the channel history."""
@@ -80,7 +81,7 @@ async def find_url_recurse(
         return await find_url(message, bot)
     except NoMedia:
         async for message in message.channel.history(
-            before=message.created_at, limit=50
+            before=message.created_at, limit=50  # TODO: extract magic number
         ):
             try:
                 return await find_url(message, bot)

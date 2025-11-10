@@ -1,14 +1,24 @@
 from io import BytesIO
+from tempfile import NamedTemporaryFile
 
 from PIL import Image
 from reportlab.graphics.renderPM import drawToFile
-from reportlab.graphics.shapes import Drawing
 from svglib.svglib import svg2rlg
 
 
 def svg2png(svg: bytes) -> bytes:
-    with BytesIO(svg) as svg_file, BytesIO() as png_file:
-        drawing: Drawing = svg2rlg(svg_file)
+    with BytesIO() as png_file, NamedTemporaryFile(suffix=".svg") as svg_file:
+        # The comment says that File-like objects are permitted for svg2rlg, but the types and code tell a different story.
+        # A NamedTemporaryFile is used as a shim
+        svg_file.write(svg)
+        svg_file.flush()
+        svg_file.seek(0)
+
+        drawing = svg2rlg(svg_file.name)
+
+        if drawing is None:
+            raise RuntimeError("Failed to load SVG!")
+
         drawToFile(
             drawing, png_file, "png", bg=0x000000
         )  # Transparent background doesn't want to work with this library.
@@ -24,7 +34,8 @@ def vrt_concat_pngs(png1: bytes, png2: bytes) -> bytes:
         if image2.width != image1.width:
             image2_aspect_ratio: float = image2.height / image2.width
             image2 = image2.resize(
-                (image1.width, int(image2_aspect_ratio * image1.width)), Image.ANTIALIAS
+                (image1.width, int(image2_aspect_ratio * image1.width)),
+                Image.Resampling.BILINEAR,
             )
 
         buffer_img: Image.Image = Image.new(
@@ -47,7 +58,7 @@ def hrz_concat_pngs(png1: bytes, png2: bytes) -> bytes:
             image2_aspect_ratio: float = image2.width / image2.height
             image2 = image2.resize(
                 (int(image1.height * image2_aspect_ratio), image1.height),
-                Image.ANTIALIAS,
+                Image.Resampling.BILINEAR,
             )
 
         buffer_img: Image.Image = Image.new(

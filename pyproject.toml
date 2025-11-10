@@ -1,46 +1,37 @@
 [tool.poetry]
 name = "peppercord"
-version = "9.3.2"
+version = "10.0.0"
 description = "A multi-purpose Discord bot written in Python."
 authors = ["Parker Wahle <regulad@regulad.xyz>"]
 license = "GPLv3"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.11,<3.13"
-aiocoingecko = "^1.0.0"
-aiofiles = "^23.1.0"
-aiohttp = "^3.8.4"
-"anekos.py" = "^2.0.0"
-art = "^5.8"
-async-gtts = "^0.3.0"
-asyncio-dgram = "^2"
-beautifulsoup4 = "^4.11.1"
-discord-ext-hybrid-menus = "^1.0.3"
-discord-pretty-help = "^2"
-"discord.py" = {version = "^2", extras = ["voice", "speed"]}
-dnspython = "^2.2.1"  # ignore, required by mcstatus
-"evb.py" = "^1.1.1"
+python = "3.14.0"
+aiofiles = "25.1.0"  # no semantic versioning -- has stubs
+aiohttp = "^3.13.2"
+beautifulsoup4 = "^4.14.2"
+"discord.py" = {version = "2.6.4", extras = ["voice", "speed"]}  # pinned -- internals used
 gitpython = "^3.1.31"
-jishaku = "^2.3.2"
-lxml = "^4.9.1"
-mcstatus = "^10.0.1"
-motor = "^3.1.1"
-pillow = "^9"
-psutil = "^5.9"
-pymongo = "4.6.3"
-python-dateutil = "^2.8.2"
-python-dotenv = "^0.21.1"
-reportlab = "^3.5.68"
-svglib = "^1.1.0"
-youtube-dl = ">=2021.12"
-dislog = "^2.1.0"
-yt-dlp = "^2024.7.1"
-mc-formatting-sirnapkin1334 = {git = "https://github.com/Moire9/MC-Formatting.git"}
+jishaku = "^2.6.3"
+mcstatus = "^12.0.6"
+pillow = "^12.0.0"
+psutil = "^7.1.3"
+python-dateutil = "2.9.0.post0"  # has stubs
+python-dotenv = "^1.2.1"
+reportlab = "4.4.4"  # has stubs
+svglib = "^1.6.0"
+yt-dlp = ">=2025.10.22"  # very stable outward API
+mc-formatting-sirnapkin1334 = {git = "https://github.com/Moire9/MC-Formatting.git",rev = "6f4796683e114cb7632814c577507c8bafecf88a"}
+black = "25.9.0"  # Pinned in .pre-commit-config.yaml
+pymongo = "^4.15.3"
+discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus", rev = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"}
+pytz = "2025.2.0"  # has stubs
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"
 tox = "^4.4.5"
+poetry = "2.1.2"  # Pinned in .pre-commit-config.yaml & CI
 
 [tool.poetry.group.ci]
 optional = true
@@ -48,12 +39,38 @@ optional = true
 [tool.poetry.group.ci.dependencies]
 tox-gh-actions = "^3.0.0"
 
-[tool.poetry.group.test.dependencies]
-pytest = "^7.2.1"
-coverage = "^7.1.0"
-pytest-asyncio = "^0.20.3"
-
 [tool.poetry.group.type.dependencies]
-mypy = "^1.0.0"
-types-aiofiles = "^22.1.0.8"
-types-python-dateutil = "^2.8.19.7"
+mypy = "^1.18.2"
+types-aiofiles = "25.1.0.20251011"  # no semantic versioning
+types-python-dateutil = "2.9.0.20251008"
+types-reportlab = "4.4.4.20250926"
+types-pytz = "2025.2.0.20251108"
+
+[tool.mypy]
+mypy_path = "src"
+namespace_packages = true  # even with this enabled, the vscode mypy ext doesn't capture them correctly
+explicit_package_bases = true
+follow_untyped_imports = true
+# checks
+disallow_any_unimported = true
+disallow_any_generics = true
+disallow_any_expr = false  # too iffy to waste time on
+disallow_any_explicit = false
+disallow_subclassing_any = true
+disallow_untyped_defs = true
+disallow_untyped_decorators = true
+implicit_optional = false
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+local_partial_types = true
+extra_checks = true
+implicit_reexport = false
+strict_equality = true
+strict_equality_for_none = true
+strict_bytes = true
+# formatting only
+show_error_code_links = true
+pretty = true

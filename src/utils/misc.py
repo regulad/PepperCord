@@ -2,12 +2,24 @@ import os
 import random
 import string
 from datetime import timedelta, datetime
-from typing import Mapping, Any, Callable
+from typing import (
+    Awaitable,
+    Coroutine,
+    Generic,
+    Iterable,
+    Iterator,
+    Mapping,
+    Any,
+    Callable,
+    ParamSpec,
+    TypeVar,
+    cast,
+)
 
 from discord import Status
 
 
-def split_iter_chunks(iterable: list, chunk_size: int = 2000) -> list[str]:
+def split_str_chunks(iterable: str, chunk_size: int = 2000) -> Iterable[str]:
     return [iterable[i : i + chunk_size] for i in range(0, len(iterable), chunk_size)]
 
 
@@ -90,38 +102,38 @@ def get_python_modules(basedir: str) -> list[str]:
     ]
 
 
-class FrozenDict(Mapping):
-    def __init__(self, *args, **kwargs):
-        self._d = dict(*args, **kwargs)
-        self._hash = None
+K = TypeVar("K")
+V = TypeVar("V")
 
-    def __iter__(self):
+
+class FrozenDict(Mapping[K, V], Generic[K, V]):
+    __slots__ = ("_d",)
+
+    def __init__(
+        self, *args: Any, **kwargs: Any
+    ) -> None:  # TODO: fix bad passthrough typing
+        self._d = cast(Mapping[K, V], dict(*args, **kwargs))
+
+    def __iter__(self) -> Iterator[K]:
         return iter(self._d)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._d)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: K) -> V:
         return self._d[key]
 
-    def __hash__(self):
-        # It would have been simpler and maybe more obvious to
-        # use hash(tuple(sorted(self._d.iteritems()))) from this discussion
-        # so far, but this solution is O(n). I don't know what kind of
-        # n we are going to run into, but sometimes it's hard to resist the
-        # urge to optimize when it will gain improved algorithmic performance.
-        if self._hash is None:
-            hash_ = 0
-            for pair in self.items():
-                hash_ ^= hash(pair)
-            self._hash = hash_
-        return self._hash
+
+UTC_OFFSET = datetime.utcnow() - datetime.now()  # this sucks
 
 
-UTC_OFFSET: timedelta = datetime.utcnow() - datetime.now()  # this sucks
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-def edit_with_files_send_wrapper(send, *args, **kwargs) -> Any:
+def edit_with_files_send_wrapper(
+    send: Callable[P, Awaitable[R]], *args: P.args, **kwargs: P.kwargs
+) -> Awaitable[R]:  # TODO: fix bad passthrough typing
     if "files" in kwargs:
         if kwargs["files"] is not None:
             kwargs["attachments"] = kwargs["files"]
@@ -131,23 +143,8 @@ def edit_with_files_send_wrapper(send, *args, **kwargs) -> Any:
     return send(*args, **kwargs)
 
 
-def name_of_func(func: Callable) -> str:
-    unknown_name = repr(func)
-    try:
-        # get function name
-        name = func.__name__
-    except AttributeError:
-        # check partial
-        try:
-            name = func.func.__name__  # type: ignore[attr-defined]
-        except AttributeError:
-            # unknown
-            name = unknown_name
-    return name
-
-
 __all__: list[str] = [
-    "split_iter_chunks",
+    "split_str_chunks",
     "FrozenDict",
     "is_module",
     "get_list_of_files_in_base",
@@ -157,5 +154,4 @@ __all__: list[str] = [
     "status_breakdown",
     "rgb_human_readable",
     "edit_with_files_send_wrapper",
-    "name_of_func",
 ]

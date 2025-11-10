@@ -1,33 +1,41 @@
 from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import NotRequired, Optional, Self, TypedDict, cast
 
 from discord import abc, FFmpegPCMAudio
 
-try:
-    from yt_dlp import YoutubeDL  # type: ignore
-except ImportError:
-    from youtube_dl import YoutubeDL  # type: ignore
-
-from utils.bots import CustomVoiceClient
-from .common import *
+from yt_dlp import YoutubeDL
+from utils.bots.audio import CustomVoiceClient
+from utils.sources.common import *
 
 
-class YTDLSource(EnhancedSourceWrapper):
+class YTDLInfo(TypedDict):
+    """
+    Represents the return type from YoutubeDL.extract_info
+    """
+
+    title: str
+    url: str  # URL that can be opened by ffmpeg
+    webpage_url: str
+    entries: NotRequired[list[YTDLInfo]]
+    duration: NotRequired[int]
+
+
+class YTDLSource(EnhancedPCMVolumeTransformer[FFmpegPCMAudio]):
     """Represents a source from YoutubeDL that has the ability to have it's volume changed."""
 
     def __init__(
         self,
         source: FFmpegPCMAudio,
-        volume=0.5,
+        volume: float = 0.5,
         *,
-        info: dict,
+        info: YTDLInfo,
         file_downloader: YoutubeDL,
         invoker: abc.User,
-    ):
-        self.file_downloader: YoutubeDL = file_downloader
-        self.info: dict = info
-        self._created: datetime = datetime.now()
+    ) -> None:
+        self.file_downloader = file_downloader
+        self.info = info
+        self._created = datetime.now()
 
         super().__init__(source, volume, invoker=invoker)
 
@@ -47,7 +55,7 @@ class YTDLSource(EnhancedSourceWrapper):
     def description(self) -> str:
         return self.info["webpage_url"]
 
-    async def refresh(self, voice_client: CustomVoiceClient) -> "YTDLSource":
+    async def refresh(self, voice_client: CustomVoiceClient) -> Self:
         """Regrabs audio from site. Useful if video is time limited."""
 
         if (self._created + timedelta(minutes=1)) > datetime.now():
@@ -55,8 +63,11 @@ class YTDLSource(EnhancedSourceWrapper):
                 self.file_downloader,
                 self.info["webpage_url"],
                 self.invoker,
+                cached_info=None,  # force a refetch
                 loop=voice_client.loop,
             )
+        else:
+            return self
 
     @classmethod
     async def from_url_single(
@@ -64,19 +75,26 @@ class YTDLSource(EnhancedSourceWrapper):
         file_downloader: YoutubeDL,
         url: str,
         invoker: abc.User,
-        cached_info: Optional[dict] = None,
+        cached_info: Optional[YTDLInfo] = None,
         *,
         loop: AbstractEventLoop,
-    ) -> "YTDLSource":
-        info: dict = cached_info or await loop.run_in_executor(
-            None, lambda: file_downloader.extract_info(url, download=False)
+    ) -> Self:
+        info = cached_info or (
+            cast(
+                YTDLInfo,  # cast here is because mypy doesn't get the run_in_executor type
+                await loop.run_in_executor(
+                    None, lambda: file_downloader.extract_info(url, download=False)
+                ),
+            )
         )
 
         if info.get("entries") is not None:
             raise RuntimeError("Multiple tracks")
         else:
             return cls(
-                FFmpegPCMAudio(info["url"], **FFMPEG_OPTIONS),
+                FFmpegPCMAudio(
+                    info["url"], options="-vn"
+                ),  # -vn: "Video No" -> disables video stream
                 info=info,
                 invoker=invoker,
                 file_downloader=file_downloader,
@@ -93,8 +111,11 @@ class YTDLSource(EnhancedSourceWrapper):
     ) -> list["YTDLSource"]:
         """Returns a list of YTDLSources from a playlist or song."""
 
-        info: dict = await loop.run_in_executor(
-            None, lambda: file_downloader.extract_info(url, download=False)
+        info = cast(
+            YTDLInfo,  # cast here is because mypy doesn't get the run_in_executor type
+            await loop.run_in_executor(
+                None, lambda: file_downloader.extract_info(url, download=False)
+            ),
         )
 
         if info.get("entries") is not None:

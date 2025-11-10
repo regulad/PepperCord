@@ -1,8 +1,7 @@
 from abc import ABC
-from typing import Dict, Any, Literal, Self, cast, TYPE_CHECKING, Coroutine, overload
+from typing import Dict, Any, Literal, cast, TYPE_CHECKING, Coroutine, overload
 
 from discord import (
-    Interaction,
     Message,
     HTTPException,
     User,

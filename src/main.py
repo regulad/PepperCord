@@ -7,7 +7,7 @@ import locale
 import logging
 import os
 from asyncio import run, gather, AbstractEventLoop, get_event_loop
-from typing import Optional, Sequence
+from typing import Sequence
 
 from discord import Intents, Object, Game, Forbidden
 from dotenv import load_dotenv

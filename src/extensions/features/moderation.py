@@ -1,11 +1,7 @@
-import datetime
-import math
-from typing import Optional, Union, cast
-
 import discord
 from discord.app_commands import describe, default_permissions
 from discord.app_commands import guild_only as ac_guild_only
-from discord.ext import commands, tasks
+from discord.ext import commands
 from discord.ext.commands import hybrid_command, guild_only
 
 from utils.bots.bot import CustomBot

@@ -3,7 +3,6 @@ from io import BytesIO
 from os import getcwd
 from os.path import join
 from random import choice
-from tkinter import Image
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -12,7 +11,6 @@ from typing import (
     NotRequired,
     TypedDict,
     cast,
-    Type,
     Awaitable,
     Callable,
     Sequence,

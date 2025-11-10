@@ -1,4 +1,4 @@
-from typing import Optional, Protocol, cast
+from typing import Optional, cast
 
 import discord
 from discord import (
@@ -30,8 +30,6 @@ from utils.bots.context import CustomContext
 
 class AlreadyPinned(RuntimeError):
     """This message is already pinned to the starboard."""
-
-    pass
 
 
 async def send_star(
@@ -220,7 +218,6 @@ class Starboard(commands.Cog):
         """
         Commands for configuring the starboard.
         """
-        pass
 
     @sbconfig.command()  # type: ignore[arg-type]  # bad d.py export
     @guild_only()

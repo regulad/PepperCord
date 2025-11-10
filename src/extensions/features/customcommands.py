@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import datetime
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional, List, Self, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, Self, Sequence, cast
 
 import discord
 from discord.app_commands import describe
@@ -161,8 +159,6 @@ def get_custom_command_from_guild(
 
 class CustomCommandDoesNotExist(commands.BadArgument):
     """Raised when a custom command should exist and it does not."""
-
-    pass
 
 
 class CustomCommandConverter(commands.Converter[CustomCommand]):

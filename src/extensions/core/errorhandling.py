@@ -2,22 +2,18 @@ import asyncio
 import inspect
 from copy import copy
 from logging import getLogger
-from tkinter import N
 from typing import TYPE_CHECKING, Any, Optional, cast, Type
 
 import discord
 from discord import (
     Interaction,
-    ButtonStyle,
     Embed,
     Message,
-    RawReactionActionEvent,
     TextStyle,
 )
 from discord.app_commands import CommandInvokeError as AppCommandInvokeError
 from discord.ext import commands, menus
 from discord.ext.commands import CommandNotFound
-from discord.ext.menus import button
 from discord.ui import Modal, TextInput
 
 from utils import attachments

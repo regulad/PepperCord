@@ -1,7 +1,7 @@
 from typing import Sequence
 from discord.app_commands import describe
 from discord.app_commands import guild_only as ac_guild_only
-from discord.ext.commands import hybrid_command, Cog, guild_only, Context
+from discord.ext.commands import hybrid_command, Cog, guild_only
 
 from discord.ext.menus import MenuPages
 from utils.bots.audio import CustomVoiceClient

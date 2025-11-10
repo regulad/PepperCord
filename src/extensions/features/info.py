@@ -5,7 +5,7 @@ from typing import Union, Optional, cast
 
 import discord
 import psutil
-from discord import ClientUser, Guild, Interaction, Member, User, AppCommandType
+from discord import ClientUser, Interaction, Member, User, AppCommandType
 from discord.app_commands import describe, context_menu
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks

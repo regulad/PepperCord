@@ -27,6 +27,7 @@ black = "25.9.0"  # Pinned in .pre-commit-config.yaml
 pymongo = {version = "^4.15.3", extras = ["srv"]}
 discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus", rev = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"}
 pytz = "2025.2.0"  # has stubs
+discord-ext-voice-recv = "0.5.2a179"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"

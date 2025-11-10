@@ -982,6 +982,26 @@ reference = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"
 resolved_reference = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"
 
 [[package]]
+name = "discord-ext-voice-recv"
+version = "0.5.2a179"
+description = "Experimental voice receive extension for discord.py"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "discord_ext_voice_recv-0.5.2a179-py3-none-any.whl", hash = "sha256:f3fa65f2c1591bef2382aa39f3ebc25d6751b405aef5b5d113dfb452640f29fc"},
+    {file = "discord_ext_voice_recv-0.5.2a179.tar.gz", hash = "sha256:6cb8f5ff60c3885020e5ebd879323dc97ebb0745788f3778a14ef31810f848a8"},
+]
+
+[package.dependencies]
+"discord.py" = {version = ">=2.5", extras = ["voice"]}
+
+[package.extras]
+extras = ["SpeechRecognition", "pyaudio"]
+extras-local = ["pyaudio"]
+extras-speech = ["SpeechRecognition"]
+
+[[package]]
 name = "discord-py"
 version = "2.6.4"
 description = "A Python wrapper for the Discord API"
@@ -3937,4 +3957,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = "3.14.0"
-content-hash = "5efa235ee0fa342e939dedcf6d75aa211c48457ad9389c5d89f4ce6da5a7fee2"
+content-hash = "d8c6d53d759e500f625689c38197e70c4dcaae68892e778df46fda1105fdb9c2"

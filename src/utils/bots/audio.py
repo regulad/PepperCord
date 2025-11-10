@@ -4,7 +4,8 @@ from collections import deque
 from logging import getLogger
 from typing import Any, Optional, Self, cast
 
-from discord import VoiceClient, Client, AudioSource, TextChannel, Thread
+from discord.ext.voice_recv import VoiceRecvClient
+from discord import Client, AudioSource, TextChannel, Thread
 from discord import abc
 
 logger = getLogger(__name__)
@@ -60,7 +61,7 @@ def _maybe_exception(future: Future[None], exception: Optional[Exception]) -> No
         future.set_result(None)
 
 
-class CustomVoiceClient(VoiceClient):
+class CustomVoiceClient(VoiceRecvClient):
     @staticmethod
     async def create(
         connectable: abc.Connectable, **kwargs: Any

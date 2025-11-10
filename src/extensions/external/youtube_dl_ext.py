@@ -50,12 +50,11 @@ BEST_AUDIO = (
     "/worstaudio[ext=flac]"
 )
 
-YTDL_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
+YTDL_DOWNLOAD_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
     {
         "format": BEST_VIDEO,  # favor MP4s
         "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
         "restrictfilenames": True,
-        "nocheckcertificate": True,
         "ignoreerrors": False,
         "logtostderr": False,
         "prefer_ffmpeg": True,
@@ -63,6 +62,7 @@ YTDL_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
         "no_warnings": True,
         "default_search": "auto",
         "source_address": "0.0.0.0",  # bind to ipv4 since ipv6 addresses cause issues sometimes
+        # TODO: Why do we need to bind to ipv4 listener only?
         "outtmpl_na_placeholder": "mp4",  # default to mp4 if we have no idea what something is
     }
 )
@@ -91,7 +91,7 @@ class YoutubeDLCog(Cog, name="YoutubeDL"):
         """Download a video using YoutubeDL."""
 
         async with ctx.typing():
-            ytdl_params = dict(YTDL_FORMAT_INITIAL_OPTIONS)
+            ytdl_params = dict(YTDL_DOWNLOAD_FORMAT_INITIAL_OPTIONS)
 
             filesize_max_bytes = cast(
                 Guild, ctx.guild
@@ -110,7 +110,7 @@ class YoutubeDLCog(Cog, name="YoutubeDL"):
                 filesize=f"{filesize_max_mi_b}M"
             )
 
-            async with TemporaryDirectory() as tempdir:  # type: str
+            async with TemporaryDirectory() as tempdir:
                 ytdl_params["outtmpl"] = (
                     tempdir + sep + cast(str, ytdl_params["outtmpl"])
                 )

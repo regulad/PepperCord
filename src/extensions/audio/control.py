@@ -7,6 +7,7 @@ from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import hybrid_command, Cog, guild_only
 
 from discord.ext.menus import ListPageSource, Menu, MenuPages
+from discord.ext.voice_recv import VoiceRecvClient
 from utils.bots.audio import CustomVoiceClient, EnhancedSource
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
@@ -14,9 +15,9 @@ from utils.checks.audio import check_voice_client_predicate
 from utils.converters import duration_to_str
 from utils.sources.ytdl import YTDLSource
 
-PROGRESS: str = "🟩"
+PROGRESS: str = "🟦"
 VOID: str = "⬜"
-COUNT: int = 11
+COUNT: int = 10
 
 
 # Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
@@ -117,7 +118,10 @@ class AudioSourceMenu(_AudioSourceMenu_Base):
                 for i in range(1, COUNT + 1):
                     squares.append(
                         PROGRESS
-                        if ((self.client.progress or 0) > (1 / COUNT) * i)
+                        if (
+                            (self.client.progress or 0)
+                            > (self.source.duration / COUNT) * i
+                        )
                         else VOID
                     )
                 embed.add_field(
@@ -213,7 +217,10 @@ class Audio(Cog):
         assert ctx.voice_client is not None  # guaranteed at runtime
         if not isinstance(ctx.voice_client, VoiceClient):
             raise RuntimeError("This command cannot be run right now.")
-        ctx.voice_client.stop()
+        if isinstance(ctx.voice_client, VoiceRecvClient):
+            ctx.voice_client.stop_playing()
+        else:
+            ctx.voice_client.stop()
         await ctx.send("Stopped the currently playing track.", ephemeral=True)
 
     @hybrid_command(aliases=["dc", "fuckoff"])  # type: ignore[arg-type]  # bad d.py export

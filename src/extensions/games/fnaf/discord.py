@@ -455,7 +455,7 @@ class FiveNightsAtFreddys(Cog):
     async def fpleaderboard(self, ctx: CustomContext) -> None:
         """Displays the fazpoints all members of the server relative to each other."""
         assert ctx.guild is not None  # guaranteed by check
-        async with ctx.typing():
+        async with ctx.typing(ephemeral=True):
             member_fazpoints: list[tuple[Member, int]] = []
 
             for member in ctx.guild.members[:500]:  # To prevent DB from exploding
@@ -469,6 +469,8 @@ class FiveNightsAtFreddys(Cog):
                 source=source
             )
 
+            # We have to do this because the legacy menu doesn't respond to the Interaction
+            await ctx.send("Bringing up your menu...", ephemeral=True)
             await menu.start(ctx)
 
 

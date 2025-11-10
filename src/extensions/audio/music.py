@@ -53,8 +53,12 @@ class Music(Cog):
                 await ctx.voice_client.queue.put(source)
 
             if len(ytdl_sources) == 1:
+                # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
+                await ctx.send("Added a track.", ephemeral=True)
                 await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
             else:
+                # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
+                await ctx.send("Added tracks.", ephemeral=True)
                 menu: "MenuPages[CustomBot, CustomContext, QueueMenuSource]" = (
                     MenuPages(
                         QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
@@ -90,8 +94,12 @@ class Music(Cog):
                     await ctx.voice_client.queue.put(source)
 
             if len(ytdl_sources) == 1:
+                # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
+                await ctx.send("Added a track.", ephemeral=True)
                 await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
             else:
+                # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
+                await ctx.send("Added tracks.", ephemeral=True)
                 menu: "MenuPages[CustomBot, CustomContext, QueueMenuSource]" = (
                     MenuPages(
                         QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")

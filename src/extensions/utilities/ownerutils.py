@@ -85,6 +85,9 @@ class OwnerUtils(Cog):
         menu: "MenuPages[CustomBot, CustomContext, GuildsMenuList]" = MenuPages(
             GuildsMenuList(sorted(ctx.bot.guilds, key=guild_comp_key), per_page=10)
         )
+
+        # We have to do this because the legacy menu doesn't respond to the Interaction
+        await ctx.send("Bringing up your menu...", ephemeral=True)
         await menu.start(ctx)
 
 

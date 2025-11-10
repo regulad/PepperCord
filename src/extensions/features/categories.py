@@ -92,7 +92,7 @@ class Categories(Cog):
         Categories registered for AutoSorting have their channels moved to the top as soon as they have a message sent.
         """
         assert ctx.guild is not None  # guaranteed at runtime
-        async with ctx.typing():
+        async with ctx.typing(ephemeral=True):
             menu: "MenuPages[CustomBot, CustomContext, CategoryList]" = MenuPages(
                 CategoryList(
                     [
@@ -110,6 +110,9 @@ class Categories(Cog):
                     ]
                 )
             )
+
+            # We have to do this because the legacy menu doesn't respond to the Interaction
+            await ctx.send("Bringing up your menu...", ephemeral=True)
             await menu.start(ctx)
 
     @autosort.command()  # type: ignore[arg-type]  # bad d.py export

@@ -261,6 +261,9 @@ class CustomCommands(commands.Cog):
         pages: "menus.MenuPages[CustomBot, CustomContext, CustomCommandSource]" = (
             menus.MenuPages(source=source)
         )
+
+        # We have to do this because the legacy menu doesn't respond to the Interaction
+        await ctx.send("Bringing up your menu...", ephemeral=True)
         await pages.start(ctx)
 
     @customcommands.command()  # type: ignore[arg-type]  # valid at runtime; bad d.py type

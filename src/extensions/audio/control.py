@@ -151,6 +151,8 @@ class Audio(Cog):
         if maybe_source is None:
             await ctx.send("No track is playing.", ephemeral=True)
         else:
+            # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
+            await ctx.send("Raised the menu for the queue.", ephemeral=True)
             menu: "MenuPages[CustomBot, CustomContext, QueueMenuSource]" = MenuPages(
                 QueueMenuSource(
                     list(ctx.voice_client.queue.deque),
@@ -177,6 +179,8 @@ class Audio(Cog):
         if maybe_source is None:
             await ctx.send("No track is playing.", ephemeral=True)
         else:
+            # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
+            await ctx.send("Raised the menu for now playing.", ephemeral=True)
             await AudioSourceMenu(maybe_source, ctx.voice_client).start(ctx)
 
     @hybrid_command()  # type: ignore[arg-type]  # bad d.py export

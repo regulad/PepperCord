@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from asyncio import get_event_loop, AbstractEventLoop
 from dataclasses import MISSING
 import functools
 from io import BytesIO
 import operator
-from typing import Any, Optional, Self, Type, cast
+from typing import TYPE_CHECKING, Any, Optional, Self, Type, cast
 
 from discord import ButtonStyle, File, SelectOption, ui, Message
 from PIL.Image import Image as ImageType
@@ -38,18 +40,23 @@ async def set_fazpoints(
     await doc.update_db({"$set": {"fazpoints": fazpoints}})
 
 
-class LevelSource(
-    ListPageSource[
-        tuple[Member, int], MenuPages[CustomBot, CustomContext, "LevelSource"]
+# Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
+if TYPE_CHECKING:
+    _LevelSource_Base = ListPageSource[
+        tuple[Member, int], "MenuPages[CustomBot, CustomContext, LevelSource]"
     ]
-):
+else:
+    _LevelSource_Base = ListPageSource
+
+
+class LevelSource(_LevelSource_Base):
     def __init__(self, data: list[tuple[Member, int]], guild: Guild) -> None:
         self.guild = guild
         super().__init__(data, per_page=10)
 
     async def format_page(
         self,
-        menu: MenuPages[CustomBot, CustomContext, "LevelSource"],
+        menu: "MenuPages[CustomBot, CustomContext, LevelSource]",
         page_entries: list[tuple[Member, int]] | tuple[Member, int],
     ) -> Embed:
         assert isinstance(page_entries, list)  # asserted by per_page above
@@ -458,7 +465,7 @@ class FiveNightsAtFreddys(Cog):
                 sorted(member_fazpoints, key=operator.itemgetter(-1), reverse=True),
                 ctx.guild,
             )
-            menu: MenuPages[CustomBot, CustomContext, "LevelSource"] = MenuPages(
+            menu: "MenuPages[CustomBot, CustomContext, LevelSource]" = MenuPages(
                 source=source
             )
 

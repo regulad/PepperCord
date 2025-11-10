@@ -216,7 +216,9 @@ class CustomBot(Bot):
             self._database["commands"],
             {
                 "name": command.name,
-                "cog": (command.cog_name),
+                "cog": getattr(
+                    command, "cog_name", None
+                ),  # cog_name isn't on HybridAppCommand, even though it inherits from Command
             },
         )
 

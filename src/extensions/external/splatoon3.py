@@ -5,6 +5,7 @@ from os.path import join
 from random import choice
 from tkinter import Image
 from typing import (
+    TYPE_CHECKING,
     Literal,
     Any,
     Never,
@@ -27,7 +28,6 @@ from discord.app_commands import describe
 from discord.ext import tasks
 from discord.ext.commands import Cog, hybrid_group, CheckFailure
 from discord.ui import Select, View
-from discord.ui.select import SelectMessageComponentInteractionData  # type: ignore[attr-defined]  # quite sure this is intentional
 from discord.utils import format_dt, MISSING
 from pytz import UTC
 
@@ -37,6 +37,10 @@ from utils.consts import TIME_EMOJIS
 from utils.images import vrt_concat_pngs, hrz_concat_pngs
 from utils.markdown_tools import bold
 from utils.misc import rgb_human_readable, edit_with_files_send_wrapper, FrozenDict
+
+if TYPE_CHECKING:
+    from discord.ui.select import SelectMessageComponentInteractionData  # type: ignore[attr-defined]
+
 
 SPLATFEST_UNSTARTED_COLOR: int = 0x666775
 REGULAR_BATTLE_COLOR: int = 0xCFF622

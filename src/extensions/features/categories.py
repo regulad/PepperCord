@@ -1,4 +1,6 @@
-from typing import Sequence
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Sequence
 from discord import CategoryChannel, Embed, Message, Thread
 from discord.app_commands import (
     default_permissions,
@@ -17,10 +19,16 @@ from discord.ext.menus import ListPageSource, MenuPages
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 
+# Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
+if TYPE_CHECKING:
+    _CategoryList_Base = ListPageSource[
+        CategoryChannel, "MenuPages[CustomBot, CustomContext, CategoryList]"
+    ]
+else:
+    _CategoryList_Base = ListPageSource
 
-class CategoryList(
-    ListPageSource[CategoryChannel, MenuPages[CustomBot, CustomContext, "CategoryList"]]
-):
+
+class CategoryList(_CategoryList_Base):
     def __init__(
         self, entries: Sequence[CategoryChannel], *, per_page: int = 15
     ) -> None:
@@ -30,7 +38,7 @@ class CategoryList(
 
     async def format_page(
         self,
-        menu: MenuPages[CustomBot, CustomContext, "CategoryList"],
+        menu: "MenuPages[CustomBot, CustomContext, CategoryList]",
         entries: list[CategoryChannel] | CategoryChannel,
     ) -> Embed:
         offset = menu.current_page * self.per_page
@@ -85,7 +93,7 @@ class Categories(Cog):
         """
         assert ctx.guild is not None  # guaranteed at runtime
         async with ctx.typing():
-            menu: MenuPages[CustomBot, CustomContext, "CategoryList"] = MenuPages(
+            menu: "MenuPages[CustomBot, CustomContext, CategoryList]" = MenuPages(
                 CategoryList(
                     [
                         category

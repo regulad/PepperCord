@@ -3,10 +3,17 @@ import inspect
 from copy import copy
 from logging import getLogger
 from tkinter import N
-from typing import Any, Optional, cast, Type
+from typing import TYPE_CHECKING, Any, Optional, cast, Type
 
 import discord
-from discord import Interaction, ButtonStyle, Embed, Message, TextStyle
+from discord import (
+    Interaction,
+    ButtonStyle,
+    Embed,
+    Message,
+    RawReactionActionEvent,
+    TextStyle,
+)
 from discord.app_commands import CommandInvokeError as AppCommandInvokeError
 from discord.ext import commands, menus
 from discord.ext.commands import CommandNotFound
@@ -131,7 +138,14 @@ class ErrorSupportModal(Modal, title="Support Form"):
             )
 
 
-class ErrorMenu(menus.Menu[CustomBot, CustomContext]):
+# Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
+if TYPE_CHECKING:
+    _ErrorMenu_Base = menus.Menu[CustomBot, CustomContext]
+else:
+    _ErrorMenu_Base = menus.Menu
+
+
+class ErrorMenu(_ErrorMenu_Base):
     def __init__(
         self, error: Exception, **kwargs: Any
     ) -> None:  # TODO: better kwarg passthrough
@@ -171,22 +185,17 @@ class ErrorMenu(menus.Menu[CustomBot, CustomContext]):
 
         return await channel.send(embed=embed)
 
-    @button(
-        "ℹ",
-        label="Support Server",
-        style=ButtonStyle.url,
-        url="https://discord.gg/xwH2Bw7P5b",
-    )
-    async def support_server(
-        self, button: discord.ui.Button[Any], interaction: Interaction
-    ) -> None:
-        pass
+    # @button("ℹ")
+    # async def support_server(
+    #     self, menu: ErrorMenu, raw_reaction_event: RawReactionActionEvent
+    # ) -> None:
+    #     pass
 
-    @button("⚠", label="Report Error", style=ButtonStyle.red)
-    async def on_info(self, payload: Interaction) -> None:
-        await payload.response.send_modal(
-            ErrorSupportModal(self.error, cast(CustomContext, self.ctx))
-        )
+    # @button("⚠")
+    # async def on_info(self, menu: ErrorMenu, raw_reaction_event: RawReactionActionEvent) -> None:
+    #     await payload.response.send_modal(
+    #         ErrorSupportModal(self.error, cast(CustomContext, self.ctx))
+    #     )
 
 
 class ErrorLogging(commands.Cog):

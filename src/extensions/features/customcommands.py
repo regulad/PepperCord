@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import datetime
 from enum import Enum
-from typing import Any, Optional, List, Self, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, List, Self, Sequence, cast
 
 import discord
 from discord.app_commands import describe
@@ -47,18 +49,23 @@ class CustomCommand:
         return custom_commands
 
 
-class CustomCommandSource(
-    ListPageSource[
-        CustomCommand, MenuPages[CustomBot, CustomContext, "CustomCommandSource"]
+# Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
+if TYPE_CHECKING:
+    _CustomCommandSource_Base = ListPageSource[
+        CustomCommand, "MenuPages[CustomBot, CustomContext, CustomCommandSource]"
     ]
-):
+else:
+    _CustomCommandSource_Base = ListPageSource
+
+
+class CustomCommandSource(_CustomCommandSource_Base):
     def __init__(self, data: Sequence[CustomCommand], guild: discord.Guild) -> None:
         self.guild = guild
         super().__init__(data, per_page=10)
 
     async def format_page(
         self,
-        menu: MenuPages[CustomBot, CustomContext, "CustomCommandSource"],
+        menu: "MenuPages[CustomBot, CustomContext, CustomCommandSource]",
         page_entries: list[CustomCommand] | CustomCommand,
     ) -> discord.Embed:
         assert isinstance(
@@ -251,7 +258,7 @@ class CustomCommands(commands.Cog):
         commands_dict = ctx["guild_document"].get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
-        pages: menus.MenuPages[CustomBot, CustomContext, CustomCommandSource] = (
+        pages: "menus.MenuPages[CustomBot, CustomContext, CustomCommandSource]" = (
             menus.MenuPages(source=source)
         )
         await pages.start(ctx)

@@ -1,4 +1,6 @@
-from typing import Any, Sequence
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Sequence
 from discord import Embed, Message, VoiceClient
 import discord
 from discord.app_commands import guild_only as ac_guild_only
@@ -17,11 +19,18 @@ VOID: str = "⬜"
 COUNT: int = 11
 
 
-class QueueMenuSource(
-    ListPageSource[
-        EnhancedSource, MenuPages[CustomBot, CustomContext, "QueueMenuSource"]
+# Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
+if TYPE_CHECKING:
+    _QueueMenuSource_Base = ListPageSource[
+        EnhancedSource, "MenuPages[CustomBot, CustomContext, QueueMenuSource]"
     ]
-):
+    _AudioSourceMenu_Base = Menu[CustomBot, CustomContext]
+else:
+    _QueueMenuSource_Base = ListPageSource
+    _AudioSourceMenu_Base = Menu
+
+
+class QueueMenuSource(_QueueMenuSource_Base):
     def __init__(
         self, entries: Sequence[EnhancedSource], client: CustomVoiceClient, msg: str
     ):
@@ -31,7 +40,7 @@ class QueueMenuSource(
 
     async def format_page(
         self,
-        menu: MenuPages[CustomBot, CustomContext, "QueueMenuSource"],
+        menu: "MenuPages[CustomBot, CustomContext, QueueMenuSource]",
         page_entries: list[EnhancedSource] | EnhancedSource,
     ) -> Embed:
         assert isinstance(page_entries, list)  # guaranteed at runtime by per_page > 1
@@ -67,7 +76,7 @@ class QueueMenuSource(
         return base_embed
 
 
-class AudioSourceMenu(Menu[CustomBot, CustomContext]):
+class AudioSourceMenu(_AudioSourceMenu_Base):
     """An embed menu that makes displaying a source fancy."""
 
     def __init__(
@@ -142,7 +151,7 @@ class Audio(Cog):
         if maybe_source is None:
             await ctx.send("No track is playing.", ephemeral=True)
         else:
-            menu: MenuPages[CustomBot, CustomContext, "QueueMenuSource"] = MenuPages(
+            menu: "MenuPages[CustomBot, CustomContext, QueueMenuSource]" = MenuPages(
                 QueueMenuSource(
                     list(ctx.voice_client.queue.deque),
                     ctx.voice_client,

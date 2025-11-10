@@ -1,4 +1,3 @@
-version: "3"
 services:
   mongo:
     image: "mongo:5"
@@ -10,8 +9,6 @@ services:
       - /tmp
     networks:
       - backend
-    ports:
-      - "27017:27017"
     volumes:
       - "db:/data/db"
   peppercord:
@@ -25,6 +22,7 @@ services:
       # These will go unused with the default configuration, unless the daemon is configured to allocate IPv6 subnets to all docker networks
       - "2001:4860:4860::8888"
       - "2001:4860:4860::8844"
+    env_file: ".env"
     build: .
     restart: unless-stopped
     read_only: true
@@ -43,7 +41,6 @@ services:
       - "/etc/localtime:/etc/localtime:ro"
 volumes:
   db:
-  config:
 networks:
   backend:
     internal: true  # MongoDB is fine without internet

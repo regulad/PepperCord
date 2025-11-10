@@ -1,14 +1,14 @@
 from discord import Member, VoiceState
 from discord.ext.commands import Cog
 
-from utils.bots import BOT_TYPES
+from utils.bots.bot import CustomBot
 
 
 class AudioCore(Cog):
     """Tasks that assist the core of the bot's audio handling logic."""
 
-    def __init__(self, bot: BOT_TYPES) -> None:
-        self.bot: BOT_TYPES = bot
+    def __init__(self, bot: CustomBot) -> None:
+        self.bot = bot
 
     @Cog.listener("on_voice_state_update")
     async def on_left_alone(
@@ -22,5 +22,5 @@ class AudioCore(Cog):
                 await member.guild.voice_client.disconnect(force=False)
 
 
-async def setup(bot: BOT_TYPES) -> None:
+async def setup(bot: CustomBot) -> None:
     await bot.add_cog(AudioCore(bot))

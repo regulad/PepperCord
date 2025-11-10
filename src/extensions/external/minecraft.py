@@ -6,21 +6,27 @@ from enum import Enum, auto
 from io import BytesIO
 from json import dumps, loads
 from logging import getLogger
-from typing import Optional, List, TypedDict, Iterable
+from typing import Optional, List, TypedDict, cast
 
-import discord
-from discord import Embed, File, TextChannel, DMChannel
+from discord import Colour, Embed, File, Forbidden, Member, TextChannel, DMChannel
 from discord.app_commands import describe
-from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command, Cog
+from discord.ext.tasks import loop
 from mc_format import color as minecraft_legacy_to_ansi
 from mcstatus import JavaServer, BedrockServer
-from mcstatus.bedrock_status import BedrockStatusResponse
-from mcstatus.pinger import PingResponse
-from mcstatus.querier import QueryResponse
+from mcstatus.responses import (
+    BedrockStatusResponse,
+    JavaStatusResponse,
+    QueryResponse,
+    JavaStatusPlayers,
+    BedrockStatusPlayers,
+    QueryPlayers,
+    BedrockStatusVersion,
+)
 
-from utils.bots import BOT_TYPES, CustomContext
-from utils.database import Document
+from utils.bots.bot import CustomBot
+from utils.bots.context import CustomContext
+from utils.database import PCDocument
 
 logger = getLogger(__name__)
 
@@ -172,7 +178,7 @@ async def generate_minecraft_embed(
     timeout: int = 30,  # this is ludicrously high, but aternos servers take FOREVER to respond
 ) -> tuple[Embed, File | None]:
     server_lookup: JavaServer | BedrockServer
-    status_response: PingResponse | BedrockStatusResponse | QueryResponse
+    status_response: JavaStatusResponse | BedrockStatusResponse | QueryResponse
     match server_type:
         case MinecraftServerType.JAVA:
             server_lookup = await JavaServer.async_lookup(
@@ -190,11 +196,14 @@ async def generate_minecraft_embed(
         else:
             raise  # oh well
 
-    embed = Embed(colour=discord.Colour.dark_gold(), title=server_address)
+    embed = Embed(colour=Colour.dark_gold(), title=server_address)
 
     file: File | None = None
-    if hasattr(status_response, "favicon"):
-        file_header, favicon_bytes = status_response.favicon.split(";base64,")
+    if (
+        isinstance(status_response, JavaStatusResponse)
+        and status_response.icon is not None
+    ):
+        file_header, favicon_bytes = status_response.icon.split(";base64,")
         mime = file_header.split(":")[1]
 
         if mime == "image/png":
@@ -204,17 +213,17 @@ async def generate_minecraft_embed(
         embed = embed.set_thumbnail(url=f"attachment://{file.filename}")
 
     motd: str | None = None
-    if hasattr(status_response, "raw") and (
+    if isinstance(status_response, JavaStatusResponse) and (
         description_raw := status_response.raw.get("description")
     ):
         if isinstance(description_raw, str):
             motd = minecraft_legacy_to_ansi(description_raw)
         elif isinstance(description_raw, dict):
-            motd = minecraft_component_to_ansi(description_raw)
-    elif hasattr(status_response, "description"):
+            motd = minecraft_component_to_ansi(cast(ComponentDict, description_raw))
+    elif isinstance(status_response, BedrockStatusResponse):
         motd = minecraft_legacy_to_ansi(status_response.description)
-    elif hasattr(status_response, "motd"):
-        motd = minecraft_legacy_to_ansi(status_response.motd)
+    elif isinstance(status_response, QueryResponse):
+        motd = minecraft_legacy_to_ansi(str(status_response.motd.raw))
     if motd is not None:
         embed = embed.add_field(
             name="MOTD:",
@@ -222,10 +231,10 @@ async def generate_minecraft_embed(
             inline=False,
         )
 
-    if hasattr(status_response, "latency") and include_latency:
+    if isinstance(status_response, (JavaStatusResponse, BedrockStatusResponse)):
         embed = embed.add_field(name="Ping:", value=f"{status_response.latency:.1f}ms")
 
-    if hasattr(status_response, "map"):
+    if isinstance(status_response, QueryResponse):
         embed = embed.add_field(name="Map:", value=status_response.map)
 
     players_max: int | None = None
@@ -234,19 +243,14 @@ async def generate_minecraft_embed(
     if hasattr(status_response, "players"):
         players_max = status_response.players.max
         players_online = status_response.players.online
-        if hasattr(status_response.players, "sample") and isinstance(
-            status_response.players.sample, Iterable
-        ):
-            player_list = [player.name for player in status_response.players.sample]
-        elif hasattr(status_response.players, "names") and isinstance(
-            status_response.players.names, list
-        ):
-            player_list = status_response.players.names.copy()
-    elif hasattr(status_response, "players_max") and hasattr(
-        status_response, "players_online"
-    ):
-        players_max = status_response.players_max
-        players_online = status_response.players_online
+
+        if isinstance(players := status_response.players, QueryPlayers):
+            player_list = players.list.copy()
+        elif isinstance(players := status_response.players, JavaStatusPlayers):
+            player_list = [player.name for player in players.sample or []]
+    elif isinstance(players := status_response.players, BedrockStatusPlayers):
+        players_max = players.max
+        players_online = players.online
 
     if players_max is not None and players_online is not None:
         player_field = f"**{players_online}**/**{players_max}**"
@@ -262,9 +266,9 @@ async def generate_minecraft_embed(
             inline=False,
         )
 
-    if hasattr(status_response, "version"):
+    if isinstance(status_response, (BedrockStatusResponse, JavaStatusResponse)):
         version_name: str
-        if isinstance(status_response.version, BedrockStatusResponse.Version):
+        if isinstance(status_response.version, BedrockStatusVersion):
             version_name = (
                 f"{status_response.version.brand} {status_response.version.version}"
             )
@@ -276,7 +280,7 @@ async def generate_minecraft_embed(
             value=f"{version_name}, (ver. {status_response.version.protocol})",
             inline=False,
         )
-    elif hasattr(status_response, "software"):
+    else:  # must be Query
         embed = embed.add_field(
             name="Software:",
             value=f"{status_response.software.brand} {status_response.software.version}",
@@ -286,21 +290,28 @@ async def generate_minecraft_embed(
     return embed, file
 
 
-class Minecraft(commands.Cog):
+class SerializedServerType(TypedDict):
+    address: str
+    channel: int
+    previous_status: str | None
+    type: int
+
+
+class Minecraft(Cog):
     """Commands to do with minecraft."""
 
-    def __init__(self, bot: BOT_TYPES) -> None:
-        self.bot: BOT_TYPES = bot
+    def __init__(self, bot: CustomBot) -> None:
+        self.bot = bot
 
     @Cog.listener()
     async def on_ready(self) -> None:
         self.check_for_server_status_changes.start()
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         self.check_for_server_status_changes.stop()
 
     async def _check_for_server_updates_single_server(
-        self, document: Document, server: dict
+        self, document: PCDocument, server: SerializedServerType
     ) -> None:
         logger.debug(
             f"Checking for server status changes in {document._collection.name} {document['_id']} {server}..."
@@ -313,7 +324,7 @@ class Minecraft(commands.Cog):
         previous_status_dict = (
             loads(previous_status_json) if previous_status_json is not None else None
         )
-        channel = self.bot.get_channel(channel_id)
+        channel = cast(TextChannel | None, self.bot.get_channel(channel_id))
 
         if channel is None:
             logger.warning(
@@ -327,7 +338,7 @@ class Minecraft(commands.Cog):
             embed, file = await generate_minecraft_embed(
                 server_address, server_type, include_latency=False
             )
-        except Exception as e:
+        except Exception:
             pass
 
         embed_serialized = embed.to_dict() if embed is not None else None
@@ -343,8 +354,19 @@ class Minecraft(commands.Cog):
                         "Server could not be reached, it's likely offline. "
                         "Updates will resume when it comes back online."
                     )
-                await channel.send(content=message, embed=embed, file=file)
-            except discord.Forbidden:
+
+                # Previously, this line was used:
+                # await channel.send(content=message, embed=embed, file=file)
+                # However, this now triggers my type checker. I'm not sure why, as it should work.
+                # Probably an error in d.py
+
+                if embed is not None and file is not None:
+                    await channel.send(content=message, embed=embed, file=file)
+                elif embed is not None and file is None:
+                    await channel.send(content=message, embed=embed)
+                else:
+                    await channel.send(content=message)
+            except Forbidden:
                 logger.warning(
                     f"Could not send message to {channel_id} in {document._collection.name} {document['_id']}"
                 )
@@ -352,17 +374,17 @@ class Minecraft(commands.Cog):
             await document.update_db(
                 {
                     "$set": {
-                        "minecraft_servers.$[server].previous_status": dumps(
-                            embed_serialized
+                        "minecraft_servers.$[server].previous_status": (
+                            dumps(embed_serialized)
+                            if embed_serialized is not None
+                            else None
                         )
-                        if embed_serialized is not None
-                        else None
                     }
                 },
                 array_filters=[{"server.address": server_address}],
             )
 
-    async def _check_for_server_updates_document(self, document: Document) -> None:
+    async def _check_for_server_updates_document(self, document: PCDocument) -> None:
         logger.debug(
             f"Checking for server status changes in {document._collection.name} {document['_id']}..."
         )
@@ -372,7 +394,7 @@ class Minecraft(commands.Cog):
                     self._check_for_server_updates_single_server(document, server)
                 )
 
-    @tasks.loop(minutes=1)
+    @loop(minutes=1)
     async def check_for_server_status_changes(self) -> None:
         logger.debug("Checking for server status changes...")
 
@@ -381,11 +403,7 @@ class Minecraft(commands.Cog):
         user_query = {"minecraft_servers": {"$exists": True}}
         raw_user_documents = await user_collection.find(user_query).to_list(length=None)
         user_documents = [
-            Document(
-                document,
-                collection=user_collection,
-                query=user_query | {"_id": document["_id"]},
-            )
+            document.wrap(user_collection, user_query)
             for document in raw_user_documents
         ]
 
@@ -395,11 +413,7 @@ class Minecraft(commands.Cog):
             length=None
         )
         guild_documents = [
-            Document(
-                document,
-                collection=guild_collection,
-                query=guild_query | {"_id": document["_id"]},
-            )
+            document.wrap(guild_collection, guild_query)
             for document in raw_guild_documents
         ]
 
@@ -409,7 +423,7 @@ class Minecraft(commands.Cog):
             for document in all_documents:
                 tg.create_task(self._check_for_server_updates_document(document))
 
-    @hybrid_command()
+    @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
     @describe(
         server_address="The address of the Minecraft server",
         server_type="The type of the Minecraft server",
@@ -426,7 +440,7 @@ class Minecraft(commands.Cog):
             embed, file = await generate_minecraft_embed(server_address, server_type)
             await ctx.send(embed=embed, file=file, ephemeral=True)
 
-    @hybrid_command()
+    @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
     @describe(
         server_address="The address of the Minecraft server",
         server_type="The type of the Minecraft server",
@@ -446,6 +460,10 @@ class Minecraft(commands.Cog):
         async with ctx.typing(ephemeral=True):
             final_channel: TextChannel | DMChannel
             if not dms and channel:
+                if ctx.guild is None or not isinstance(ctx.author, Member):
+                    raise Exception(
+                        "You must use this command in DMs mode to use it outside of a server."
+                    )
                 if channel not in ctx.guild.text_channels:
                     raise Exception("This channel does not belong to this server.")
                 elif channel.permissions_for(ctx.author).send_messages is False:
@@ -460,7 +478,9 @@ class Minecraft(commands.Cog):
             elif dms:
                 final_channel = ctx.author.dm_channel or await ctx.author.create_dm()
             else:
-                final_channel = ctx.channel
+                final_channel = cast(
+                    TextChannel | DMChannel, ctx.channel
+                )  # this command can't be called in group channels
 
             message = await ctx.send("Testing connection to the server...")
             embed, file = await generate_minecraft_embed(
@@ -469,7 +489,7 @@ class Minecraft(commands.Cog):
             await message.edit(
                 content="Connected to the server. Registering server to watch...",
                 embed=embed,
-                attachments=(file,),
+                attachments=(file,) if file is not None else tuple(),
             )
 
             if isinstance(final_channel, DMChannel):
@@ -485,7 +505,7 @@ class Minecraft(commands.Cog):
                         }
                     }
                 )
-            elif isinstance(final_channel, TextChannel):
+            else:
                 await ctx["guild_document"].update_db(
                     {
                         "$push": {
@@ -503,7 +523,7 @@ class Minecraft(commands.Cog):
                 content="Server registered. You will now receive updates on the server status."
             )
 
-    @hybrid_command()
+    @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
     @describe(
         server_address="The address of the Minecraft server",
         server_type="The type of the Minecraft server",
@@ -521,6 +541,10 @@ class Minecraft(commands.Cog):
         async with ctx.typing(ephemeral=True):
             final_channel: TextChannel | DMChannel
             if channel:
+                if ctx.guild is None or not isinstance(ctx.author, Member):
+                    raise Exception(
+                        "You must use this command in DMs mode to use it outside of a server."
+                    )
                 if channel not in ctx.guild.text_channels:
                     raise Exception("This channel does not belong to this server.")
                 elif channel.permissions_for(ctx.author).send_messages is False:
@@ -533,7 +557,9 @@ class Minecraft(commands.Cog):
                     )
                 final_channel = channel
             else:
-                final_channel = ctx.channel
+                final_channel = cast(
+                    TextChannel | DMChannel, ctx.channel
+                )  # this command can't be called in group channels
 
             if isinstance(final_channel, DMChannel):
                 await ctx["author_document"].update_db(
@@ -547,7 +573,7 @@ class Minecraft(commands.Cog):
                         }
                     }
                 )
-            elif isinstance(final_channel, TextChannel):
+            else:
                 await ctx["guild_document"].update_db(
                     {
                         "$pull": {
@@ -565,5 +591,5 @@ class Minecraft(commands.Cog):
             )
 
 
-async def setup(bot: BOT_TYPES) -> None:
+async def setup(bot: CustomBot) -> None:
     await bot.add_cog(Minecraft(bot))

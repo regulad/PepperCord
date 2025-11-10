@@ -1,7 +1,8 @@
 from discord import TextChannel, Thread
 from discord.ext.commands import CheckFailure, check
 
-from utils.bots import CustomContext, CustomVoiceClient
+from utils.bots.audio import CustomVoiceClient
+from utils.bots.context import CustomContext
 
 
 class CantCreateAudioClient(CheckFailure):
@@ -11,9 +12,20 @@ class CantCreateAudioClient(CheckFailure):
 
 
 async def can_have_voice_client(ctx: CustomContext) -> bool:
+    """
+    Predicate to check if a context is capable of holding a voice client.
+    Has the side effect of creating & attaching a voice client.
+    """
+
     try:
         assert ctx.guild is not None
-        custom_voice_client: CustomVoiceClient = await ctx.get_or_create_voice_client()
+        custom_voice_client = await ctx.get_or_create_voice_client()
+
+        if not isinstance(custom_voice_client, CustomVoiceClient):
+            raise RuntimeError(
+                "Created a custom voice client, but it wasn't of type CustomVoiceClient!"
+            )
+
         if custom_voice_client.bound is None and isinstance(
             ctx.channel, (TextChannel, Thread)
         ):

@@ -1,29 +1,35 @@
 import os
 from functools import partial
 from os import sep
+from typing import Type, cast
 
-import discord
 from aiofiles.tempfile import TemporaryDirectory
-from discord import File
+from discord import File, Guild, HTTPException
 from discord.app_commands import describe
-from discord.ext import commands
-from discord.ext.commands import hybrid_command
+from discord.ext.commands import (
+    hybrid_command,
+    guild_only,
+    Cog,
+    CommandError,
+    cooldown,
+    BucketType,
+)
 
-from utils.bots import BOT_TYPES, CustomContext
+from utils.bots.bot import CustomBot
+from utils.bots.context import CustomContext
 from utils.misc import FrozenDict
+from utils.sources.common import YTDLOptionsType
+from utils.sources.ytdl import YTDLInfo
 from utils.validators import str_is_url
 
-try:
-    from yt_dlp import YoutubeDL, DownloadError  # type: ignore
-except ImportError:
-    from youtube_dl import YoutubeDL, DownloadError  # type: ignore
+from yt_dlp import YoutubeDL
 
 
-class MiscHTTPException(discord.HTTPException):
+class MiscHTTPException(HTTPException):
     pass
 
 
-class BadVideo(commands.CommandError):
+class BadVideo(CommandError):
     pass
 
 
@@ -44,7 +50,7 @@ BEST_AUDIO = (
     "/worstaudio[ext=flac]"
 )
 
-YTDL_FORMAT_INITIAL_OPTIONS: FrozenDict = FrozenDict(
+YTDL_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
     {
         "format": BEST_VIDEO,  # favor MP4s
         "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
@@ -62,15 +68,16 @@ YTDL_FORMAT_INITIAL_OPTIONS: FrozenDict = FrozenDict(
 )
 
 
-class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
+class YoutubeDLCog(Cog, name="YoutubeDL"):
     """Tools for utilizing YoutubeDL."""
 
-    def __init__(self, bot: BOT_TYPES) -> None:
-        self.bot: BOT_TYPES = bot
+    def __init__(self, bot: CustomBot) -> None:
+        self.bot = bot
 
-    @hybrid_command(aliases=["yt", "dl", "ytdl"])
-    @commands.cooldown(4, 120, commands.BucketType.channel)
-    @commands.cooldown(10, 120, commands.BucketType.guild)
+    @hybrid_command(aliases=["yt", "dl", "ytdl"])  # type: ignore[arg-type]  # broken fsr
+    @cooldown(4, 120, BucketType.channel)
+    @cooldown(10, 120, BucketType.guild)
+    @guild_only()
     @describe(
         query="The query for youtubedl",
         audio_only="Download only the audio of the video. Useful for soundboards.",
@@ -78,17 +85,20 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
     async def download(
         self,
         ctx: CustomContext,
-        audio_only: bool = False,
-        *,
         query: str,
+        audio_only: bool = False,
     ) -> None:
         """Download a video using YoutubeDL."""
 
         async with ctx.typing():
             ytdl_params = dict(YTDL_FORMAT_INITIAL_OPTIONS)
 
-            filesize_bytes = ctx.guild.filesize_limit
-            filesize_mi_b = round(filesize_bytes / 1.049e6)  # Mebibytes, not megabytes!
+            filesize_max_bytes = cast(
+                Guild, ctx.guild
+            ).filesize_limit  # guaranteed at runtime
+            filesize_max_mi_b = round(
+                filesize_max_bytes / 1.049e6
+            )  # Mebibytes, not megabytes!
 
             if audio_only:
                 ytdl_params["format"] = BEST_AUDIO
@@ -96,13 +106,14 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
                 ytdl_params["format"] = BEST_VIDEO
             # else, just let ytdl figure it out
 
-            if "format" in ytdl_params:
-                ytdl_params["format"] = ytdl_params["format"].format(
-                    filesize=f"{filesize_mi_b}M"
-                )
+            ytdl_params["format"] = ytdl_params["format"].format(  # type: ignore[union-attr]  # type is proven no less than 5 lines above
+                filesize=f"{filesize_max_mi_b}M"
+            )
 
             async with TemporaryDirectory() as tempdir:  # type: str
-                ytdl_params["outtmpl"] = tempdir + sep + ytdl_params["outtmpl"]
+                ytdl_params["outtmpl"] = (
+                    tempdir + sep + cast(str, ytdl_params["outtmpl"])
+                )
 
                 ytdl = YoutubeDL(params=ytdl_params)
 
@@ -113,11 +124,15 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
                     url = f"ytsearch:{query}"
 
                 try:
-                    info_dict: dict = await ctx.bot.loop.run_in_executor(
+                    info_dict: YTDLInfo = await ctx.bot.loop.run_in_executor(
                         None, partial(ytdl.extract_info, url)
                     )
-                except DownloadError as e:
-                    if "Requested format" in e.msg:
+                except Exception as e:
+                    if (
+                        hasattr(e, "msg")
+                        and isinstance(e.msg, str)
+                        and "Requested format" in e.msg
+                    ):
                         e.msg += (
                             "\n\n"
                             "NOTE: This can also occur if PepperCord couldn't find a file small enough to send in "
@@ -144,11 +159,11 @@ class YoutubeDLCog(commands.Cog, name="YoutubeDL"):
                 try:
                     await ctx.send(files=discord_files)
                 finally:
-                    for file in discord_files:
-                        file.close()  # need to do this because they own the fp
+                    for dfile in discord_files:
+                        dfile.close()  # need to do this because they own the fp
 
 
-async def setup(bot: BOT_TYPES) -> None:
+async def setup(bot: CustomBot) -> None:
     await bot.add_cog(YoutubeDLCog(bot))
 
 

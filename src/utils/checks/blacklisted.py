@@ -1,32 +1,35 @@
 """Checks for permissions."""
 
+from typing import Any
 from discord.ext import commands
 from discord.ext.commands import Context
 
-from utils.bots import CustomContext
+from utils.bots.context import CustomContext
 
 
-class Blacklisted(commands.CheckFailure):
+class EBlacklisted(commands.CheckFailure):
     """Raised when a context is blacklisted from executing."""
 
     pass
 
 
-async def is_blacklisted(ctx: Context) -> bool:
+async def is_blacklisted(ctx: Context[Any]) -> bool:
     """Checks if a context is blacklisted from executing commands."""
-    # NOTE: Checks should not check documents
-
     if isinstance(ctx, CustomContext):
         return (
             ctx.guild is not None
-            and ctx["guild_document"].get("blacklisted", False)
-            or ctx["author_document"].get("blacklisted", False)
+            and bool(
+                ctx["guild_document"].get("blacklisted", False)
+            )  # TODO: NamedDict compliance
+            or bool(
+                ctx["author_document"].get("blacklisted", False)
+            )  # TODO: NamedDict compliance
         )
     else:
         return False
 
 
 __all__: list[str] = [
-    "Blacklisted",
+    "EBlacklisted",
     "is_blacklisted",
 ]

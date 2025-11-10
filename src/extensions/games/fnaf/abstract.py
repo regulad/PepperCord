@@ -1,6 +1,6 @@
 import random
 from enum import Enum, auto
-from typing import ValuesView, Optional, Mapping
+from typing import Self, ValuesView, Optional, Mapping
 
 from utils import misc
 
@@ -53,14 +53,14 @@ class DoorState:
         self._rd: bool = right_door
 
     def change_left(self, state: Optional[bool] = None) -> "DoorState":
-        state: bool = state or not self.left_door_closed
+        state = state or not self.left_door_closed
         return self.__class__(
             state,
             self.right_door_closed,
         )
 
     def change_right(self, state: Optional[bool] = None) -> "DoorState":
-        state: bool = state or not self.right_door_closed
+        state = state or not self.right_door_closed
         return self.__class__(
             self.left_door_closed,
             state,
@@ -135,7 +135,7 @@ class Animatronic(Enum):
         return self.name.title()
 
     @property
-    def default_diff(self):
+    def default_diff(self) -> int:
         return self.difficulty(5)
 
     @property
@@ -180,7 +180,7 @@ class Animatronic(Enum):
 
     def difficulty(self, night: int, time: DisplayTime = DisplayTime.TWELVE_AM) -> int:
         if night < 7 and time is not DisplayTime.SIX_AM:
-            return self.all_diffs[night - 1][time.value]
+            return self.all_diffs[night - 1][time.value]  # type: ignore[no-any-return]  # Not sure why mypy is warning here
         elif time is DisplayTime.SIX_AM:
             return max(self.all_diffs[night - 1])
         else:
@@ -273,8 +273,8 @@ class Room(Enum):
                         return not door_state.left_door_closed
                     case _:
                         return True
-            case _:
-                return True
+            # case _:
+            #     return True
 
     def is_immediately_accessible(
         self, other: "Room", animatronic: Animatronic
@@ -336,8 +336,8 @@ class Room(Enum):
                 )  # Maybe?
             case Room.CAM_1_A:
                 return False  # Animatronics can only move from the stage, not to it.
-            case _:
-                return True
+            # case _:
+            #     return True
 
     def get_room(
         self,
@@ -369,7 +369,19 @@ class Room(Enum):
     @property
     def has_camera(self) -> bool:
         match self:
-            case Room.CAM_6 | Room.CAM_5 | Room.CAM_4_B | Room.CAM_4_A | Room.CAM_3 | Room.CAM_2_B | Room.CAM_2_A | Room.CAM_1_C | Room.CAM_1_A | Room.CAM_1_B | Room.CAM_7:
+            case (
+                Room.CAM_6
+                | Room.CAM_5
+                | Room.CAM_4_B
+                | Room.CAM_4_A
+                | Room.CAM_3
+                | Room.CAM_2_B
+                | Room.CAM_2_A
+                | Room.CAM_1_C
+                | Room.CAM_1_A
+                | Room.CAM_1_B
+                | Room.CAM_7
+            ):
                 return True
             case _:
                 return False
@@ -387,7 +399,7 @@ class Room(Enum):
         return cls[simple_name.upper().replace(" ", "_")]
 
     @property
-    def room_name(self) -> Optional[str]:
+    def room_name(self) -> str:
         match self:
             case Room.CAM_1_A:
                 return "Show Stage"
@@ -412,7 +424,7 @@ class Room(Enum):
             case Room.CAM_7:
                 return "Restrooms"
             case _:
-                return None
+                return self.simple_name  # fallback for foxy states
 
     @property
     def emoji(self) -> str:
@@ -429,28 +441,32 @@ class Room(Enum):
                 return "🪝"
             case Room.CAM_7:
                 return "🚽"
+            case _:
+                return "❎"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.room_name
 
 
 class CameraState:
     """Represents the current state of the cameras."""
 
-    def __init__(self, camera: Room = Room.CAM_1_A, camera_up: bool = False) -> None:
+    def __init__(
+        self, camera: Room | None = Room.CAM_1_A, camera_up: bool = False
+    ) -> None:
         if camera is not None:
             assert camera.has_camera
-        self._camera: Room = camera
+        self._camera = camera
         self._camera_up: bool = camera_up
 
     @classmethod
     def empty(cls) -> "CameraState":
         return cls()
 
-    def change_camera(self, camera: Room):
+    def change_camera(self, camera: Room) -> Self:
         return self.__class__(camera, self.camera_up)
 
-    def change_position(self, camera_up: bool = False):
+    def change_position(self, camera_up: bool = False) -> Self:
         return self.__class__(self.looking_at, camera_up)
 
     @property
@@ -523,14 +539,14 @@ class LightState:
         self._rl: bool = right_light
 
     def change_left(self, state: Optional[bool] = None) -> "LightState":
-        state: bool = state or not self.left_light_on
+        state = state or not self.left_light_on
         return self.__class__(
             state,
             False,
         )
 
     def change_right(self, state: Optional[bool] = None) -> "LightState":
-        state: bool = state or not self.right_light_on
+        state = state or not self.right_light_on
         return self.__class__(
             False,
             state,
@@ -635,7 +651,7 @@ class GameState:
                     content = self._build_summary("Nobody is at the door.", content)
         return content or ""
 
-    def animatronics_in(self, search_room: Room) -> list[Animatronic]:
+    def animatronics_in(self, search_room: Room | None) -> list[Animatronic]:
         animatronics: list[Animatronic] = []
         for animatronic, room in self.animatronic_positions.items():
             if search_room is room:

@@ -1,36 +1,49 @@
 from io import BytesIO
-from typing import Optional, List, Callable, Union, Coroutine, Any
+from typing import Iterable, Optional, List, Callable, Union, Coroutine, Any
 
-import discord
+from discord import (
+    AllowedMentions,
+    File,
+    HTTPException,
+    Member,
+    Message,
+    TextChannel,
+    Webhook,
+    WebhookMessage,
+)
+from discord.abc import User as ABCUser
+from discord.utils import MISSING as D_MISSING, maybe_coroutine
 
-from utils import bots
-from utils.database import Document
-from utils.misc import split_iter_chunks
+from utils.bots.bot import CustomBot
+from utils.bots.context import SendHandler
+from utils.database import PCDocument
+from utils.misc import split_str_chunks
 
 
 async def get_or_create_namespaced_webhook(
     namespace: str,
-    bot: bots.BOT_TYPES,
-    channel: discord.TextChannel,
+    bot: CustomBot,
+    channel: TextChannel,
     **kwargs: Any,
-) -> discord.Webhook:
-    guild_doc: Document = await bot.get_guild_document(channel.guild)
+) -> Webhook:
+    guild_doc: PCDocument = await bot.get_guild_document(channel.guild)
     existing_webhook: Optional[int] = guild_doc.get(f"{namespace}_webhooks", {}).get(
         str(channel.id)
     )
+    maybe_webhook: Optional[Webhook]
     try:
-        maybe_webhook: Optional[discord.Webhook] = (
+        maybe_webhook = (
             await bot.fetch_webhook(existing_webhook)
             if existing_webhook is not None
             else None
         )
-    except discord.HTTPException:
+    except HTTPException:
         await guild_doc.update_db({"$unset": {f"{namespace}_webhooks.{channel.id}": 1}})
-        maybe_webhook: Optional[discord.Webhook] = None
+        maybe_webhook = None
     if maybe_webhook is None:
         if kwargs.get("name") is None:
             kwargs["name"] = namespace.upper()
-        webhook: discord.Webhook = await channel.create_webhook(**kwargs)
+        webhook = await channel.create_webhook(**kwargs)
         await guild_doc.update_db(
             {"$set": {f"{namespace}_webhooks.{channel.id}": webhook.id}}
         )
@@ -40,71 +53,79 @@ async def get_or_create_namespaced_webhook(
 
 
 async def impersonate(
-    webhook: discord.Webhook,
-    victim: discord.abc.User,
+    webhook: Webhook,
+    victim: ABCUser,
     *args: Any,
     **kwargs: Any,
-) -> Optional[discord.WebhookMessage]:
+) -> WebhookMessage:
     if kwargs.get("avatar_url") is None:
         kwargs["avatar_url"] = victim.display_avatar.url
     if kwargs.get("username") is None:
         kwargs["username"] = victim.display_name
-    return await webhook.send(*args, **kwargs)
+    if kwargs.get("wait") is None:
+        kwargs["wait"] = True  # guarantees returned object
+    elif kwargs["wait"] is False:
+        raise RuntimeError(
+            "Can't impersonate a message without waiting for the message!"
+        )
+    return await webhook.send(*args, **kwargs)  # type: ignore[no-any-return] # guaranteed by runtime checks
 
 
 async def resend_as_webhook(
-    webhook: discord.Webhook,
-    message: discord.Message,
+    webhook: Webhook,
+    message: Message,
     *,
     content: Optional[str] = None,
     clean: bool = True,
-) -> Optional[discord.WebhookMessage]:
-    content: str = content or (message.clean_content if clean else message.content)
+) -> WebhookMessage:
+    content = content or (message.clean_content if clean else message.content)
+    if not isinstance(message.author, Member) or message.guild is None:
+        raise RuntimeError("Can't resend as a webhook outside of a guild!")
+
     return await impersonate(
         webhook,
         message.author,
-        (content if len(message.clean_content) > 0 else discord.utils.MISSING),  # type: ignore
+        (content if len(message.clean_content) > 0 else D_MISSING),
+        # inherit the allowed mentions of the original author
         allowed_mentions=(
-            discord.AllowedMentions(
-                everyone=False,
+            AllowedMentions(
+                everyone=message.author.guild_permissions.mention_everyone,
                 users=True,
-                roles=[role for role in message.guild.roles if role.mentionable],
+                roles=(
+                    message.author.guild_permissions.manage_roles
+                    or [role for role in message.guild.roles if role.mentionable]
+                ),
             )
         ),
-        embeds=message.embeds if len(message.embeds) > 0 else discord.utils.MISSING,
+        embeds=message.embeds if len(message.embeds) > 0 else D_MISSING,
         files=(
             [
-                discord.File(
-                    BytesIO(await attachment.read()), filename=attachment.filename
-                )
+                File(BytesIO(await attachment.read()), filename=attachment.filename)
                 for attachment in message.attachments
             ]
             if len(message.attachments) > 0
-            else discord.utils.MISSING
+            else D_MISSING
         ),
     )
 
 
-async def filter_message(
-    message: discord.Message,
+async def resend_message_with_filter(
+    message: Message,
     filter_callable: Callable[[str], Union[str, Coroutine[Any, Any, str]]],
-    webhook: discord.Webhook,
+    webhook: Webhook,
     *,
     delete_message: bool = True,
-) -> Optional[discord.WebhookMessage]:
-    message: discord.Message = (
-        message if isinstance(message, discord.Message) else message.message
-    )
-    filtered_message: str = await discord.utils.maybe_coroutine(
-        filter_callable, message.clean_content
-    )
+) -> WebhookMessage | Iterable[WebhookMessage]:
+    filtered_message = await maybe_coroutine(filter_callable, message.clean_content)
 
+    webhook_message: WebhookMessage | Iterable[WebhookMessage]
     if len(filtered_message) > 2000:
-        webhook_message: Optional[discord.WebhookMessage] = None
-        for message_fragment in split_iter_chunks(filtered_message, chunk_size=2000):  # type: ignore
+        webhook_message = [
             await resend_as_webhook(webhook, message, content=message_fragment)
+            for message_fragment in split_str_chunks(filtered_message, chunk_size=2000)
+        ]
     else:
-        webhook_message: Optional[discord.WebhookMessage] = await resend_as_webhook(
+        webhook_message = await resend_as_webhook(
             webhook, message, content=filtered_message
         )
 
@@ -114,26 +135,32 @@ async def filter_message(
     return webhook_message
 
 
-class WebhookSendHandler(bots.SendHandler):
-    def __init__(self, webhook: discord.Webhook) -> None:
-        self.webhook: discord.Webhook = webhook
+class WebhookSendHandler(SendHandler):
+    def __init__(self, webhook: Webhook) -> None:
+        self.webhook: Webhook = webhook
 
-    async def send(self, *args, **kwargs) -> discord.Message:
+    async def send(self, *args: Any, **kwargs: Any) -> Message:
         if kwargs.get("ephemeral") is not None:
             del kwargs["ephemeral"]
         if kwargs.get("return_message") is not None:
             del kwargs["return_message"]
         if kwargs.get("reference") is not None:
             del kwargs["reference"]
-        return await self.webhook.send(*args, **kwargs)
+        if kwargs.get("wait") is None:
+            kwargs["wait"] = True  # guarantees returned object
+        elif kwargs["wait"] is False:
+            raise RuntimeError(
+                "Can't impersonate a message without waiting for the message!"
+            )
+        return await self.webhook.send(*args, **kwargs)  # type: ignore[no-any-return] # guaranteed by runtime checks
 
 
 class ImpersonateSendHandler(WebhookSendHandler):
-    def __init__(self, webhook: discord.Webhook, victim: discord.abc.User) -> None:
+    def __init__(self, webhook: Webhook, victim: ABCUser) -> None:
         super().__init__(webhook)
-        self.victim: discord.abc.User = victim
+        self.victim = victim
 
-    async def send(self, *args, **kwargs) -> discord.Message:
+    async def send(self, *args: Any, **kwargs: Any) -> Message:
         if kwargs.get("ephemeral") is not None:
             del kwargs["ephemeral"]
         if kwargs.get("return_message") is not None:
@@ -147,7 +174,7 @@ __all__: List[str] = [
     "get_or_create_namespaced_webhook",
     "resend_as_webhook",
     "impersonate",
-    "filter_message",
+    "resend_message_with_filter",
     "WebhookSendHandler",
     "ImpersonateSendHandler",
 ]

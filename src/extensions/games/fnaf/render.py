@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Optional, Literal
 
 from PIL import Image, ImageFont, ImageDraw
+
+# Why is PIL so weird???
 from PIL.Image import Image as ImageType
+from PIL.ImageFont import FreeTypeFont
 from PIL.ImageDraw import ImageDraw as ImageDrawType
 
 from .abstract import *
@@ -50,7 +53,11 @@ class OfficeImage(Enum):
     @property
     def offset(self) -> Literal[-1, 1, 0]:
         match self:
-            case OfficeImage.BONNIE_AT_DOOR | OfficeImage.LEFT_HALL_LIGHT | OfficeImage.FREDDY:
+            case (
+                OfficeImage.BONNIE_AT_DOOR
+                | OfficeImage.LEFT_HALL_LIGHT
+                | OfficeImage.FREDDY
+            ):
                 return -1
             case OfficeImage.RIGHT_HALL_LIGHT | OfficeImage.CHICA_AT_DOOR:
                 return 1
@@ -103,7 +110,7 @@ class CameraImage(Enum):
     W_HALL_BONNIE = auto()
 
     @classmethod
-    def of(cls, game_state: GameState, room: Room) -> Optional["CameraImage"]:
+    def of(cls, game_state: GameState, room: Room | None) -> Optional["CameraImage"]:
         animatronics: list[Animatronic] = game_state.animatronics_in(room)
         match room:
             case Room.CAM_1_A:
@@ -216,11 +223,13 @@ OUTPUT_WIDTH: int = 1920
 OUTPUT_HEIGHT: int = 1440
 
 
-def canvas(color: float | tuple[float, float, float, float] | str = "grey") -> Image:
+def canvas(
+    color: float | tuple[float, float, float, float] | str = "grey",
+) -> ImageType:
     return Image.new("RGBA", (MAX_WIDTH, MAX_HEIGHT), color)
 
 
-def font(size: int = 72) -> ImageFont:
+def font(size: int = 72) -> FreeTypeFont:
     return ImageFont.truetype("resources/images/fnaf/five-nights-at-freddys.ttf", size)
 
 
@@ -249,12 +258,8 @@ def resize_until(image: ImageType) -> ImageType:
 
 
 def camera(game_state: GameState) -> Optional[ImageType]:
-    camera_image: Optional[CameraImage] = CameraImage.of(
-        game_state, game_state.camera_state.looking_at
-    )
-    maybe_file_name: Optional[str] = (
-        camera_image.get_png() if camera_image is not None else None
-    )
+    camera_image = CameraImage.of(game_state, game_state.camera_state.looking_at)
+    maybe_file_name = camera_image.get_png() if camera_image is not None else None
     if maybe_file_name is not None:
         image: ImageType = Image.open(maybe_file_name)
         if not fits(image):
@@ -277,16 +282,15 @@ def camera(game_state: GameState) -> Optional[ImageType]:
 
 
 def office(game_state: GameState) -> Optional[ImageType]:
-    office_image: Optional[OfficeImage] = OfficeImage.of(game_state)
-    maybe_file_name: Optional[str] = (
-        office_image.filename if office_image is not None else None
-    )
-    if maybe_file_name is not None:
-        image: ImageType = Image.open(maybe_file_name)
+    office_image = OfficeImage.of(game_state)
+    if office_image is not None:
+        image: ImageType = Image.open(
+            office_image.filename
+        )  # downcast required since resize_util makes calls to classes that have no generic typing
         if not fits(image):
             image = resize_until(image)
-        width: int = image.width
-        height: int = image.height
+        width = image.width
+        height = image.height
         width_buffer: int = int((width - MAX_WIDTH) / 2)
         height_buffer: int = int((height - MAX_HEIGHT) / 2)
         offset: int = int(office_image.offset * (width / 4))
@@ -359,13 +363,13 @@ def render(game_state: GameState) -> ImageType:
         target_cam: Optional[Room] = game_state.camera_state.looking_at
         if target_cam is not None:
             # Camera Image
-            camera_image: Optional[Image] = camera(game_state)
+            camera_image = camera(game_state)
             if camera_image is not None:
                 drawing_canvas.paste(camera_image)
                 can_draw_summary = False
             # Map Dot
         # Static
-        static_image: Image = static()
+        static_image: ImageType = static()
         drawing_canvas.paste(static_image, mask=static_image)
         # Map
         map_image: ImageType = base_map(not even_frame)
@@ -412,7 +416,7 @@ def render(game_state: GameState) -> ImageType:
                 (MAX_WIDTH / 20, 50, (MAX_WIDTH / 20) + 70, 120), fill="red"
             )
     else:
-        office_image: Optional[Image] = office(game_state)
+        office_image: Optional[ImageType] = office(game_state)
         if office_image is not None:
             drawing_canvas.paste(office_image)
             can_draw_summary = False
@@ -504,13 +508,7 @@ def save_buffer(im: ImageType, image_format: str = "PNG") -> BytesIO:
     return buffer
 
 
-def load_bytes(im: ImageType, image_format: str = "PNG") -> bytes:
-    with save_buffer(im, image_format) as buffer:
-        return buffer
-
-
 __all__: list[str] = [
     "render",
     "save_buffer",
-    "load_bytes",
 ]

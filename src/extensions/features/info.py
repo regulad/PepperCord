@@ -5,14 +5,14 @@ from typing import Union, Optional, cast
 
 import discord
 import psutil
-from discord import Guild, Interaction, Member, User, AppCommandType
+from discord import ClientUser, Guild, Interaction, Member, User, AppCommandType
 from discord.app_commands import describe, context_menu
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
 
-from utils import bots, checks
-from utils.bots import CustomContext
+from utils.bots.bot import CustomBot
+from utils.bots.context import CustomContext
 from utils.misc import status_breakdown
 from utils.version import get_version
 
@@ -20,19 +20,23 @@ WHOIS_CM_NAME: str = "Get User Information"
 
 
 @context_menu(name=WHOIS_CM_NAME)
-async def whois_cm(interaction: Interaction, user: Member | User) -> None:
+async def whois_cm(interaction: Interaction[CustomBot], user: Member | User) -> None:
     ctx = await CustomContext.from_interaction(interaction)
     info = cast(Info, ctx.bot.get_cog("Info"))
-    await info.whois(ctx, user=user)
+    await info.whois(ctx, user=user)  # type: ignore[arg-type]  # weird type conflict
 
 
 class Info(commands.Cog):
     """Get information about things here on Discord."""
 
-    def __init__(self, bot: bots.BOT_TYPES) -> None:
+    def __init__(self, bot: CustomBot) -> None:
         self.bot = bot
 
-    def cog_unload(self) -> None:
+    def cog_load(self) -> None:  # type: ignore[override]  # bad d.py type export
+        self.bot.tree.add_command(whois_cm)
+
+    def cog_unload(self) -> None:  # type: ignore[override]  # bad d.py type export
+        self.bot.tree.remove_command(WHOIS_CM_NAME, type=AppCommandType.user)
         if self.activity_update.is_running():
             self.activity_update.stop()
 
@@ -40,12 +44,6 @@ class Info(commands.Cog):
     async def on_ready(self) -> None:
         await sleep(10)
         self.activity_update.start()
-
-    async def cog_load(self) -> None:
-        self.bot.tree.add_command(whois_cm)
-
-    async def cog_unload(self) -> None:
-        self.bot.tree.remove_command(WHOIS_CM_NAME, type=AppCommandType.user)
 
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:
@@ -55,14 +53,15 @@ class Info(commands.Cog):
     @activity_update.before_loop
     async def before_activity_update(self) -> None:
         await self.bot.wait_until_ready()
-        await sleep(10)  # Avoid disconnecting right away
+        # Changing the status of the bot immediately can prompt a disconnect. We need to wait!
+        await sleep(10)
 
-    @hybrid_command()
+    @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
     @commands.is_owner()
     @describe(activity="The status that the bot will change to.")
     async def status(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
         *,
         activity: Optional[str],
     ) -> None:
@@ -77,15 +76,13 @@ class Info(commands.Cog):
             await ctx.bot.change_presence(activity=discord.Game(name=watching_string))
         await ctx.send("Status updated.", ephemeral=True)
 
-    @hybrid_command()
+    @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
     @describe(
         user="The user that will have their info displayed. This can be any user, in or outside this server."
     )
-    @checks.check_members_enabled
-    @checks.check_presences_enabled
     async def whois(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
         *,
         user: Optional[Union[discord.Member, discord.User]],
     ) -> None:
@@ -93,35 +90,36 @@ class Info(commands.Cog):
         async with ctx.typing(ephemeral=True):
             if not user:
                 user = ctx.author
-            embed = (
-                discord.Embed(
-                    colour=user.colour,
-                    title=f"All about {user.name}#{user.discriminator}\n({user.id})",
+            embed = discord.Embed(
+                colour=user.colour,
+                title=f"All about {user.name}#{user.discriminator}\n({user.id})",
+            )
+            if user.avatar is not None:
+                embed = embed.set_thumbnail(url=user.avatar).add_field(
+                    name="Avatar URL:", value=f"[Click Here]({user.avatar.url})"
                 )
-                .set_thumbnail(url=user.avatar.url)
-                .add_field(name="Avatar URL:", value=f"[Click Here]({user.avatar.url})")
-                .add_field(
-                    name="Account creation date:",
-                    value=f"<t:{user.created_at.timestamp():.0f}:R>",
-                )
+            embed = embed.add_field(
+                name="Account creation date:",
+                value=f"<t:{user.created_at.timestamp():.0f}:R>",
             )
             if isinstance(user, discord.Member):
-                after_breakdown: str = status_breakdown(
+                after_breakdown = status_breakdown(
                     user.desktop_status, user.mobile_status, user.web_status
                 )
                 embed = embed.insert_field_at(
                     0,
                     name="Status:",
-                    value=f"{user.status}{f' ({after_breakdown})' if after_breakdown else ''}",
+                    value=f"{user.status}{f' ({after_breakdown})' if after_breakdown is not None else ''}",
                 )
                 if user.name != user.display_name:
                     embed = embed.insert_field_at(
                         0, name="Nickname:", value=user.display_name
                     )
-                embed = embed.add_field(
-                    name="Server join date:",
-                    value=f"<t:{user.joined_at.timestamp():.0f}:R>",
-                )
+                if user.joined_at is not None:
+                    embed = embed.add_field(
+                        name="Server join date:",
+                        value=f"<t:{user.joined_at.timestamp():.0f}:R>",
+                    )
                 if user.premium_since:
                     embed = embed.add_field(
                         name="Server boosting since:",
@@ -129,47 +127,50 @@ class Info(commands.Cog):
                     )
             await ctx.send(embed=embed, ephemeral=True)
 
-    @hybrid_command()
+    @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
     @commands.guild_only()
     @ac_guild_only()
-    @checks.check_members_enabled
-    @checks.check_presences_enabled
     async def serverinfo(
         self,
-        ctx: bots.CustomContext,
+        ctx: CustomContext,
     ) -> None:
         """Gets info on a server."""
-        guild: Guild = ctx.guild
-        embed = (
-            discord.Embed(
-                colour=discord.Colour.random(),
-                title=f"Info for {guild.name}\n({guild.id})",
-            )
-            .add_field(
+        assert ctx.guild is not None  # guaranteed at runtime by check
+        embed = discord.Embed(
+            colour=discord.Colour.random(),
+            title=f"Info for {ctx.guild.name}\n({ctx.guild.id})",
+        )
+        if ctx.guild.owner is not None:
+            embed = embed.add_field(
                 name="Server Owner:",
-                value=f"{guild.owner.display_name}#{guild.owner.discriminator} ({guild.owner.id})",
+                value=f"{ctx.guild.owner.display_name} ({ctx.guild.owner.id})",
             )
-            .add_field(
+        embed = (
+            embed.add_field(
                 name="Created at:",
-                value=f"<t:{guild.created_at.timestamp():.0f}:R>",
+                value=f"<t:{ctx.guild.created_at.timestamp():.0f}:R>",
             )
-            .add_field(name="Roles:", value=len(guild.roles))
-            .add_field(name="Emojis:", value=f"{len(guild.emojis)}/{guild.emoji_limit}")
+            .add_field(name="Roles:", value=len(ctx.guild.roles))
+            .add_field(
+                name="Emojis:", value=f"{len(ctx.guild.emojis)}/{ctx.guild.emoji_limit}"
+            )
             .add_field(
                 name="Total channels:",
-                value=f"{len(guild.channels)} channels, {len(guild.categories)} categories.",
+                value=f"{len(ctx.guild.channels)} channels, {len(ctx.guild.categories)} categories.",
             )
-            .add_field(name="Total members:", value=guild.member_count)
+            .add_field(name="Total members:", value=ctx.guild.member_count)
         )
-        if guild.icon is not None:
-            embed.set_thumbnail(url=guild.icon.url)
+        if ctx.guild.icon is not None:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
 
-            embed.add_field(name="Icon URL:", value=f"[Click Here]({guild.icon.url})")
+            embed.add_field(
+                name="Icon URL:", value=f"[Click Here]({ctx.guild.icon.url})"
+            )
         await ctx.send(embed=embed)
-        await ctx.invoke(self.whois, user=guild.owner)
+        await ctx.invoke(self.whois, user=ctx.guild.owner)
 
-    @hybrid_command()
-    async def botinfo(self, ctx: bots.CustomContext) -> None:
+    @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
+    async def botinfo(self, ctx: CustomContext) -> None:
         """Displays information about the bot and the machine it's running on, as well as an invitation link."""
 
         async with ctx.typing(ephemeral=True):
@@ -177,21 +178,32 @@ class Info(commands.Cog):
                 peppercord_version, peppercord_commit = get_version()
 
                 base = ctx.bot.config.get(
-                    "PEPPERCORD_WEB", "https://www.regulad.xyz/PepperCord"
+                    "PEPPERCORD_WEB", "https://regulad.github.com/PepperCord"
                 )
-                embed: discord.Embed = (
-                    discord.Embed(
-                        colour=discord.Colour.orange(),
-                        title=f"Hi, I'm {ctx.bot.user.name}! Nice to meet you!",
-                        description=f"**Important Links**: "
-                        f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
-                        f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
-                        f"{str(ctx.bot.owner_id) if ctx.bot.owner_id is not None else ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)}",
+                embed = discord.Embed(
+                    colour=discord.Colour.orange(),
+                    title=f"Hi, I'm {cast(ClientUser, ctx.bot.user).name}! Nice to meet you!",
+                    description=f"**Important Links**: "
+                    f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
+                    f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
+                    f"{
+                            str(ctx.bot.owner_id)
+                            if ctx.bot.owner_id is not None
+                            else (
+                                ', '.join(str(owner_id) for owner_id in ctx.bot.owner_ids)
+                                if ctx.bot.owner_ids is not None
+                                else "Currently unavailable, please check later!"
+                            )
+                        }",
+                )
+                if cast(ClientUser, ctx.bot.user).avatar is not None:
+                    embed = embed.set_thumbnail(
+                        url=cast(ClientUser, ctx.bot.user).avatar.url  # type: ignore[union-attr]  # guaranteed
                     )
-                    .set_thumbnail(url=ctx.bot.user.avatar.url)
-                    .add_field(
+                embed = (
+                    embed.add_field(
                         name="Invite:",
-                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(ctx.bot.user.id), permissions=discord.Permissions(permissions=3157650678), scopes=('bot', 'applications.commands'))})",
+                        value=f"[Click Here]({discord.utils.oauth_url(client_id=str(cast(ClientUser, ctx.bot.user).id), permissions=discord.Permissions(permissions=3157650678), scopes=('bot', 'applications.commands'))})",
                         inline=False,
                     )
                     .add_field(
@@ -228,5 +240,5 @@ class Info(commands.Cog):
                     await ctx.invoke(self.whois, user=ctx.guild.me)
 
 
-async def setup(bot: bots.BOT_TYPES) -> None:
+async def setup(bot: CustomBot) -> None:
     await bot.add_cog(Info(bot))

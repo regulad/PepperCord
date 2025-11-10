@@ -1,10 +1,13 @@
 from abc import ABC
-from asyncio import Queue, Future, Task, wait_for
+from asyncio import Queue, Future, wait_for
 from collections import deque
-from typing import Optional, cast
+from logging import getLogger
+from typing import Any, Optional, Self, cast
 
 from discord import VoiceClient, Client, AudioSource, TextChannel, Thread
 from discord import abc
+
+logger = getLogger(__name__)
 
 
 class EnhancedSource(AudioSource, ABC):
@@ -19,13 +22,13 @@ class EnhancedSource(AudioSource, ABC):
 
     @property
     def name(self) -> str:
-        return "Track"
+        return "Unknown Track"
 
     @property
     def description(self) -> str:
         return f'"{self.name}"'
 
-    async def refresh(self, voice_client: "CustomVoiceClient") -> "EnhancedSource":
+    async def refresh(self, voice_client: "CustomVoiceClient") -> Self:
         """
         This allows you to fetch the source again,
         in case it is something like a YouTube video where the ability to read it decays after a set amount of time.
@@ -46,7 +49,7 @@ class AudioQueue(Queue[EnhancedSource]):
         self._queue.append(item)
 
     @property
-    def deque(self) -> deque:
+    def deque(self) -> deque[EnhancedSource]:
         return self._queue
 
 
@@ -59,13 +62,15 @@ def _maybe_exception(future: Future[None], exception: Optional[Exception]) -> No
 
 class CustomVoiceClient(VoiceClient):
     @staticmethod
-    async def create(connectable: abc.Connectable, **kwargs) -> "CustomVoiceClient":
+    async def create(
+        connectable: abc.Connectable, **kwargs: Any
+    ) -> "CustomVoiceClient":
         return await connectable.connect(**kwargs, cls=CustomVoiceClient)
 
     def __init__(self, client: Client, channel: abc.Connectable):
         super().__init__(client, channel)
         self.should_loop: bool = False
-        self._task: Task = self.loop.create_task(self._run())
+        self._task = self.loop.create_task(self._run())
         self._audio_queue: AudioQueue = AudioQueue()
         self._bound_to: Optional[TextChannel | Thread] = None
 
@@ -102,17 +107,18 @@ class CustomVoiceClient(VoiceClient):
                 )
 
                 while True:
-                    track: EnhancedSource = await track.refresh(self)
+                    track = await track.refresh(self)
                     try:
                         await self.play_future(track)
                     except Exception:
+                        logger.warning(f"Failed to play track {track} on CVC {self}")
                         pass  # We don't care. Go on to the next one!
                     if not self.should_loop:
                         break
         except TimeoutError:
             if self.bound is not None:
                 await self.bound.send("Ran out of tracks to play. Leaving...")
-            self.wait_for: int = 120  # Reset this
+            self.wait_for = 120  # Reset this
         finally:
             if self.is_connected():
                 await self.disconnect(force=False)
@@ -125,6 +131,12 @@ class CustomVoiceClient(VoiceClient):
     @property
     def source(self) -> Optional[EnhancedSource]:
         return cast(EnhancedSource, super().source)
+
+    @source.setter
+    def source(self, _: AudioSource) -> None:
+        raise NotImplementedError(
+            "CustomVoiceClient feeds from a queue, and cannot be directly controlled!"
+        )
 
     @property
     def ms_read(self) -> Optional[int]:
@@ -142,7 +154,7 @@ class CustomVoiceClient(VoiceClient):
         elif self.source.duration is None:
             return None
         else:
-            return self.ms_read / self.source.duration
+            return self.ms_read or 0 / self.source.duration
 
 
 __all__: list[str] = ["CustomVoiceClient", "EnhancedSource", "AudioQueue"]

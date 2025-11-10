@@ -5,13 +5,18 @@ from typing import Optional
 
 import discord
 from PIL import Image, ImageDraw, ImageFont
+from PIL.Image import Image as ImageType, Transpose
 from discord import Member, File, Attachment, User
 from discord.app_commands import describe
 from discord.ext import commands
 from discord.ext.commands import hybrid_command
 
 from utils import checks
-from utils.bots import CustomContext, BOT_TYPES
+from utils.bots.bot import CustomBot
+from utils.bots.context import CustomContext
+
+
+DISCORD_MAX_PINS = 250  # up-to-date as of 11/9/25
 
 
 def pins_left_executor(pins_left: int) -> BytesIO:
@@ -39,10 +44,10 @@ def santa_hat_executor(
     size: int,
 ) -> bytes:
     pfp_image = Image.open(BytesIO(pfp)).convert("RGBA")
-    santa_hat_image = Image.open("resources/images/santa.png")
+    santa_hat_image: ImageType = Image.open("resources/images/santa.png")
 
     if flip:
-        santa_hat_image = santa_hat_image.transpose(Image.FLIP_LEFT_RIGHT)
+        santa_hat_image = santa_hat_image.transpose(Transpose.FLIP_LEFT_RIGHT)
 
     # The scalar is needed to keep everything relative to the size of the pfp
     pfp_small_dimension = min(pfp_image.size)
@@ -78,10 +83,10 @@ def santa_hat_executor(
 class Images(commands.Cog):
     """Tools to edit images, and make things with them."""
 
-    def __init__(self, bot: BOT_TYPES):
-        self.bot: BOT_TYPES = bot
+    def __init__(self, bot: CustomBot):
+        self.bot = bot
 
-    @hybrid_command(aliases=["santa"])
+    @hybrid_command(aliases=["santa"])  # type: ignore[arg-type]  # bad types in d.py
     @commands.cooldown(1, 10, commands.BucketType.user)
     @describe(
         member="The member of the server to put the Santa Hat on.",
@@ -90,7 +95,6 @@ class Images(commands.Cog):
         flip='Whether to flip the Santa Hat left-right. This is on ("True") by default.',
         size="The size of the Santa Hat. The default value is 70. (70% of the PFP size)",
     )
-    @checks.check_members_enabled
     async def santa_hat(
         self,
         ctx: CustomContext,
@@ -119,7 +123,7 @@ class Images(commands.Cog):
             with BytesIO(hat_bytes) as buffer:
                 await ctx.send(file=File(buffer, "santa.png"))
 
-    @hybrid_command(aliases=["santa2"])
+    @hybrid_command(aliases=["santa2"])  # type: ignore[arg-type]  # bad types in d.py
     @commands.cooldown(1, 10, commands.BucketType.user)
     @describe(
         member="The member of the server to put the Santa Hat on.",
@@ -156,8 +160,9 @@ class Images(commands.Cog):
             with BytesIO(hat_bytes) as buffer:
                 await ctx.send(file=File(buffer, "santa.png"))
 
-    @hybrid_command(aliases=["pins"])
+    @hybrid_command(aliases=["pins"])  # type: ignore[arg-type]  # bad d.py exported type
     @commands.cooldown(1, 40, commands.BucketType.channel)
+    @commands.bot_has_guild_permissions(view_channel=True, read_message_history=True)
     @describe(channel="The channel that will have it's pins displayed. ")
     async def pinsleft(
         self,
@@ -166,14 +171,16 @@ class Images(commands.Cog):
         channel: Optional[discord.TextChannel],
     ) -> None:
         """Shows how many pins are left in a channel in a wonderfully flashy way."""
-        channel: discord.TextChannel = channel or ctx.channel
+        query_channel = channel or ctx.channel
         async with ctx.typing():
-            pins_left = 50 - len(await channel.pins())
+            pins_left = DISCORD_MAX_PINS - len(
+                await query_channel.pins(limit=DISCORD_MAX_PINS)
+            )
             with await ctx.bot.loop.run_in_executor(
                 None, partial(pins_left_executor, pins_left)
             ) as buffer:
                 await ctx.send(file=discord.File(buffer, "pinsleft.png"))
 
 
-async def setup(bot: BOT_TYPES) -> None:
+async def setup(bot: CustomBot) -> None:
     await bot.add_cog(Images(bot))

@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, cast
 from discord.app_commands import describe
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import hybrid_command, Cog, guild_only
@@ -12,8 +12,17 @@ from yt_dlp import YoutubeDL
 
 from extensions.audio.control import QueueMenuSource, AudioSourceMenu
 from utils.checks.audio import check_voice_client_predicate
-from utils.sources.ytdl import YTDLSource, YTDL_AUDIO_FORMAT_OPTIONS
+from utils.sources.common import YTDL_AUDIO_FORMAT_INITIAL_OPTIONS
+from utils.sources.ytdl import YTDLInfo, YTDLSource
 from utils.validators import str_is_url
+
+
+MS_TRACK_LENGTH_LIMIT = 5_400_000  # 1 hr 30 mins  # TODO: make more robust
+
+
+async def too_long_to_download_checker(ytdlinfo: YTDLInfo) -> bool:
+    duration = cast(int, getattr(ytdlinfo, "duration", 0)) * 1000
+    return duration < MS_TRACK_LENGTH_LIMIT
 
 
 class Music(Cog):
@@ -21,7 +30,8 @@ class Music(Cog):
 
     def __init__(self, bot: CustomBot) -> None:
         self.bot = bot
-        self._file_downloader = YoutubeDL(dict(YTDL_AUDIO_FORMAT_OPTIONS))
+        self._file_downloader = YoutubeDL(dict(YTDL_AUDIO_FORMAT_INITIAL_OPTIONS))
+        self._info_checker = too_long_to_download_checker
 
     async def cog_check(self, ctx: CustomContext) -> bool:  # type: ignore[override]
         if not isinstance(ctx, CustomContext):
@@ -47,7 +57,11 @@ class Music(Cog):
             query = query if str_is_url(query) else f"ytsearch:{query}"
 
             ytdl_sources: Sequence[YTDLSource] = await YTDLSource.from_url(
-                self._file_downloader, query, ctx.author, loop=ctx.voice_client.loop
+                query,
+                ctx.author,
+                file_downloader=self._file_downloader,
+                loop=ctx.voice_client.loop,
+                preload_checker=self._info_checker,
             )
             for source in ytdl_sources:
                 await ctx.voice_client.queue.put(source)
@@ -85,7 +99,11 @@ class Music(Cog):
             query = query if str_is_url(query) else f"ytsearch:{query}"
 
             ytdl_sources: Sequence[YTDLSource] = await YTDLSource.from_url(
-                self._file_downloader, query, ctx.author, loop=ctx.voice_client.loop
+                query,
+                ctx.author,
+                file_downloader=self._file_downloader,
+                loop=ctx.voice_client.loop,
+                preload_checker=self._info_checker,
             )
             for source in ytdl_sources:
                 if len(ctx.voice_client.queue.deque) > 1:

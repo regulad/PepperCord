@@ -6,12 +6,11 @@ from utils.misc import FrozenDict
 
 YTDLOptionsType = FrozenDict[str, str | bool]
 
-YTDL_AUDIO_FORMAT_OPTIONS: YTDLOptionsType = FrozenDict(
+YTDL_AUDIO_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
     {
         "format": "bestaudio/best",
         "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
         "restrictfilenames": True,
-        "nocheckcertificate": True,
         "ignoreerrors": False,
         "logtostderr": False,
         "prefer_ffmpeg": True,
@@ -21,6 +20,7 @@ YTDL_AUDIO_FORMAT_OPTIONS: YTDLOptionsType = FrozenDict(
         "source_address": "0.0.0.0",
         # bind to ipv4 since ipv6 addresses cause issues sometimes
         # TODO: Why do we need to bind to ipv4 listener only?
+        "outtmpl_na_placeholder": "m4a",  # default to m4a if we have no idea what something is
     }
 )
 
@@ -40,7 +40,7 @@ class EnhancedPCMVolumeTransformer(PCMVolumeTransformer[S], EnhancedSource):
 
 
 __all__: list[str] = [
-    "YTDL_AUDIO_FORMAT_OPTIONS",
+    "YTDL_AUDIO_FORMAT_INITIAL_OPTIONS",
     "YTDLOptionsType",
     "EnhancedPCMVolumeTransformer",
 ]

@@ -370,7 +370,6 @@ class Minecraft(Cog):
                 logger.warning(
                     f"Could not send message to {channel_id} in {document._collection.name} {document['_id']}"
                 )
-                pass
             await document.update_db(
                 {
                     "$set": {

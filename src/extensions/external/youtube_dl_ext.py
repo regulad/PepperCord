@@ -1,7 +1,7 @@
 import os
 from functools import partial
 from os import sep
-from typing import Type, cast
+from typing import cast
 
 from aiofiles.tempfile import TemporaryDirectory
 from discord import File, Guild, HTTPException

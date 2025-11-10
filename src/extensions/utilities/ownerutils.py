@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import datetime
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Optional, Union, cast
 
-from discord import ButtonStyle, Embed, Guild
+from discord import Embed, Guild
 from discord.ext.commands import Cog, guild_only, CheckFailure, command
-from discord.ext.menus import ListPageSource, Menu, MenuPages
+from discord.ext.menus import ListPageSource, MenuPages
 
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext

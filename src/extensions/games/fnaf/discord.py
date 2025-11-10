@@ -5,18 +5,18 @@ from dataclasses import MISSING
 import functools
 from io import BytesIO
 import operator
-from typing import TYPE_CHECKING, Any, Optional, Self, Type, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from discord import ButtonStyle, File, SelectOption, ui, Message
 from PIL.Image import Image as ImageType
-from discord import Embed, Guild, Interaction, Member, Message, User
+from discord import Embed, Guild, Interaction, Member, Message
 from discord.user import BaseUser
 from discord.app_commands import describe
 from discord.ext import tasks
 from discord.ext.commands import hybrid_group, guild_only, Cog, cooldown, BucketType
 
 from discord.ext.menus import ListPageSource, MenuPages
-from utils import bots, misc, checks
+from utils import misc
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.database import PCDocument

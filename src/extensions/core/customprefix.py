@@ -1,4 +1,4 @@
-from typing import Iterable, Optional, Sequence
+from typing import Iterable, Optional
 
 import discord
 from discord.app_commands import guild_only

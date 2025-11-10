@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Self, Sequence
+from typing import Any, Mapping, Sequence
 
 from pymongo.asynchronous.collection import AsyncCollection
 

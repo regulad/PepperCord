@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
@@ -12,13 +14,19 @@ from utils.bots.context import CustomContext
 if TYPE_CHECKING:
     from _typeshed import SupportsRichComparison
 
+# Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
+if TYPE_CHECKING:
+    _GuildsMenuList_Base = ListPageSource[
+        Guild, "MenuPages[CustomBot, CustomContext, GuildsMenuList]"
+    ]
+else:
+    _GuildsMenuList_Base = ListPageSource
 
-class GuildsMenuList(
-    ListPageSource[Guild, MenuPages[CustomBot, CustomContext, "GuildsMenuList"]]
-):
+
+class GuildsMenuList(_GuildsMenuList_Base):
     async def format_page(
         self,
-        menu: MenuPages[CustomBot, CustomContext, "GuildsMenuList"],
+        menu: "MenuPages[CustomBot, CustomContext, GuildsMenuList]",
         page_entries: Union[Guild, list[Guild]],
     ) -> Embed:
         assert not isinstance(
@@ -74,7 +82,7 @@ class OwnerUtils(Cog):
                     f"Got a None joined_at in guild {g}, but we aren't a guest!"
                 )
 
-        menu: MenuPages[CustomBot, CustomContext, GuildsMenuList] = MenuPages(
+        menu: "MenuPages[CustomBot, CustomContext, GuildsMenuList]" = MenuPages(
             GuildsMenuList(sorted(ctx.bot.guilds, key=guild_comp_key), per_page=10)
         )
         await menu.start(ctx)

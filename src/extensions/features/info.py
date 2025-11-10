@@ -178,7 +178,7 @@ class Info(commands.Cog):
                 peppercord_version, peppercord_commit = get_version()
 
                 base = ctx.bot.config.get(
-                    "PEPPERCORD_WEB", "https://regulad.github.com/PepperCord"
+                    "PEPPERCORD_WEB", "https://regulad.github.io/PepperCord"
                 )
                 embed = discord.Embed(
                     colour=discord.Colour.orange(),

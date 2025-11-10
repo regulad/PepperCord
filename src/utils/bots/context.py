@@ -55,7 +55,7 @@ class _DefaultSendHandler(SendHandler):
         return message
 
 
-class CustomContext(Context[CustomBot]):
+class CustomContext(Context["CustomBot"]):
     def __init__(self, **kwargs: Any):  # TODO: fix passthrough kwargs
         self._custom_state: Dict[str, Any] = {}
         self.send_handler: SendHandler = _DefaultSendHandler(self)

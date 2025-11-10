@@ -24,7 +24,7 @@ svglib = "^1.6.0"
 yt-dlp = ">=2025.10.22"  # very stable outward API
 mc-formatting-sirnapkin1334 = {git = "https://github.com/Moire9/MC-Formatting.git",rev = "6f4796683e114cb7632814c577507c8bafecf88a"}
 black = "25.9.0"  # Pinned in .pre-commit-config.yaml
-pymongo = "^4.15.3"
+pymongo = {version = "^4.15.3", extras = ["srv"]}
 discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus", rev = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"}
 pytz = "2025.2.0"  # has stubs
 

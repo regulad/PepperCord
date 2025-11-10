@@ -26,6 +26,8 @@ logger: logging.Logger = logging.getLogger(__name__)
 logging.getLogger("discord").setLevel(
     logging.WARNING
 )  # We aren't debugging discord.py; just our program
+logging.getLogger("pymongo").setLevel(logging.WARNING)
+logging.getLogger("PIL").setLevel(logging.WARNING)
 
 
 async def async_main() -> None:
@@ -106,7 +108,7 @@ async def async_main() -> None:
                     await gather(*[bot.tree.sync(guild=guild) for guild in testguilds])
                     await bot.tree.sync()
                     logger.info("Finished syncing guild commands.")
-                elif bot.config.get("PEPPERCORD_SLASH_COMMANDS") is None:
+                else:
                     await bot.tree.sync()
                     if debug:
                         try:

@@ -33,19 +33,3 @@ PepperCord uses MongoDB as a datastore, and environment variables for configurat
 #### Environment variables:
 
 See `.env.example`. Before running `docker compose up`, copy `.env.example` to `.env` and fill out the variables.
-
-##### Secrets
-
-* `PEPPERCORD_URI`: MongoDB connection URI. Default is `mongodb://mongo:27107`.
-* `PEPPERCORD_TOKEN`: Discord token.
-
-##### Config
-
-* `PEPPERCORD_DB_NAME`: Name of the primary database. Default is `peppercord`.
-* `PEPPERCORD_PREFIX`: Command prefix. Default is `?`.
-* `PEPPERCORD_WEB`: Website used in some commands. Default is `https://www.regulad.xyz/PepperCord`.
-* `PEPPERCORD_DEBUG`: Optional. Enables debug information in the log.
-* `PEPPERCORD_TESTGUILDS`: Optional. A comma seperated list of Discord guild ids. The bot will only be enabled in these
-  servers. If these are present, global slash commands will not be uploaded.
-* `PEPPERCORD_SLASH_COMMANDS`: Optional. If slash commands should be disabled.
-* `PEPPERCORD_HOME_SERVER`: Optional. The Discord guild id of the bot's home server. Used for some commands, mainly making emojis.

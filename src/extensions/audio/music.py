@@ -55,7 +55,7 @@ class Music(Cog):
             if len(ytdl_sources) == 1:
                 await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
             else:
-                menu: MenuPages[CustomBot, CustomContext, "QueueMenuSource"] = (
+                menu: "MenuPages[CustomBot, CustomContext, QueueMenuSource]" = (
                     MenuPages(
                         QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
                     )
@@ -92,7 +92,7 @@ class Music(Cog):
             if len(ytdl_sources) == 1:
                 await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
             else:
-                menu: MenuPages[CustomBot, CustomContext, "QueueMenuSource"] = (
+                menu: "MenuPages[CustomBot, CustomContext, QueueMenuSource]" = (
                     MenuPages(
                         QueueMenuSource(ytdl_sources, ctx.voice_client, "Tracks added:")
                     )

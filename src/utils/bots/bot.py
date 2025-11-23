@@ -47,12 +47,21 @@ ContextT = TypeVar("ContextT", bound="Context[Any]")
 class CustomBot(Bot):
 
     @staticmethod
-    async def store_original_kwargs(
+    async def before_invoke_handler(
         ctx: CustomContext, *args: Any, **kwargs: Any
     ) -> None:
+        await ctx.bot.wait_for_dispatch("before_invocation_blocking", ctx)
+        ctx.bot.dispatch("before_invocation_nonblocking", ctx)
         # On custom contexts with interactions, the original kwargs can be discarded when a command is re-prepared
         if ctx.interaction is not None:
             ctx["original_kwargs"] = ctx.kwargs
+
+    @staticmethod
+    async def after_invoke_handler(
+        ctx: CustomContext, *args: Any, **kwargs: Any
+    ) -> None:
+        await ctx.bot.wait_for_dispatch("after_invocation_blocking", ctx)
+        ctx.bot.dispatch("after_invocation_nonblocking", ctx)
 
     def __init__(
         self,
@@ -85,7 +94,8 @@ class CustomBot(Bot):
             **options,
         )
 
-        self.before_invoke(self.store_original_kwargs)
+        self.before_invoke(self.before_invoke_handler)
+        self.after_invoke(self.after_invoke_handler)
 
     # custom state
     @overload

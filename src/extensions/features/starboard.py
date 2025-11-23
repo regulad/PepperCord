@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import Any, Optional, cast
 
 import discord
 from discord import (
@@ -38,8 +38,9 @@ async def send_star(
     bot: CustomBot,
 ) -> discord.Message:
     assert message.guild is not None  # will not get called in dm environment
+    starboard_config: dict[str, Any] = await document.safe_get("starboard", {})
 
-    send_channel_id: Optional[int] = document.get("starboard", {}).get("channel")
+    send_channel_id: Optional[int] = starboard_config.get("channel")
 
     if send_channel_id is None:
         raise NotConfigured
@@ -51,7 +52,7 @@ async def send_star(
     elif not isinstance(send_channel, TextChannel):
         raise RuntimeError("Channel was not a TextChannel!")
 
-    messages = document.get("starboard", {}).get("messages", [])
+    messages = starboard_config.get("messages", [])
 
     if message.id in messages:
         raise AlreadyPinned
@@ -148,8 +149,16 @@ class Starboard(commands.Cog):
         if not isinstance(ctx.author, discord.Member) or ctx.guild is None:
             return
 
-        send_emoji = ctx["guild_document"].get("starboard", {}).get("emoji", "⭐")
-        threshold = ctx["guild_document"].get("starboard", {}).get("threshold", 3)
+        if not await ctx["guild_document"].safe_contains("starboard"):
+            # This server doesn't have a starboard.
+            return
+
+        starboard_config: dict[str, Any] = await ctx["guild_document"].safe_get(
+            "starboard", {}
+        )
+
+        send_emoji = starboard_config.get("emoji", "⭐")
+        threshold = starboard_config.get("threshold", 3)
 
         for reaction in ctx.message.reactions:
             if isinstance(reaction.emoji, (discord.Emoji, discord.PartialEmoji)):
@@ -181,9 +190,13 @@ class Starboard(commands.Cog):
         """Shows all the settings of the currently configured starboard."""
         assert ctx.guild is not None  # guaranteed at runtime by check
 
-        if ctx["guild_document"].get("starboard", {}).get("channel") is None:
+        starboard_config: dict[str, Any] | None = await ctx["guild_document"].safe_get(
+            "starboard"
+        )
+        if starboard_config is None or "channel" not in starboard_config:
             raise NotConfigured
-        channel = ctx.guild.get_channel(ctx["guild_document"]["starboard"]["channel"])
+
+        channel = ctx.guild.get_channel(starboard_config["channel"])
         if not isinstance(channel, TextChannel):
             raise RuntimeError(
                 "This server has a Starboard configured, but I can't access it. You'll need to reconfigure the starboard."
@@ -191,10 +204,10 @@ class Starboard(commands.Cog):
 
         try:
             emoji = await commands.EmojiConverter().convert(
-                ctx, ctx["guild_document"]["starboard"].get("emoji", "⭐")
+                ctx, starboard_config.get("emoji", "⭐")
             )
         except commands.EmojiNotFound:
-            emoji = ctx["guild_document"]["starboard"].get("emoji", "⭐")
+            emoji = starboard_config.get("emoji", "⭐")
 
         embed = (
             discord.Embed(title="Starboard Config")
@@ -205,7 +218,7 @@ class Starboard(commands.Cog):
             .add_field(name="Emoji:", value=emoji)
             .add_field(
                 name="Threshold:",
-                value=ctx["guild_document"]["starboard"].get("threshold", 3),
+                value=starboard_config.get("threshold", 3),
             )
         )
 
@@ -226,7 +239,7 @@ class Starboard(commands.Cog):
         Disables and deletes all starboard data.
         You'll need to reconfigure it before you use it again.
         """
-        if ctx["guild_document"].get("starboard") is None:
+        if not await ctx["guild_document"].safe_contains("starboard"):
             raise NotConfigured
         else:
             await ctx["guild_document"].update_db({"$unset": {"starboard": 1}})

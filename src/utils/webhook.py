@@ -27,9 +27,9 @@ async def get_or_create_namespaced_webhook(
     **kwargs: Any,
 ) -> Webhook:
     guild_doc: PCDocument = await bot.get_guild_document(channel.guild)
-    existing_webhook: Optional[int] = guild_doc.get(f"{namespace}_webhooks", {}).get(
-        str(channel.id)
-    )
+    existing_webhook: Optional[int] = (
+        await guild_doc.safe_get(f"{namespace}_webhooks", {})
+    ).get(str(channel.id))
     maybe_webhook: Optional[Webhook]
     try:
         maybe_webhook = (

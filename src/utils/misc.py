@@ -123,7 +123,7 @@ class FrozenDict(Mapping[K, V], Generic[K, V]):
         return self._d[key]
 
 
-UTC_OFFSET = datetime.utcnow() - datetime.now()  # this sucks
+UTC_OFFSET = datetime.utcnow() - datetime.now()  # type: ignore[deprecated]  # this sucks, but does work.
 
 
 P = ParamSpec("P")

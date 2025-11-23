@@ -1,6 +1,15 @@
 services:
   mongo:
     image: "mongo:5"
+    # Good lord, mongodb is such an inefficient database
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: "512M"
+        reservations:
+          cpus: "0.10"
+          memory: "128M"
     hostname: "mongo"
     restart: unless-stopped
     read_only: true
@@ -13,6 +22,14 @@ services:
       - "db:/data/db"
   redis:
     image: "redis:8.4-alpine3.22"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: "256M"
+        reservations:
+          cpus: "0.01"
+          memory: "64M"
     hostname: "redis"
     restart: unless-stopped
     read_only: true
@@ -25,6 +42,14 @@ services:
       - redis:/data
   peppercord:
     image: "ghcr.io/regulad/peppercord:latest"
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: "4G"
+        reservations:
+          cpus: "1"
+          memory: "1G"
     dns:
       # Discord uses rapidly-reconfigured domain names to direct traffic to its WS and RTC gateways.
       # With PepperCord in production, I've had the best experience with the Google DNS servers

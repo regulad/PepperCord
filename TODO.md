@@ -10,4 +10,9 @@ Their inclusion on this list is not a guarantee that they will eventually be imp
 - [ ] RSS feed parsing & iCal feed parsing; mentioning in channel when new content on feed is detected (goal was to use this for sports games)
 - [ ] TTS using a local model
 - [ ] Improved `santa_hat`
+- [ ] Fix version flag in `botinfo`
+- [ ] error on `purge` because it is trying to reply to a message that it just deleted
+- [x] Resource limits in Docker compose (need to observe prod)
+- [ ] MOTD system
+- [ ] ERC-20 gambling (incredibly stupid)
 - [ ] FNAF3 (all assets are in the source tree, but are entirely unused)

@@ -81,7 +81,7 @@ class StatusWatch(Cog):
             )
             for guild_id, user_id in [
                 (int(scope.split("-")[0]), int(scope.split("-")[-1]))
-                for scope in document.get("watchers", [])
+                for scope in await document.safe_get("watchers", [])
             ]:
                 try:
                     if guild_id == after.guild.id:
@@ -108,7 +108,7 @@ class StatusWatch(Cog):
             before.status is not Status.offline and after.status is Status.offline
         ) or after.status is not Status.offline:
             await document.update_db(
-                {"$set": {"last_online": datetime.utcnow()}}
+                {"$set": {"last_online": datetime.utcnow()}}  # type: ignore[deprecated]  # works fine
             )  # probably some mongo managed solution
 
     @hybrid_group(name="watch", aliases=("w", "sw"), fallback="start")  # type: ignore [arg-type]  # d.py bad export
@@ -161,9 +161,9 @@ class StatusWatch(Cog):
         """Get the last time a member was online."""
         async with ctx.typing(ephemeral=True):
             document: PCDocument = await ctx.bot.get_user_document(member)
-            last_online: datetime | None = document.get(
+            last_online: datetime | None = await document.safe_get(
                 "last_online",
-                datetime.utcnow() if member.status is not Status.offline else None,
+                datetime.utcnow() if member.status is not Status.offline else None,  # type: ignore[deprecated]  # works fine
             )
             if member.status is not Status.offline:
                 await ctx.send(

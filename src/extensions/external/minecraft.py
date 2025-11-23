@@ -314,7 +314,8 @@ class Minecraft(Cog):
         self, document: PCDocument, server: SerializedServerType
     ) -> None:
         logger.debug(
-            f"Checking for server status changes in {document._collection.name} {document['_id']} {server}..."
+            f"Checking for server status changes in {document._collection.name} "
+            f"{await document.safe_subscript('_id')} {server}..."
         )
 
         server_address = server["address"]
@@ -328,7 +329,8 @@ class Minecraft(Cog):
 
         if channel is None:
             logger.warning(
-                f"Could not find channel {channel_id} in {document._collection.name} {document['_id']}"
+                f"Could not find channel {channel_id} in {document._collection.name} "
+                f"{await document.safe_subscript('_id')}"
             )
             return
 
@@ -368,7 +370,8 @@ class Minecraft(Cog):
                     await channel.send(content=message)
             except Forbidden:
                 logger.warning(
-                    f"Could not send message to {channel_id} in {document._collection.name} {document['_id']}"
+                    f"Could not send message to {channel_id} in {document._collection.name} "
+                    f"{document.safe_subscript('_id')}"
                 )
             await document.update_db(
                 {
@@ -385,10 +388,11 @@ class Minecraft(Cog):
 
     async def _check_for_server_updates_document(self, document: PCDocument) -> None:
         logger.debug(
-            f"Checking for server status changes in {document._collection.name} {document['_id']}..."
+            f"Checking for server status changes in {document._collection.name} "
+            f"{await document.safe_subscript("_id")}..."
         )
         async with TaskGroup() as tg:
-            for server in document.get("minecraft_servers", []):
+            for server in await document.safe_get("minecraft_servers", []):
                 tg.create_task(
                     self._check_for_server_updates_single_server(document, server)
                 )

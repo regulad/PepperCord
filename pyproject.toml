@@ -29,6 +29,7 @@ discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus", rev = 
 pytz = "2025.2.0"  # has stubs
 discord-ext-voice-recv = "0.5.2a179"
 redis = {extras = ["hiredis"], version = "^7.1.0"}
+aiorwlock = "^1.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"
@@ -67,6 +68,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_return_any = true
 warn_unreachable = true
+enable_error_code = ["deprecated"]
 local_partial_types = true
 extra_checks = true
 implicit_reexport = false

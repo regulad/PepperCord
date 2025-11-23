@@ -30,7 +30,7 @@ def fully_render(game_state: GameState) -> BytesIO:
 
 
 async def get_fazpoints(bot: CustomBot, user: Member | BaseUser) -> int:
-    return cast(int, (await bot.get_user_document(user)).get("fazpoints", 0))
+    return cast(int, await (await bot.get_user_document(user)).safe_get("fazpoints", 0))
 
 
 async def set_fazpoints(

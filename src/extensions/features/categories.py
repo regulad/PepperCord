@@ -75,7 +75,7 @@ class Categories(Cog):
             and hasattr(ctx.channel, "position")
             and (
                 ctx.channel.category.id  # type: ignore[union-attr]  # guaranteed by ctx.guild is not None
-                in ctx["guild_document"].get("autosort_categories", [])
+                in await ctx["guild_document"].safe_get("autosort_categories", [])
             )
         ):
             await ctx.channel.edit(position=ctx.channel.category.position)  # type: ignore[union-attr]  # guaranteed by ctx.guild is not None
@@ -99,7 +99,7 @@ class Categories(Cog):
                         category
                         for category in [
                             ctx.guild.get_channel(category_id)
-                            for category_id in ctx["guild_document"].get(
+                            for category_id in await ctx["guild_document"].safe_get(
                                 "autosort_categories", []
                             )
                         ]

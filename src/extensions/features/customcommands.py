@@ -208,7 +208,7 @@ class CustomCommands(commands.Cog):
         if (
             not ctx.author.bot
             and ctx.guild is not None
-            and ctx["guild_document"].get("commands") is not None
+            and (await ctx["guild_document"].safe_get("commands")) is not None
             and not ctx.valid
         ):
             # Lots of conditions to get here.
@@ -251,7 +251,7 @@ class CustomCommands(commands.Cog):
     async def customcommands(self, ctx: CustomContext) -> None:
         """Lists all custom commands currently on the server."""
         assert ctx.guild is not None  # guaranteed at runtime with checks
-        commands_dict = ctx["guild_document"].get("commands", {})
+        commands_dict = await ctx["guild_document"].safe_get("commands", {})
         custom_commands = CustomCommand.from_dict(commands_dict)
         source = CustomCommandSource(custom_commands, ctx.guild)
         pages: "menus.MenuPages[CustomBot, CustomContext, CustomCommandSource]" = (
@@ -359,9 +359,10 @@ class CustomCommands(commands.Cog):
         command: str,
     ) -> None:
         """Deletes a custom command from the guild."""
+        custom_commands_obj = await ctx["guild_document"].safe_get("commands")
         if (
-            ctx["guild_document"].get("commands") is not None
-            and ctx["guild_document"]["commands"].get(command) is not None
+            custom_commands_obj is not None
+            and custom_commands_obj.get(command) is not None
         ):
             await ctx["guild_document"].update_db(
                 {"$unset": {f"commands.{command}": 1}}

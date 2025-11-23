@@ -31,6 +31,7 @@ from discord.ext.commands import Bot, Command, Context
 from pymongo.asynchronous.database import AsyncDatabase
 from discord.user import BaseUser, User
 from discord.utils import find
+from redis.asyncio import Redis
 
 from utils.database import PCDocument, PCInternalDocument
 from .context import CustomContext
@@ -56,11 +57,14 @@ class CustomBot(Bot):
     def __init__(
         self,
         *,
-        database: AsyncDatabase[PCInternalDocument],
+        cdb: Redis,
+        ddb: AsyncDatabase[PCInternalDocument],
         config: MutableMapping[str, str],
         **options: Any,
     ):
-        self._database = database
+        self.ddb = ddb
+        self.cdb = cdb
+
         self._config = config
 
         self._custom_state: Dict[str, Any] = {}
@@ -202,10 +206,6 @@ class CustomBot(Bot):
             return []
 
     @property
-    def database(self) -> AsyncDatabase[PCInternalDocument]:
-        return self._database
-
-    @property
     def config(self) -> MutableMapping[str, str]:
         return self._config
 
@@ -213,7 +213,7 @@ class CustomBot(Bot):
         """Gets a command's document from the database."""
 
         return await PCDocument.get_document(
-            self._database["commands"],
+            self.ddb["commands"],
             {
                 "name": command.name,
                 "cog": getattr(
@@ -230,7 +230,7 @@ class CustomBot(Bot):
                 return document
         else:
             document = await PCDocument.get_document(
-                self._database["guild"], {"_id": model.id}
+                self.ddb["guild"], {"_id": model.id}
             )
             self._guild_doc_cache.appendleft((model, document))
             return document
@@ -243,7 +243,7 @@ class CustomBot(Bot):
                 return document
         else:
             document = await PCDocument.get_document(
-                self._database["user"], {"_id": model.id}
+                self.ddb["user"], {"_id": model.id}
             )
             self._user_doc_cache.appendleft((model, document))
             return document

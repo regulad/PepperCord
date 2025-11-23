@@ -398,7 +398,7 @@ class Minecraft(Cog):
         logger.debug("Checking for server status changes...")
 
         # first step: get any documents in either the users or guild collection that have minecraft_servers set
-        user_collection = self.bot.database.get_collection("user")
+        user_collection = self.bot.ddb.get_collection("user")
         user_query = {"minecraft_servers": {"$exists": True}}
         raw_user_documents = await user_collection.find(user_query).to_list(length=None)
         user_documents = [
@@ -406,7 +406,7 @@ class Minecraft(Cog):
             for document in raw_user_documents
         ]
 
-        guild_collection = self.bot.database.get_collection("guild")
+        guild_collection = self.bot.ddb.get_collection("guild")
         guild_query = {"minecraft_servers": {"$exists": True}}
         raw_guild_documents = await guild_collection.find(guild_query).to_list(
             length=None

@@ -13,7 +13,7 @@ logger = getLogger(__name__)
 
 class EnhancedSource(AudioSource, ABC):
     @property
-    def invoker(self) -> abc.User:
+    def invoker(self) -> Optional[abc.User]:
         raise NotImplementedError
 
     @property
@@ -108,8 +108,9 @@ class CustomVoiceClient(VoiceRecvClient):
                 )
 
                 while True:
-                    track = await track.refresh(self)
                     try:
+                        track = await track.refresh(self)
+                        self.client.dispatch("cvc_track_play", self, track)
                         await self.play_future(track)
                     except Exception:
                         logger.warning(f"Failed to play track {track} on CVC {self}")

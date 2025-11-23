@@ -1,4 +1,7 @@
-# hadolint global ignore=DL3008  # DL3008 is fit for us, python3-dev is pinned by the image's repositories
+# hadolint global ignore=DL3008  # DL3008 is fit for us, python3-dev is pinned by the image's repositories; and ca-certificates should always be the newest bc CoT
+
+# deno is needed for yt-dlp
+FROM denoland/deno:bin-2.3.1 AS deno
 FROM python:3.14.0-slim-trixie
 
 LABEL name="peppercord" \
@@ -22,12 +25,14 @@ ARG USER_UID=1008
 ARG USER_GID=$USER_UID
 
 # Add dependencies & do setup
+COPY --from=deno /deno /usr/local/bin/deno
 RUN --mount=type=tmpfs,destination=/tmp \
   groupadd --gid $USER_GID $USERNAME \
   && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
   && apt-get update -y \
   && apt-get install -y --no-install-recommends \
   python3-dev \
+  ca-certificates \
   \
   python3-poetry=2.1.2+dfsg-1 \
   git=1:2.47.3-0+deb13u1 \

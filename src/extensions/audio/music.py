@@ -1,10 +1,12 @@
+from asyncio import sleep
+import datetime
 from typing import Sequence, cast
 from discord.app_commands import describe
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import hybrid_command, Cog, guild_only
 
 from discord.ext.menus import MenuPages
-from utils.bots.audio import CustomVoiceClient
+from utils.audio import CustomVoiceClient
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 
@@ -17,7 +19,9 @@ from utils.sources.ytdl import YTDLInfo, YTDLSource
 from utils.validators import str_is_url
 
 
-MS_TRACK_LENGTH_LIMIT = 5_400_000  # 1 hr 30 mins  # TODO: make more robust
+MS_TRACK_LENGTH_LIMIT = (
+    datetime.timedelta(hours=1, minutes=30).total_seconds() * 1000
+)  # TODO: make more robust
 
 
 async def too_long_to_download_checker(ytdlinfo: YTDLInfo) -> bool:
@@ -69,7 +73,16 @@ class Music(Cog):
             if len(ytdl_sources) == 1:
                 # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
                 await ctx.send("Added a track.", ephemeral=True)
-                await AudioSourceMenu(ytdl_sources[0], ctx.voice_client).start(ctx)
+                # This used to be necessary before the bot automatically sent messages in the bound channel when a new track began playing.
+                # Now, we only do it if there's an existing queue so the user immediately sees what they added.
+                await sleep(
+                    0.050
+                )  # TODO: bodge # Sleep 50ms so the queue has some time to process what we just added to it
+                if not ctx.voice_client.queue.empty():
+                    # The queue isn't empty, so we need to send the user some feedback about what they just queued
+                    await AudioSourceMenu(
+                        ytdl_sources[0], ctx.voice_client, do_invoker_mention=False
+                    ).start(ctx)
             else:
                 # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
                 await ctx.send("Added tracks.", ephemeral=True)

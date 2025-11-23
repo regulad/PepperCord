@@ -12,6 +12,7 @@ from typing import Sequence
 from discord import Intents, Object, Game, Forbidden
 from dotenv import load_dotenv
 from pymongo import AsyncMongoClient
+from redis.asyncio import Redis, ConnectionPool
 
 from utils import misc
 from utils.bots.bot import CustomBot
@@ -46,13 +47,18 @@ async def async_main() -> None:
     )
 
     logger.info("Configuring database connection...")
+
+    cdb_uri = config_source["PEPPERCORD_CACHEDB_URI"]
+    cdb_pool = ConnectionPool.from_url(cdb_uri)
+    cdb = Redis(connection_pool=cdb_pool, protocol=3, auto_close_connection_pool=True)
+
+    ddb_uri = config_source["PEPPERCORD_DOCUMENTDB_URI"]
+    ddb_client = AsyncMongoClient(ddb_uri, document_class=PCInternalDocument)
+
     # Configure the database
-    async with AsyncMongoClient(
-        config_source.get("PEPPERCORD_URI", "mongodb://mongo"),
-        document_class=PCInternalDocument,
-    ) as db_client:
+    async with ddb_client, cdb:
         # DB context manager: enables auto-close
-        db = db_client[config_source.get("PEPPERCORD_DB_NAME", "peppercord")]
+        ddb = ddb_client[config_source.get("PEPPERCORD_DB_NAME", "peppercord")]
         logger.info("Done.")
 
         # Configure bot
@@ -60,7 +66,8 @@ async def async_main() -> None:
         # Peppercord used to support running without all intents, but I no longer want to maintain two versions of the bot (one with privileged intents, and one without)
         bot = CustomBot(
             # Explicitly handled in type
-            database=db,
+            ddb=ddb,
+            cdb=cdb,
             config=config_source,
             # Implicitly handled in type
             case_insensitive=True,

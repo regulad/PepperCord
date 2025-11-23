@@ -24,7 +24,7 @@ from discord.ext.commands import (
 from utils import database
 from utils.attachments import find_url, NoMedia
 from utils.bots.bot import CustomBot
-from utils.bots.commands import NotConfigured
+from utils.commands import NotConfigured
 from utils.bots.context import CustomContext
 
 

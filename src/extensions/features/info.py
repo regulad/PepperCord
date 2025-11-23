@@ -226,7 +226,12 @@ class Info(commands.Cog):
                         value=f"OS: {platform.system()} (`{platform.release()}`)"
                         f"\nPython: `{version}`"
                         f"\ndiscord.py: `{discord.__version__}`"
-                        f"\nBot Version: `{peppercord_version}` (`{peppercord_commit}`)",
+                        f"\nBot Version: `{peppercord_version}`"
+                        + (
+                            f" (`{peppercord_commit}`)"
+                            if peppercord_commit is not None
+                            else ""
+                        ),
                         inline=False,
                     )
                 )

@@ -4,14 +4,15 @@ The following checklist items represent features I'd like to add to PepperCord.
 
 Their inclusion on this list is not a guarantee that they will eventually be implemented.
 
-- [ ] Proper handling of a SIGINT (e.g., graceful shutdown) (d.py handles this with the standard startup wrapper but we rolled our own to manage the database lifecycle)
+## November 2025
+- [x] Proper handling of a SIGINT (e.g., graceful shutdown) (d.py handles this with the standard startup wrapper but we rolled our own to manage the database lifecycle)
 - [ ] Voice recording/transcription and playback/clipping (essentially adopting the functionality of the defunct `regulad/BigBrother` while also adding transcription functionality) (library in use for the `CustomVoiceClient` enables sinking audio; just need to plumb)
-- [ ] Multi-channel audio over RTSP of voice chat for given guild (useful for doing MM productions from a discord channel, great for twitch streaming/yt recording)
+- [ ] Multi-channel audio over RTSP (maybe HTTP stream of Ogg container) of voice chat for given guild (useful for doing MM productions from a discord channel, great for twitch streaming/yt recording)
 - [ ] RSS feed parsing & iCal feed parsing; mentioning in channel when new content on feed is detected (goal was to use this for sports games)
 - [ ] TTS using a local model
 - [ ] Improved `santa_hat`
-- [ ] Fix version flag in `botinfo`
-- [ ] error on `purge` because it is trying to reply to a message that it just deleted
+- [x] Fix version flag in `botinfo`
+- [x] error on `purge` because it is trying to reply to a message that it just deleted
 - [x] Resource limits in Docker compose (need to observe prod)
 - [ ] MOTD system
 - [ ] ERC-20 gambling (incredibly stupid)

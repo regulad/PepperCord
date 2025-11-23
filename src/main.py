@@ -3,11 +3,13 @@ Regulad's PepperCord
 https://github.com/regulad/PepperCord
 """
 
+import asyncio
 import locale
 import logging
 import os
 from asyncio import run, gather, AbstractEventLoop, get_event_loop
-from typing import Sequence
+import signal
+from typing import Any, Sequence
 
 from discord import Intents, Object, Game, Forbidden
 from dotenv import load_dotenv
@@ -31,7 +33,7 @@ logging.getLogger("pymongo").setLevel(logging.WARNING)
 logging.getLogger("PIL").setLevel(logging.WARNING)
 
 
-async def async_main() -> None:
+async def async_main(shutdown_event: asyncio.Event) -> None:
     event_loop: AbstractEventLoop = get_event_loop()
 
     if os.path.exists(".env"):
@@ -140,8 +142,25 @@ async def async_main() -> None:
                     logger.info("Finished uploading emojis.")
 
             await bot.wait_for_dispatch("startup")
-            await bot.start(config_source["PEPPERCORD_TOKEN"])
+            bot_runner_task = event_loop.create_task(
+                bot.start(config_source["PEPPERCORD_TOKEN"]), name="main"
+            )
+
+            await shutdown_event.wait()
+            logger.info("Got a request to shut down gracefully. We're going to comply.")
+            await bot.wait_for_dispatch("graceful_shutdown")
+            await bot.close()
+            await bot_runner_task  # wait for this to exit, then we're clean
 
 
 if __name__ == "__main__":
-    run(async_main())
+    shutdown_event = asyncio.Event()
+
+    def do_term(signum: Any, frame: Any) -> None:
+        shutdown_event.set()
+
+    if os.path.exists("/.dockerenv"):
+        # We're in docker, so instead of SIGINT signalling a safe shutdown like in a shell we need to listen for SIGTERM.
+        signal.signal(signal.SIGTERM, do_term)
+    signal.signal(signal.SIGINT, do_term)
+    run(async_main(shutdown_event))

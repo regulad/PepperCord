@@ -7,6 +7,9 @@ FROM python:3.14.0-slim-trixie
 LABEL name="peppercord" \
   version="10.0.0" \
   maintainer="Parker Wahle <regulad@regulad.xyz>"
+# Git can't reliably be queried from inside Docker, so we just pass this in instead.
+# Should match the most recent major version tag.
+ENV PEPPERCORD_DOCKER_VERSION="v10.0.0"
 
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONFAULTHANDLER=1 \
@@ -31,6 +34,8 @@ RUN --mount=type=tmpfs,destination=/tmp \
   && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
   && apt-get update -y \
   && apt-get install -y --no-install-recommends \
+  tini \
+  \
   python3-dev \
   ca-certificates \
   \
@@ -49,6 +54,7 @@ RUN --mount=type=tmpfs,destination=/tmp \
   libxml2=2.12.7+dfsg+really2.9.14-2.1+deb13u1 \
   libcairo2-dev=1.18.4-1+b1 \
   && rm -rf /var/lib/apt/lists/*
+# NOTE: tini is so stable an update would probably only be to fix a security patch. I'm leaving it updated.
 
 # Safe working directory for our user
 WORKDIR /app
@@ -68,4 +74,5 @@ RUN --mount=type=tmpfs,destination=/tmp \
 COPY . /app
 
 # Run
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["poetry", "run", "python", "src/main.py"]

@@ -28,7 +28,7 @@ class Moderation(commands.Cog):
     ) -> None:
         """Deletes a set amount of messages from a channel."""
         if not isinstance(
-            ctx,
+            ctx.channel,
             (
                 discord.TextChannel,
                 discord.VoiceChannel,
@@ -41,7 +41,7 @@ class Moderation(commands.Cog):
         async with ctx.typing(ephemeral=True):
             if ctx.interaction is None:
                 await ctx.message.delete()
-            await ctx.channel.purge(  # type: ignore[union-attr]  # checked above, mypy doesn't detect
+            await ctx.channel.purge(
                 limit=messages, reason=f"Requested by {ctx.author}."
             )
             await ctx.send("Deleted.", ephemeral=True, delete_after=5)

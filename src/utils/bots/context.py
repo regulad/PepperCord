@@ -12,7 +12,7 @@ from discord.ext.commands import Context
 
 from utils.database import PCDocument
 
-from .audio import *
+from ..audio import *
 
 if TYPE_CHECKING:
     from utils.bots.bot import CustomBot

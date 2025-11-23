@@ -19,13 +19,17 @@ from typing import (
 from discord import abc, FFmpegPCMAudio
 
 from yt_dlp import YoutubeDL
-from utils.bots.audio import CustomVoiceClient
+from utils.audio import CustomVoiceClient
 from utils.sources.common import *
 
 
 type FileDownloaderFactory = Callable[[str | None], YoutubeDL]
 # must be passed to check to see if an info can be downloaded. might be rejected because too long
 type InfoCheckType = Callable[[YTDLInfo], Awaitable[bool]]
+
+
+# After this amount of time, the stream is marked "stale" and no longer available for streaming. The refresh method of the stream must be called before it can be played.
+STREAM_SOURCE_EXPIRATION_TIMEDELTA = timedelta(minutes=1)
 
 
 def default_file_downloader_factory(tempdir: str | None) -> YoutubeDL:
@@ -216,7 +220,7 @@ class _YTDLStreamSource(YTDLSource):
     async def refresh(self, voice_client: CustomVoiceClient) -> Self:
         """Regrabs audio from site. Useful if video is time limited."""
 
-        if (self._created + timedelta(minutes=1)) > datetime.now():
+        if (self._created + STREAM_SOURCE_EXPIRATION_TIMEDELTA) > datetime.now():
             return cast(
                 Self,
                 await YTDLSource._do_load(

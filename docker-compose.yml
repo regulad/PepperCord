@@ -11,6 +11,18 @@ services:
       - backend
     volumes:
       - "db:/data/db"
+  redis:
+    image: "redis:8.4-alpine3.22"
+    hostname: "redis"
+    restart: unless-stopped
+    read_only: true
+    # I'm not 100% sure if mongo needs a tmpfs mount, but I don't see how it would hurt it.
+    tmpfs:
+      - /tmp
+    networks:
+      - backend
+    volumes:
+      - redis:/data
   peppercord:
     image: "ghcr.io/regulad/peppercord:latest"
     dns:
@@ -28,6 +40,7 @@ services:
     read_only: true
     depends_on:
       - "mongo"
+      - "redis"
     tmpfs:
       - /tmp
     networks:
@@ -41,8 +54,9 @@ services:
       - "/etc/localtime:/etc/localtime:ro"
 volumes:
   db:
+  redis:
 networks:
   backend:
-    internal: true  # MongoDB is fine without internet
+    internal: true  # databases are fine without internet
   frontend:
     internal: false

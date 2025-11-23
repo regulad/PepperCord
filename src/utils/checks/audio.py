@@ -1,7 +1,7 @@
 from discord import TextChannel, Thread
 from discord.ext.commands import CheckFailure, check
 
-from utils.bots.audio import CustomVoiceClient
+from utils.audio import CustomVoiceClient
 from utils.bots.context import CustomContext
 
 

@@ -19,7 +19,7 @@ from discord.ui import Modal, TextInput
 from utils import attachments
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
-from utils.bots.commands import NotConfigured
+from utils.commands import NotConfigured
 from utils.checks.audio import CantCreateAudioClient
 from utils.checks.blacklisted import EBlacklisted
 

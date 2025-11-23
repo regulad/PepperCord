@@ -1,7 +1,7 @@
 from typing import TypeVar
 from discord import AudioSource, abc, PCMVolumeTransformer
 
-from utils.bots.audio import EnhancedSource
+from utils.audio import EnhancedSource
 from utils.misc import FrozenDict
 
 YTDLOptionsType = FrozenDict[str, str | bool]

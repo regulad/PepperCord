@@ -8,7 +8,7 @@ from discord.ext.commands import hybrid_command, Cog, guild_only
 
 from discord.ext.menus import ListPageSource, Menu, MenuPages
 from discord.ext.voice_recv import VoiceRecvClient
-from utils.bots.audio import CustomVoiceClient, EnhancedSource
+from utils.audio import CustomVoiceClient, EnhancedSource
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.checks.audio import check_voice_client_predicate
@@ -68,8 +68,12 @@ class QueueMenuSource(_QueueMenuSource_Base):
         for iteration, value in enumerate(page_entries, start=offset):
             base_embed.add_field(
                 name=f"{iteration + 1}: {duration_to_str(int(time_until / 1000))} left",
-                value=f"[{value.name}]({value.description})\n{duration_to_str(int(value.duration or 0 / 1000))} long"
-                f"\nAdded by: {value.invoker.display_name}",
+                value=(
+                    f"[{value.name}]({value.description})\n{duration_to_str(int(value.duration or 0 / 1000))} long"
+                    f"\nAdded by: {value.invoker.display_name}"
+                    if value.invoker is not None
+                    else ""
+                ),
                 inline=False,
             )
             if value.duration is not None:
@@ -84,10 +88,12 @@ class AudioSourceMenu(_AudioSourceMenu_Base):
         self,
         source: EnhancedSource,
         client: CustomVoiceClient,
+        do_invoker_mention: bool = True,
         **kwargs: Any,  # TODO: improve kwarg passthrough
     ) -> None:
         self.source: EnhancedSource = source
         self.client: CustomVoiceClient = client
+        self._do_invoker_mention = do_invoker_mention
 
         super().__init__(**kwargs)
 
@@ -108,6 +114,8 @@ class AudioSourceMenu(_AudioSourceMenu_Base):
             uploader_url = info.get("uploader_url")
             if uploader is not None and uploader_url is not None:
                 embed.set_author(name=uploader, url=uploader_url)
+        if self.source.invoker is not None:
+            embed.add_field(name="Added by:", value=self.source.invoker.display_name)
         if self.source.duration is not None:
             embed.add_field(
                 name="Duration:",
@@ -128,9 +136,14 @@ class AudioSourceMenu(_AudioSourceMenu_Base):
                     name="Left:",
                     value=f"{duration_to_str(int((self.source.duration - (self.client.ms_read or 0)) / 1000))}\n"
                     f"{''.join(squares)}",
+                    inline=False,
                 )
-        embed.add_field(name="Added by:", value=self.source.invoker.display_name)
-        return await channel.send(embed=embed)
+        content = (
+            self.source.invoker.mention
+            if self._do_invoker_mention and self.source.invoker is not None
+            else None
+        )
+        return await channel.send(content, embed=embed)
 
 
 class Audio(Cog):
@@ -141,6 +154,54 @@ class Audio(Cog):
 
     async def cog_check(self, ctx: CustomContext) -> bool:  # type: ignore[override]  # bad d.py export type, it works
         return await check_voice_client_predicate(ctx)
+
+    @Cog.listener("on_cvc_track_play")
+    async def on_cvc_track_play(
+        self,
+        cvc: CustomVoiceClient,
+        track: EnhancedSource,
+    ) -> None:
+        """
+        Displays the "now playing" in the bound text channel.
+        """
+        # Sourcing a context here is tough. Here's our possible context sources, listed by priority:
+        #    1. Get the newest message in the channel from the invoker.
+        #    2. Get the newest message in the channel, from anybody.
+        # If we don't have read_message_history, there isn't anything we can do.
+        # It should be granted to the bot anyway with the default OAuth2 flow from Discord.
+
+        if cvc.bound is None or not cvc.is_playing():
+            # Nothing for us to do here.
+            return
+
+        assert isinstance(cvc.client, CustomBot)
+        bot = cvc.client
+
+        ctx: CustomContext | None = None
+
+        if cvc.bound.permissions_for(cvc.bound.guild.me).read_message_history:
+            # Easy, 1 & 2 are possible.
+            author_message: Message | None = None
+            anybody_message: Message | None = None
+            try:
+                async for message in cvc.bound.history():
+                    anybody_message = message
+                    author_message = (
+                        message if message.author == track.invoker else author_message
+                    )
+            except:
+                # Move on to next method
+                pass
+            if author_message is not None:
+                ctx = await bot.get_context(author_message, cls=CustomContext)
+            elif anybody_message is not None:
+                ctx = await bot.get_context(anybody_message, cls=CustomContext)
+        if ctx is None:
+            # Bail.
+            raise RuntimeError(
+                f"Failed to source a context for sending an AudioSourceMenu in {cvc.bound}"
+            )
+        await AudioSourceMenu(track, cvc).start(ctx, channel=cvc.bound)
 
     @hybrid_command(aliases=["q"])  # type: ignore[arg-type]  # bad d.py export
     @guild_only()

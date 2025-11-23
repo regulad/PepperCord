@@ -1,6 +1,7 @@
 from abc import ABC
 from asyncio import AbstractEventLoop, get_running_loop
 from datetime import datetime, timedelta
+import logging
 from os import sep
 import os
 from tarfile import data_filter
@@ -21,6 +22,8 @@ from discord import abc, FFmpegPCMAudio
 from yt_dlp import YoutubeDL
 from utils.audio import CustomVoiceClient
 from utils.sources.common import *
+
+logger = logging.getLogger(__name__)
 
 
 type FileDownloaderFactory = Callable[[str | None], YoutubeDL]
@@ -248,9 +251,36 @@ class _YTDLPreloadSource(YTDLSource):
     ) -> None:
         self.info = info
         self._tempdir = tempdir
+        self._did_destroy = False
         super().__init__(source, volume, invoker=invoker, info=info)
 
+    async def refresh(self, voice_client: CustomVoiceClient) -> Self:
+        if not self._did_destroy:
+            return self
+        else:
+            logger.warning(
+                "WARNING: A preloaded source was refreshed after it was destroyed. This shouldn't happen. Engaging failsafe..."
+            )
+            # The above warning will fire when a preloaded song loops.
+            # I've decided to leave the warning and failsafe in instead of causing it to "persist" between loops because...
+            #     1. This would require a major refactoring of d.py's internal source management, as the code that calls cleanup is inside the library and is destined to be called whenever the source begins playing.
+            #     2. The only viable alternative instead of modifying internals is to set some sort of flag on the preload source like "_did_preload", and then handle it differently in the playback loop of the CVC by setting a "_dont_destroy" flag on the source
+            #     3. This would introduce a race condition where the loop flag of the player may be getting set at the same time as _dont_destroy gets queried, which may cause the source to evade destruction but also lose reference in the CVC.
+            #     4. If the source loses reference while undestroyed, it will get GC'd while it still has files written to disk. This is a storage leak (or memory leak if the storage is backed by tmpfs like it is in the default docker compose).
+            # Although in reality, we could probably trust CPython's __del__ firing behavior to properly initiate cleanup logic even when the player doesn't, I'd much rather just download the audio stream twice instead of relying on weird undocumented garbage collector features.
+            return cast(
+                Self,
+                await YTDLSource._do_load(
+                    self.info["webpage_url"],
+                    self.invoker,
+                    stream=False,
+                    cached_info=self.info,
+                    loop=voice_client.loop,
+                ),
+            )
+
     def cleanup(self) -> None:
+        self._did_destroy = True
         self._tempdir.cleanup()
         return super().cleanup()
 

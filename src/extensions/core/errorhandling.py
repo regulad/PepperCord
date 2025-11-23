@@ -87,11 +87,14 @@ class ErrorSupportModal(Modal, title="Support Form"):
         self.ctx = ctx
 
     async def on_submit(self, interaction: Interaction, /) -> None:
+        base_url = self.ctx.bot.config.get(
+            "PEPPERCORD_WEB", "https://regulad.github.io/PepperCord"
+        )
         await interaction.response.send_message(
             embed=(
                 Embed(
                     description="The error has been submitted for review. "
-                    "Please use [the support server (click here)](https://discord.gg/xwH2Bw7P5b) "
+                    f"Please use [the support server (click here)]({base_url}/discord) "
                     "for any additional help or to self-diagnose your problem."
                 )
             ),

@@ -4,6 +4,7 @@ from typing import Dict, Any, Literal, cast, TYPE_CHECKING, Coroutine, overload
 from discord import (
     Message,
     HTTPException,
+    NotFound,
     User,
     VoiceProtocol,
     WebhookMessage,
@@ -33,7 +34,27 @@ class _DefaultSendHandler(SendHandler):
             if kwargs.get("ephemeral") is not None:
                 del kwargs["ephemeral"]
             if kwargs.get("reference") is None:
-                kwargs["reference"] = self.ctx.message
+                # Before we reply to the message, we need to check if the message still exists.
+                # If the user quickly deletes the message or we jank it with purge, we need to
+                # avoid hitting a reference.
+                # Also, this is stupid and slow. The whole bot is. Oh well.
+                if (
+                    self.ctx.guild is not None
+                    and not self.ctx.channel.permissions_for(
+                        self.ctx.guild.me
+                    ).read_message_history
+                ):
+                    # If we don't have read_message_history, we need to bail so we don't accidentally cause an error.
+                    pass
+                    # I would return here, but this method has a stupid structure and this isn't a submethod
+                else:
+                    og_message = self.ctx.message
+                    try:
+                        await self.ctx.channel.fetch_message(og_message.id)
+                    except NotFound:
+                        pass
+                    else:
+                        kwargs["reference"] = self.ctx.message
             message = await self.ctx.send_bare(*args, **kwargs)
         else:
             try:

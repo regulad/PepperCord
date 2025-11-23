@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Sequence
-from discord import Embed, Message, VoiceClient
+from discord import Embed, Message, PCMVolumeTransformer, VoiceClient
 import discord
+from discord.app_commands import describe
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext.commands import hybrid_command, Cog, guild_only
 
@@ -214,7 +215,7 @@ class Audio(Cog):
 
         maybe_source = ctx.voice_client.source
         if maybe_source is None:
-            await ctx.send("No track is playing.", ephemeral=True)
+            raise RuntimeError("No track is playing.")
         else:
             # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
             await ctx.send("Raised the menu for the queue.", ephemeral=True)
@@ -242,7 +243,7 @@ class Audio(Cog):
 
         maybe_source = ctx.voice_client.source
         if maybe_source is None:
-            await ctx.send("No track is playing.", ephemeral=True)
+            raise RuntimeError("No track is playing.")
         else:
             # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
             await ctx.send("Raised the menu for now playing.", ephemeral=True)
@@ -269,6 +270,31 @@ class Audio(Cog):
             raise RuntimeError("This command cannot be run right now.")
         ctx.voice_client.resume()
         await ctx.send("Resumed the audio player.", ephemeral=True)
+
+    @hybrid_command(aliases=["v"])  # type: ignore[arg-type]  # bad d.py export
+    @guild_only()
+    @ac_guild_only()
+    @describe(volume="A number between 0 and 1, where 1 is full volume and 0 is muted.")
+    async def volume(self, ctx: CustomContext, volume: float) -> None:
+        """
+        Sets the volume of the currently playing track.
+        Volume is a number between 0 and 1, where 1 is full volume and 0 is muted.
+        Setting the volume to 0 will return an error.
+        """
+        assert ctx.voice_client is not None  # guaranteed at runtime
+        if volume <= 0 or volume > 1:
+            raise ValueError(
+                "Volume must be greater than 0 and less than or equal to 1."
+            )
+        if not isinstance(ctx.voice_client, CustomVoiceClient):
+            raise RuntimeError("This command cannot be run right now.")
+        maybe_source = ctx.voice_client.source
+        if maybe_source is None:
+            raise RuntimeError("No track is playing.")
+        if not isinstance(maybe_source, PCMVolumeTransformer):
+            raise RuntimeError("The volume of this track cannot be changed.")
+        maybe_source.volume = volume
+        await ctx.send("Changed the volume.", ephemeral=True)
 
     @hybrid_command(aliases=["s"])  # type: ignore[arg-type]  # bad d.py export
     @guild_only()

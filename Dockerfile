@@ -36,9 +36,9 @@ RUN --mount=type=tmpfs,destination=/tmp \
   && apt-get update -y \
   && apt-get install -y --no-install-recommends \
   tini \
+  ca-certificates \
   \
   python3-dev \
-  ca-certificates \
   \
   python3-poetry=2.1.2+dfsg-1 \
   git=1:2.47.3-0+deb13u1 \

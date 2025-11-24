@@ -79,8 +79,7 @@ class MessageOfTheDay(Cog):
                 )
                 .set_footer(
                     text=(
-                        f"Fun fact: this is your {formal_invocations} time using this copy of PepperCord!"
-                        "\nIf you used PepperCord before 2026, you've probably used PepperCord more than that, though."
+                        f"Fun fact: this is your {formal_invocations} time using this copy of PepperCord since 2025!"
                     )
                 )
             ),

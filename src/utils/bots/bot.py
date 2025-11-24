@@ -339,7 +339,6 @@ class CustomBot(Bot):
         Dispatch a d.py client event, and wait for the listeners to finish
         """
 
-        logging.debug("Dispatching event %s", event)
         method = "on_" + event
 
         listeners = self._listeners.get(event)

@@ -2,7 +2,7 @@
 
 # deno is needed for yt-dlp
 FROM denoland/deno:bin-2.3.1 AS deno
-FROM python:3.14.0-slim-trixie
+FROM python:3.14.2-slim-trixie
 
 LABEL name="peppercord" \
   version="10.0.0" \
@@ -42,7 +42,7 @@ RUN --mount=type=tmpfs,destination=/tmp \
   \
   python3-poetry=2.1.2+dfsg-1 \
   git=1:2.47.3-0+deb13u1 \
-  ffmpeg=7:7.1.2-0+deb13u1 \
+  ffmpeg=7:7.1.3-0+deb13u1 \
   \
   gcc=4:14.2.0-1 \
   gcc-12=12.4.0-5 \

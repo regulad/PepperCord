@@ -2,7 +2,7 @@
 
 # deno is needed for yt-dlp
 FROM denoland/deno:bin-2.3.1 AS deno
-FROM python:3.14.2-slim-trixie
+FROM python:3.14.3-slim-trixie
 
 LABEL name="peppercord" \
   version="10.0.0" \

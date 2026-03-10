@@ -14,7 +14,9 @@ class Cooldown(commands.Cog):
             commands.CooldownMapping.from_cooldown(10, 6, commands.BucketType.user)
         )
 
-    async def bot_check_once(self, ctx: commands.Context[Any]) -> bool:  # type: ignore[override]  # it is compatible
+    async def bot_check_once(
+        self, ctx: commands.Context[Any]
+    ) -> bool:  # it is compatible
         # Cooldown
         bucket = cast(
             commands.Cooldown, self.cooldown.get_bucket(ctx.message)

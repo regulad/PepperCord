@@ -2,6 +2,10 @@
 
 PepperCord 10.0.0: Passing mypy type-checking over 100% of the codebase 🥳
 
+PepperCord's source code is AGPLv3 licensed. PepperCord <10.0.0 is available under the GPLv3.
+
+Assets in the `resources` directory are not AGPLv3 licensed. The Docker image with the resources available is available under a proprietary license. The Docker image is not a composite work: it is merely a "bundling" of the AGPLv3 compiled source code along with the proprietary assets.
+
 ![PepperCord](https://repository-images.githubusercontent.com/364397477/80156d00-ad0d-11eb-85d6-dcdbcb0e136d)
 
 [![wakatime](https://wakatime.com/badge/github/regulad/PepperCord.svg)](https://wakatime.com/badge/github/regulad/PepperCord)

@@ -11,7 +11,7 @@ python = "3.14.3"
 aiofiles = "25.1.0"  # no semantic versioning -- has stubs
 aiohttp = "^3.13.2"
 beautifulsoup4 = "^4.14.2"
-"discord.py" = {version = "2.6.4", extras = ["voice", "speed"]}  # pinned -- internals used
+"discord.py" = {version = "2.7.1", extras = ["voice", "speed"]}  # pinned -- internals used
 gitpython = "^3.1.31"
 jishaku = "^2.6.3"
 mcstatus = "^12.0.6"
@@ -27,7 +27,7 @@ black = "25.9.0"  # Pinned in .pre-commit-config.yaml
 pymongo = {version = "^4.15.3", extras = ["srv"]}
 discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus", rev = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"}
 pytz = "2025.2.0"  # has stubs
-discord-ext-voice-recv = "0.5.2a179"
+discord-ext-voice-recv = {git = "https://github.com/rdphillips7/discord-ext-voice-recv", rev = "b8b3d1d05a36b8999b847ebac32f63525a8b1f20"}  # track https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/54
 redis = {extras = ["hiredis"], version = "^7.1.0"}
 aiorwlock = "^1.5.0"
 

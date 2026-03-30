@@ -1,6 +1,6 @@
 # hadolint global ignore=DL3008  # DL3008 is fit for us, python3-dev is pinned by the image's repositories; and ca-certificates should always be the newest bc CoT
 # deno is needed for yt-dlp
-FROM denoland/deno:bin-2.3.1 AS deno
+FROM denoland/deno:bin-2.7.9 AS deno
 FROM python:3.14.3-slim-trixie
 LABEL name="peppercord" \
   version="10.0.0" \

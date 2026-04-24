@@ -39,6 +39,7 @@ jobs:
         with:
           lfs: true
           submodules: true
+          token: "${{ secrets.PAT }}"
           fetch-depth: 0
 
       # Install the cosign tool except on PR

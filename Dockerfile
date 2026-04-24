@@ -50,20 +50,20 @@ RUN --mount=type=tmpfs,destination=/tmp \
   \
   python3-dev \
   \
-  python3-poetry=2.1.2+dfsg-1 \
-  git=1:2.47.3-0+deb13u1 \
-  ffmpeg=7:7.1.3-0+deb13u1 \
+  python3-poetry \
+  git \
+  ffmpeg \
   \
-  gcc=4:14.2.0-1 \
-  gcc-12=12.4.0-5 \
-  g++=4:14.2.0-1 \
-  pkg-config=1.8.1-4 \
-  cmake=3.31.6-2 \
+  gcc \
+  gcc-12 \
+  g++ \
+  pkg-config \
+  cmake \
   \
-  libfreetype-dev=2.13.3+dfsg-1 \
-  libjpeg-dev=1:2.1.5-4 \
-  libxml2=2.12.7+dfsg+really2.9.14-2.1+deb13u1 \
-  libcairo2-dev=1.18.4-1+b1
+  libfreetype-dev \
+  libjpeg-dev \
+  libxml2 \
+  libcairo2-dev
 
 # Safe working directory for our user
 WORKDIR /app

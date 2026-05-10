@@ -27,7 +27,7 @@ black = "25.9.0"  # Pinned in .pre-commit-config.yaml
 pymongo = {version = "^4.15.3", extras = ["srv"]}
 discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus", rev = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"}
 pytz = "2025.2.0"  # has stubs
-discord-ext-voice-recv = {git = "https://github.com/rdphillips7/discord-ext-voice-recv", rev = "b8b3d1d05a36b8999b847ebac32f63525a8b1f20"}  # track https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/54
+discord-ext-voice-recv = {git = "https://github.com/rdphillips7/discord-ext-voice-recv", rev = "ddd28601fe556f585b869e215f29c8236b95f88f"}  # track https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/54
 redis = {extras = ["hiredis"], version = "^7.1.0"}
 aiorwlock = "^1.5.0"
 

@@ -18,10 +18,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONWARNINGS=default \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   PIP_DEFAULT_TIMEOUT=100 \
-  PIP_CACHE_DIR=/var/cache/buildkit/pip \
   POETRY_HOME=/opt/poetry \
-  POETRY_VERSION=1.8.2 \
-  POETRY_CACHE_DIR=/var/cache/buildkit/poetry
+  POETRY_VERSION=1.8.2
 
 ARG USERNAME=peppercord
 ARG USER_UID=1008
@@ -30,14 +28,11 @@ ARG USER_GID=$USER_UID
 COPY --from=deno /deno /usr/local/bin/deno
 
 # Apt cache setup: disable docker-clean, create and own buildkit cache dirs
+# poetry and pip's caches need to be accessible at runtime (thanks poetry)
 RUN rm -f /etc/apt/apt.conf.d/docker-clean \
-  && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache \
-  && mkdir -p \
-    /var/cache/buildkit/pip \
-    /var/cache/buildkit/poetry
+  && echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 
 # Add dependencies & do setup
-# NOTE: tini is so stable an update would probably only be to fix a security patch. I'm leaving it updated.
 RUN --mount=type=tmpfs,destination=/tmp \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -67,8 +62,7 @@ RUN --mount=type=tmpfs,destination=/tmp \
 
 # Safe working directory for our user
 WORKDIR /app
-RUN chown -R $USERNAME:$USERNAME /app \
-  && chown -R $USER_UID:$USER_GID /var/cache/buildkit
+RUN chown -R $USERNAME:$USERNAME /app
 
 # Switch to our user (mainly for security)
 USER $USERNAME
@@ -78,8 +72,6 @@ COPY poetry.lock pyproject.toml /app/
 
 # Download dependencies and setup venv
 RUN --mount=type=tmpfs,destination=/tmp \
-  --mount=type=cache,target=/var/cache/buildkit/pip,uid=$USER_UID,gid=$USER_GID \
-  --mount=type=cache,target=/var/cache/buildkit/poetry,uid=$USER_UID,gid=$USER_GID \
   poetry install --only main --no-interaction --no-ansi --no-root
 
 # Copy in rest of project excluding packaging files

@@ -1,17 +1,18 @@
 # SEO
-title: PepperCord
-author: regulad
+title: "PepperCord"
+author: "regulad"
 
 # Jekyll
-remote_theme: regulad/crust-tastic
+remote_theme: "regulad/crust-tastic"
+url: "https://regulad.github.io/PepperCord"
 
 # Plugins
 plugins:
-  - github-pages
-  - jekyll-redirect-from
-  - jekyll-seo-tag
+  - "github-pages"
+  - "jekyll-redirect-from"
+  - "jekyll-seo-tag"
 
 # crust-tastic
 crust_tastic:
-  gtag: G-M7M093KQ3H
+  gtag: "G-M7M093KQ3H"
   github: true

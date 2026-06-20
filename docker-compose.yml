@@ -62,7 +62,7 @@ services:
       - "2001:4860:4860::8844"
     env_file: ".env"
     build: .
-    restart: "restart"
+    restart: "always"
     read_only: true
     depends_on:
       - "mongo"
@@ -82,7 +82,7 @@ services:
   watchtower:
     # Auto-updating is a necessary evil due to Discord's reluctance to maintain older APIs
     image: "containrrr/watchtower:latest"
-    restart: "restart"
+    restart: "always"
     read_only: true
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"

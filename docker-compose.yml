@@ -1,7 +1,8 @@
 services:
   mongo:
     image: "mongo:5"
-    # Good lord, mongodb is such an inefficient database
+    ports:
+      - "27017:27017/tcp"
     deploy:
       resources:
         limits:
@@ -11,9 +12,8 @@ services:
           cpus: "0.10"
           memory: "128M"
     hostname: "mongo"
-    restart: unless-stopped
+    restart: "always"
     read_only: true
-    # I'm not 100% sure if mongo needs a tmpfs mount, but I don't see how it would hurt it.
     tmpfs:
       - /tmp
     networks:
@@ -22,6 +22,8 @@ services:
       - "db:/data/db"
   redis:
     image: "redis:8.4-alpine3.22"
+    ports:
+      - "6379:6379/tcp"
     deploy:
       resources:
         limits:
@@ -31,9 +33,8 @@ services:
           cpus: "0.01"
           memory: "64M"
     hostname: "redis"
-    restart: unless-stopped
+    restart: "always"
     read_only: true
-    # I'm not 100% sure if mongo needs a tmpfs mount, but I don't see how it would hurt it.
     tmpfs:
       - /tmp
     networks:
@@ -61,7 +62,7 @@ services:
       - "2001:4860:4860::8844"
     env_file: ".env"
     build: .
-    restart: unless-stopped
+    restart: "restart"
     read_only: true
     depends_on:
       - "mongo"
@@ -77,6 +78,25 @@ services:
       - "/usr/lib/locale:/usr/lib/locale:ro"
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
+    labels: [ "com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}" ]
+  watchtower:
+    # Auto-updating is a necessary evil due to Discord's reluctance to maintain older APIs
+    image: "containrrr/watchtower:latest"
+    restart: "restart"
+    read_only: true
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      DOCKER_API_VERSION: "1.52"
+    tmpfs:
+      - "/tmp"
+      - "/var/run"
+    command:
+      - "--scope"
+      - "${WATCHTOWER_SCOPE}"
+      - "--cleanup"
+      - "peppercord"
+    labels: [ "com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}" ]
 volumes:
   db:
   redis:

@@ -30,9 +30,7 @@ async def can_have_voice_client(ctx: CustomContext) -> bool:
             ctx.channel, (TextChannel, Thread)
         ):
             custom_voice_client.bind(ctx.channel)
-    except AttributeError:
-        return False
-    except AssertionError:
+    except RuntimeError:
         return False
     else:
         return True

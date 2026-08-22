@@ -62,6 +62,9 @@ services:
       - "2001:4860:4860::8844"
     env_file: ".env"
     build: .
+    ports:
+      # Health check endpoint.
+      - "8080:8080"
     restart: "always"
     read_only: true
     depends_on:

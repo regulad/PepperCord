@@ -77,6 +77,9 @@ RUN --mount=type=tmpfs,destination=/tmp \
 # Copy in rest of project excluding packaging files
 COPY . /app
 
+# Health check endpoint. Not configurable; see src/extensions/utilities/health.py
+EXPOSE 8080
+
 # Run
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["poetry", "run", "python", "src/main.py"]

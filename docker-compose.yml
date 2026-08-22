@@ -81,25 +81,6 @@ services:
       - "/usr/lib/locale:/usr/lib/locale:ro"
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
-    labels: [ "com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}" ]
-  watchtower:
-    # Auto-updating is a necessary evil due to Discord's reluctance to maintain older APIs
-    image: "containrrr/watchtower:latest"
-    restart: "always"
-    read_only: true
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    environment:
-      DOCKER_API_VERSION: "1.52"
-    tmpfs:
-      - "/tmp"
-      - "/var/run"
-    command:
-      - "--scope"
-      - "${WATCHTOWER_SCOPE}"
-      - "--cleanup"
-      - "peppercord"
-    labels: [ "com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}" ]
 volumes:
   db:
   redis:

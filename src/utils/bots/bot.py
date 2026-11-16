@@ -10,7 +10,6 @@ from typing import (
     Literal,
     Type,
     MutableMapping,
-    Optional,
     Any,
     TypeVar,
     cast,
@@ -27,9 +26,9 @@ from discord import (
     Emoji,
     Message,
 )
-from discord.ext.commands import Bot, Command, Context
+from discord.ext.commands import Bot, Context
 from pymongo.asynchronous.database import AsyncDatabase
-from discord.user import BaseUser, User
+from discord.user import BaseUser
 from discord.utils import find
 from redis.asyncio import Redis
 
@@ -189,48 +188,9 @@ class CustomBot(Bot):
             else:
                 return None
 
-    async def fetch_owner(self) -> Optional[User]:
-        if self.owner_id is None:
-            return None
-        return await self.fetch_user(self.owner_id)
-
-    async def fetch_owners(self) -> list[User] | None:
-        return (
-            [await self.fetch_user(owner_id) for owner_id in self.owner_ids]
-            if self.owner_ids is not None
-            else None
-        )
-
-    async def fetch_effective_owners(self) -> list[User]:
-        fetched_owner = await self.fetch_owner()
-        fetched_owners = await self.fetch_owners()
-        if fetched_owners is not None and fetched_owner is not None:
-            return list(
-                set([fetched_owner] + fetched_owners)
-            )  # hacky way to guarantee uniqueness
-        elif fetched_owner is not None:
-            return [fetched_owner]
-        elif fetched_owners is not None:
-            return fetched_owners.copy()
-        else:
-            return []
-
     @property
     def config(self) -> MutableMapping[str, str]:
         return self._config
-
-    async def get_command_document(self, command: Command[Any, Any, Any]) -> PCDocument:
-        """Gets a command's document from the database."""
-
-        return await PCDocument.get_document(
-            self.ddb["commands"],
-            {
-                "name": command.name,
-                "cog": getattr(
-                    command, "cog_name", None
-                ),  # cog_name isn't on HybridAppCommand, even though it inherits from Command
-            },
-        )
 
     async def get_guild_document(self, model: discord.Guild) -> PCDocument:
         """Gets a guild's document from the database."""

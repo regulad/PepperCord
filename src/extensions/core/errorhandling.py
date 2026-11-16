@@ -2,19 +2,13 @@ import asyncio
 import inspect
 from copy import copy
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Optional, cast, Type
+from typing import TYPE_CHECKING, Any, Optional, Type
 
 import discord
-from discord import (
-    Interaction,
-    Embed,
-    Message,
-    TextStyle,
-)
+from discord import Message
 from discord.app_commands import CommandInvokeError as AppCommandInvokeError
 from discord.ext import commands, menus
 from discord.ext.commands import CommandNotFound
-from discord.ui import Modal, TextInput
 
 from utils import attachments
 from utils.bots.bot import CustomBot
@@ -64,79 +58,6 @@ def find_error(error: Exception) -> Optional[str]:
             return None
 
 
-class ErrorSupportModal(Modal, title="Support Form"):
-    intent: TextInput[ErrorSupportModal] = TextInput(
-        label="What were you trying to do?",
-        placeholder="Example: I was trying to play a song.",
-        style=TextStyle.long,
-    )
-    steps: TextInput[ErrorSupportModal] = TextInput(
-        label="What steps did you take to do this?",
-        placeholder="Example: I typed ?play song and clicked send.",
-        style=TextStyle.long,
-    )
-    result: TextInput[ErrorSupportModal] = TextInput(
-        label="What happened?",
-        placeholder="Example: The bot didn't play the song.",
-        style=TextStyle.long,
-    )
-
-    def __init__(self, error: Exception, ctx: CustomContext):
-        super().__init__()
-        self.error = error
-        self.ctx = ctx
-
-    async def on_submit(self, interaction: Interaction, /) -> None:
-        base_url = self.ctx.bot.config.get(
-            "PEPPERCORD_WEB", "https://regulad.github.io/PepperCord"
-        )
-        await interaction.response.send_message(
-            embed=(
-                Embed(
-                    description="The error has been submitted for review. "
-                    f"Please use [the support server (click here)]({base_url}/discord) "
-                    "for any additional help or to self-diagnose your problem."
-                )
-            ),
-            ephemeral=True,
-        )
-        # send error
-        for owner in await self.ctx.bot.fetch_effective_owners():
-            await owner.send(
-                embed=(
-                    Embed(
-                        title=f"**{self.ctx.author.display_name}** (`{self.ctx.author.id}`) encountered an error in "
-                        + (
-                            f"**{self.ctx.guild.name}** (`{self.ctx.guild.id}`) "
-                            if self.ctx.guild is not None
-                            else f"a non-server environment "
-                        )
-                        + f"with the command `{self.ctx.command}`.",
-                        description=(
-                            f"Type: **{self.error.__class__.__name__}**\n```{str(self.error)}```"
-                            if len(str(self.error)) > 0
-                            else f"Type: **{self.error.__class__.__name__}**"
-                        ),
-                    )
-                    .add_field(
-                        name="Intended Action",
-                        value=self.intent.value,
-                        inline=False,
-                    )
-                    .add_field(
-                        name="Steps Taken",
-                        value=self.steps.value,
-                        inline=False,
-                    )
-                    .add_field(
-                        name="Result",
-                        value=self.result.value,
-                        inline=False,
-                    )
-                )
-            )
-
-
 # Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
 if TYPE_CHECKING:
     _ErrorMenu_Base = menus.Menu[CustomBot, CustomContext]
@@ -183,49 +104,6 @@ class ErrorMenu(_ErrorMenu_Base):
             embed.set_footer(text=f"Tip: {error_response}")
 
         return await channel.send(embed=embed)
-
-    # @button("ℹ")
-    # async def support_server(
-    #     self, menu: ErrorMenu, raw_reaction_event: RawReactionActionEvent
-    # ) -> None:
-    #     pass
-
-    # @button("⚠")
-    # async def on_info(self, menu: ErrorMenu, raw_reaction_event: RawReactionActionEvent) -> None:
-    #     await payload.response.send_modal(
-    #         ErrorSupportModal(self.error, cast(CustomContext, self.ctx))
-    #     )
-
-
-class ErrorLogging(commands.Cog):
-    """Logs errors (and successes) to the database."""
-
-    def __init__(self, bot: CustomBot):
-        self.bot = bot
-
-    @commands.Cog.listener("on_context_creation")
-    async def append_command_document(self, ctx: commands.Context[Any]) -> None:
-        custom_ctx: CustomContext = cast(CustomContext, ctx)
-        custom_ctx["command_document"] = (
-            await custom_ctx.bot.get_command_document(custom_ctx.command)
-            if custom_ctx.command is not None
-            else None
-        )
-
-    @commands.Cog.listener("on_command")
-    async def log_command_uses(self, ctx: CustomContext) -> None:
-        if ctx.command is not None:
-            await ctx["command_document"].update_db({"$inc": {"stats.uses": 1}})
-
-    @commands.Cog.listener("on_command_completion")
-    async def log_command_completion(self, ctx: CustomContext) -> None:
-        if ctx.command is not None:
-            await ctx["command_document"].update_db({"$inc": {"stats.successes": 1}})
-
-    @commands.Cog.listener("on_command_error")
-    async def log_command_error(self, ctx: CustomContext, error: Exception) -> None:
-        if ctx.command is not None:
-            await ctx["command_document"].update_db({"$inc": {"stats.errors": 1}})
 
 
 class ErrorHandling(commands.Cog):
@@ -302,4 +180,3 @@ class ErrorHandling(commands.Cog):
 
 async def setup(bot: CustomBot) -> None:
     await bot.add_cog(ErrorHandling(bot))
-    await bot.add_cog(ErrorLogging(bot))

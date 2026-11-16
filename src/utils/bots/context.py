@@ -90,9 +90,6 @@ class CustomContext(Context["CustomBot"]):
     def __getitem__(self, item: Literal["author_document"]) -> PCDocument: ...
 
     @overload
-    def __getitem__(self, item: Literal["command_document"]) -> PCDocument: ...
-
-    @overload
     def __getitem__(self, item: Literal["response"]) -> Message: ...
 
     @overload
@@ -116,11 +113,6 @@ class CustomContext(Context["CustomBot"]):
     @overload
     def __setitem__(
         self, key: Literal["author_document"], value: PCDocument
-    ) -> None: ...
-
-    @overload
-    def __setitem__(
-        self, key: Literal["command_document"], value: PCDocument
     ) -> None: ...
 
     @overload

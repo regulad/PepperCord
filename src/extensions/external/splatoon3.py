@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime, tzinfo
-from functools import reduce
+from datetime import UTC, datetime, timedelta, tzinfo
+from functools import partial, reduce
 from io import BytesIO
 from logging import getLogger
+from operator import attrgetter
 from os import getcwd
 from os.path import join
 from random import choice
@@ -12,6 +13,7 @@ from typing import (
     cast,
     Awaitable,
     Callable,
+    Mapping,
     Sequence,
 )
 
@@ -19,6 +21,7 @@ from aiofiles import open as aopen
 from aiohttp import ClientSession
 from aiosplatoon3ink import (
     Festivals,
+    Gesotown,
     MonthlyGear,
     Region,
     Schedules,
@@ -30,6 +33,7 @@ from aiosplatoon3ink.schedules import (
     CoopSchedule,
     CoopWeapon,
     CurrentFest,
+    EventSchedule,
     FestMode,
     LeagueMatchEvent,
     TimePeriod,
@@ -37,10 +41,19 @@ from aiosplatoon3ink.schedules import (
     VsSetting,
     VsStage,
 )
-from discord import Colour, Embed, File, SelectOption, Interaction, Message
-from discord.app_commands import describe
+from discord import (
+    Colour,
+    Embed,
+    File,
+    SelectOption,
+    Interaction,
+    Message,
+    Role,
+    TextChannel,
+)
+from discord.app_commands import Choice, choices, describe
 from discord.ext import tasks
-from discord.ext.commands import Cog, hybrid_group, CheckFailure
+from discord.ext.commands import Cog, hybrid_group, CheckFailure, parameter
 from discord.ui import Select, View
 from discord.utils import format_dt, get, MISSING
 from pytz import UTC as PYTZ_UTC
@@ -51,6 +64,16 @@ from utils.consts import TIME_EMOJIS
 from utils.images import vrt_concat_pngs, hrz_concat_pngs
 from utils.markdown_tools import bold
 from utils.misc import edit_with_files_send_wrapper, FrozenDict
+from utils.watch import (
+    GRACE,
+    FirstSeen,
+    Rendered,
+    WatchEvent,
+    Watcher,
+    add_watch,
+    list_watches,
+    remove_watch,
+)
 
 logger = getLogger(__name__)
 
@@ -63,6 +86,7 @@ ANARCHY_BATTLE_COLOR: int = 0xF54910
 SALMON_RUN_COLOR: int = 0xFF5600
 X_BATTLE_COLOR: int = 0x5D2EEF
 LEAGUE_BATTLE_COLOR: int = 0xF02D7D
+SPLATNET_COLOR: int = 0xEAFF3D
 
 TIMESLOT_LONG: str = "%m/%d"
 TIMESLOT_SHORT: str = "%I:%M %p"
@@ -209,6 +233,348 @@ def salmon_run_rotations(
         ),
         key=lambda node: node.start_time,
     )
+
+
+# What a channel can watch, and what each topic posts. Discord shows these as the topic's choices.
+TOPICS: FrozenDict[str, str] = FrozenDict(
+    {
+        "regular": "Each new Regular Battle rotation",
+        "anarchy-series": "Each new Anarchy Battle (Series) rotation",
+        "anarchy-open": "Each new Anarchy Battle (Open) rotation",
+        "x": "Each new X Battle rotation",
+        "splatfest-open": "Each new Splatfest Battle (Open) rotation",
+        "splatfest-pro": "Each new Splatfest Battle (Pro) rotation",
+        "challenge": "Each Challenge, when it's announced and each time it's on",
+        "salmon-run": "Each Salmon Run rotation, and each Big Run and Eggstra Work",
+        "splatfest": "Each Splatfest: announced, started, second half and results",
+        "gear": "SplatNet's brand of the day, and each month's Salmon Run reward gear",
+    }
+)
+TOPIC_MODES: FrozenDict[str, MODE_LITERAL] = FrozenDict(
+    {
+        "regular": "Regular Battle",
+        "anarchy-series": "Anarchy Battle (Series)",
+        "anarchy-open": "Anarchy Battle (Open)",
+        "x": "X Battle",
+        "splatfest-open": "Splatfest Battle (Open)",
+        "splatfest-pro": "Splatfest Battle (Pro)",
+    }
+)
+# How long after a Splatfest ends its results are still news.
+SPLATFEST_RESULTS_WINDOW = timedelta(days=3)
+
+
+class Splatoon3Watch:
+    """What Splatoon 3 can be watched for, derived from the cog's copies of splatoon3.ink's feeds.
+
+    Rotations, Challenge periods and Splatfests' start and second half are dated in the feeds. Announcements, results
+    and the shop's brand of the day only show up in them, so they're dated by when the bot first noticed them.
+    """
+
+    namespace = "splatoon3"
+    name = "Splatoon 3"
+    topics: Mapping[str, str] = TOPICS
+
+    def __init__(self, cog: "Splatoon3") -> None:
+        self.cog = cog
+        self.first_seen = FirstSeen()
+
+    def events(self, now: datetime) -> list[WatchEvent]:
+        events: list[WatchEvent] = []
+        schedules = self.cog.schedules
+        if schedules is not None:
+            events += self._rotations(schedules, now)
+            events += self._challenges(schedules, now)
+            events += self._salmon_run(schedules, now)
+            if self.cog.festivals is not None:
+                events += self._splatfests(
+                    self.cog.festivals, schedules.current_fest, now
+                )
+        events += self._gear(now)
+        self.first_seen.forget_all_but(event.key for event in events)
+        return events
+
+    def _noticed(
+        self,
+        key: str,
+        topic: str,
+        now: datetime,
+        expires: datetime,
+        render: Callable[[], Awaitable[Rendered]],
+    ) -> WatchEvent:
+        return WatchEvent(key, topic, self.first_seen(key, now), expires, render)
+
+    def _rotations(self, schedules: Schedules, now: datetime) -> list[WatchEvent]:
+        events: list[WatchEvent] = []
+        for topic, mode in TOPIC_MODES.items():
+            for rotation in vs_rotations(schedules, mode, now):
+                if rotation.setting is None or rotation.period.start_time > now:
+                    continue
+                events.append(
+                    WatchEvent.dated(
+                        f"{topic}:{rotation.period.start_time.isoformat()}",
+                        topic,
+                        rotation.period.start_time,
+                        partial(
+                            self._render_vs,
+                            schedules,
+                            mode,
+                            rotation,
+                            f"A new {mode} rotation has started.",
+                        ),
+                        ends=rotation.period.end_time,
+                    )
+                )
+        return events
+
+    def _challenges(self, schedules: Schedules, now: datetime) -> list[WatchEvent]:
+        events: list[WatchEvent] = []
+        for challenge in schedules.event_schedules:
+            setting = challenge.league_match_setting
+            info = setting.league_match_event
+            periods = sorted(challenge.time_periods, key=lambda p: p.start_time)
+            if not periods:
+                continue
+            # A Challenge can come back, so its first period tells this run from the last.
+            ident = f"challenge:{info.league_match_event_id}:{periods[0].start_time.isoformat()}"
+            events.append(
+                self._noticed(
+                    f"{ident}:announced",
+                    "challenge",
+                    now,
+                    periods[0].start_time,
+                    partial(self._render_challenge, schedules, challenge),
+                )
+            )
+            for period in periods:
+                if period.start_time <= now:
+                    events.append(
+                        WatchEvent.dated(
+                            f"{ident}:{period.start_time.isoformat()}",
+                            "challenge",
+                            period.start_time,
+                            partial(
+                                self._render_vs,
+                                schedules,
+                                "League Battle",
+                                VsRotation(period, setting, info),
+                                f"The {info.name} Challenge is on now.",
+                            ),
+                            ends=period.end_time,
+                        )
+                    )
+        return events
+
+    def _salmon_run(self, schedules: Schedules, now: datetime) -> list[WatchEvent]:
+        events: list[WatchEvent] = []
+        coop = schedules.coop_grouping_schedule
+        for kind, nodes, called in (
+            ("Salmon Run", coop.regular_schedules, "A new Salmon Run rotation"),
+            ("Big Run", coop.big_run_schedules, "A Big Run"),
+            ("Eggstra Work", coop.team_contest_schedules, "Eggstra Work"),
+        ):
+            for node in nodes:
+                ident = f"salmon-run:{kind.lower().replace(' ', '-')}:{node.start_time.isoformat()}"
+                if node.start_time <= now:
+                    events.append(
+                        WatchEvent.dated(
+                            ident,
+                            "salmon-run",
+                            node.start_time,
+                            partial(
+                                self._render_salmon_run,
+                                node,
+                                kind,
+                                f"{called} has started.",
+                            ),
+                            ends=node.end_time,
+                        )
+                    )
+                elif kind != "Salmon Run":
+                    events.append(
+                        self._noticed(
+                            f"{ident}:announced",
+                            "salmon-run",
+                            now,
+                            node.start_time,
+                            partial(
+                                self._render_salmon_run,
+                                node,
+                                kind,
+                                f"{called} is coming {format_dt(node.start_time, 'R')}.",
+                            ),
+                        )
+                    )
+        return events
+
+    def _splatfests(
+        self, festivals: Festivals, current_fest: CurrentFest | None, now: datetime
+    ) -> list[WatchEvent]:
+        events: list[WatchEvent] = []
+        for fest in festivals.in_region(Region(DEFAULT_REGION)):
+            if fest.end_time + SPLATFEST_RESULTS_WINDOW < now:
+                continue  # long over: nothing about it is news
+            ident = f"splatfest:{fest.splatoon3ink_id}"
+            # The schedules' current Splatfest has its exact midterm and its Tricolor stages.
+            current = (
+                current_fest
+                if current_fest is not None
+                and current_fest.start_time == fest.start_time
+                else None
+            )
+            if fest.start_time > now:
+                events.append(
+                    self._noticed(
+                        f"{ident}:announced",
+                        "splatfest",
+                        now,
+                        fest.start_time,
+                        partial(
+                            self._render_splatfest,
+                            fest,
+                            current,
+                            f"A new Splatfest has been announced: {fest.title}",
+                        ),
+                    )
+                )
+            else:
+                events.append(
+                    WatchEvent.dated(
+                        f"{ident}:started",
+                        "splatfest",
+                        fest.start_time,
+                        partial(
+                            self._render_splatfest,
+                            fest,
+                            current,
+                            f"The Splatfest has started: {fest.title}",
+                        ),
+                        ends=fest.end_time,
+                    )
+                )
+                midterm = (
+                    current.midterm_time
+                    if current is not None
+                    else fest.start_time + (fest.end_time - fest.start_time) / 2
+                )
+                if midterm <= now:
+                    events.append(
+                        WatchEvent.dated(
+                            f"{ident}:second-half",
+                            "splatfest",
+                            midterm,
+                            partial(
+                                self._render_splatfest,
+                                fest,
+                                current,
+                                "The Splatfest's second half has started, and with it Tricolor Turf War.",
+                            ),
+                            ends=fest.end_time,
+                        )
+                    )
+            if fest.has_results:
+                events.append(
+                    self._noticed(
+                        f"{ident}:results",
+                        "splatfest",
+                        now,
+                        fest.end_time + SPLATFEST_RESULTS_WINDOW,
+                        partial(
+                            self._render_splatfest,
+                            fest,
+                            None,
+                            f"The results of {fest.title} are in!",
+                        ),
+                    )
+                )
+        return events
+
+    def _gear(self, now: datetime) -> list[WatchEvent]:
+        events: list[WatchEvent] = []
+        if (gesotown := self.cog.gear) is not None:
+            pickup = gesotown.pickup_brand
+            events.append(
+                self._noticed(
+                    f"gear:brand:{pickup.brand.id}:{pickup.sale_end_time.isoformat()}",
+                    "gear",
+                    now,
+                    pickup.sale_end_time,
+                    partial(self._render_brand, gesotown),
+                )
+            )
+        if (monthly := self.cog.monthly_gear) is not None:
+            key = f"gear:monthly:{monthly.splatoon3ink_id}"
+            events.append(
+                self._noticed(
+                    key,
+                    "gear",
+                    now,
+                    self.first_seen(key, now) + GRACE,
+                    partial(self._render_monthly_gear, monthly),
+                )
+            )
+        return events
+
+    async def _render_vs(
+        self,
+        schedules: Schedules,
+        mode: MODE_LITERAL,
+        rotation: VsRotation,
+        content: str,
+    ) -> Rendered:
+        embed, files = await self.cog.vs_message(schedules, mode, rotation)
+        return Rendered(content, embed, tuple(files))
+
+    async def _render_challenge(
+        self, schedules: Schedules, challenge: EventSchedule
+    ) -> Rendered:
+        setting = challenge.league_match_setting
+        info = setting.league_match_event
+        periods = sorted(challenge.time_periods, key=lambda p: p.start_time)
+        embed, files = await self.cog.vs_message(
+            schedules, "League Battle", VsRotation(periods[0], setting, info)
+        )
+        embed.add_field(
+            name="Times",
+            value="\n".join(
+                f"{format_dt(period.start_time, 'f')} to {format_dt(period.end_time, 't')}"
+                for period in periods
+            )[:1024],
+            inline=False,
+        ).add_field(
+            name="Rules",
+            value=info.regulation.replace("<br />", "\n")[:1024],
+            inline=False,
+        )
+        return Rendered(f"A new Challenge is coming: {info.name}.", embed, tuple(files))
+
+    async def _render_salmon_run(
+        self, rotation: CoopSchedule, kind: str, content: str
+    ) -> Rendered:
+        embed, files = await self.cog.salmon_run_message(rotation, kind)
+        return Rendered(content, embed, tuple(files))
+
+    async def _render_splatfest(
+        self, fest: Fest, current: CurrentFest | None, content: str
+    ) -> Rendered:
+        embed, files = await self.cog.splatfest_message(
+            fest, current, relative=not fest.has_results
+        )
+        return Rendered(content, embed, tuple(files))
+
+    async def _render_brand(self, gesotown: Gesotown) -> Rendered:
+        embed, files = await self.cog.brand_message(gesotown)
+        return Rendered(
+            f"SplatNet's brand of the day is {gesotown.pickup_brand.brand.name}.",
+            embed,
+            tuple(files),
+        )
+
+    async def _render_monthly_gear(self, gear: MonthlyGear) -> Rendered:
+        embed, files = await self.cog.monthly_gear_message(gear)
+        return Rendered(
+            f"This month's Salmon Run reward gear is {gear.name}.", embed, tuple(files)
+        )
 
 
 class TimeSlotData:  # This could probably extend SelectOption, but this is separate for the sake of selfbot support.
@@ -486,6 +852,9 @@ class Splatoon3(Cog):
         self.schedules: Schedules | None = None
         self.monthly_gear: MonthlyGear | None = None
         self.festivals: Festivals | None = None
+        self.gear: Gesotown | None = None  # only watches use it
+
+        self.watcher = Watcher(bot, Splatoon3Watch(self))
 
     async def _fetch[T](self, feed: str, fetch: Callable[[], Awaitable[T]]) -> T | None:
         try:
@@ -513,6 +882,10 @@ class Splatoon3(Cog):
             festivals := await self._fetch("festivals", self.client.festivals)
         ) is not None:
             self.festivals = festivals
+        if (
+            gesotown := await self._fetch("SplatNet's shop", self.client.gear)
+        ) is not None:
+            self.gear = gesotown
 
     @property
     def is_ready(self) -> bool:
@@ -537,6 +910,7 @@ class Splatoon3(Cog):
         # on_ready fires again after every new gateway session, and starting a running loop raises.
         if not self.update_cache.is_running():
             self.update_cache.start()
+        self.watcher.start()
 
     async def cog_load(self) -> None:
         self.cs = ClientSession(headers={"User-Agent": USER_AGENT})
@@ -547,6 +921,7 @@ class Splatoon3(Cog):
             await self.cs.close()
         if self.update_cache.is_running():
             self.update_cache.cancel()
+        self.watcher.stop()
 
     async def _make_salmon_run_thumbnail(
         self, weapons: Sequence[CoopWeapon]
@@ -762,10 +1137,14 @@ class Splatoon3(Cog):
 
             embed = embed.add_field(
                 name="Midterm Time",
-                value=f"{format_dt(midterm, 'D')} (approx.)",
+                value=f"{format_dt(midterm, 'R' if relative else 'D')} (approx.)",
             ).add_field(
                 name="Tricolor Stage",
-                value="This data is not stored for previous Splatfests.",
+                value=(
+                    "This data is not stored for previous Splatfests."
+                    if fest.state is FestState.CLOSED
+                    else "Not announced yet."
+                ),
                 inline=False,
             )
 
@@ -861,6 +1240,31 @@ class Splatoon3(Cog):
             .set_image(url=gear.image.url)
         )
         return embed, [await self._favicon()]
+
+    async def brand_message(
+        self, gesotown: Gesotown
+    ) -> tuple[Embed, list[tuple[str, bytes]]]:
+        """SplatNet's brand of the day's embed and files."""
+        pickup = gesotown.pickup_brand
+        embed = Embed(
+            title=f"Brand of the day: {pickup.brand.name}",
+            description=f"On sale until {format_dt(pickup.sale_end_time, 'R')}.",
+            color=SPLATNET_COLOR,
+        )
+        if pickup.brand.usual_gear_power is not None:
+            embed.add_field(
+                name="Common ability", value=pickup.brand.usual_gear_power.name
+            )
+        embed.add_field(name="Tomorrow's brand", value=pickup.next_brand.name)
+        for sale in pickup.brand_gears:
+            embed.add_field(
+                name=sale.gear.name,
+                value=f"{sale.gear.primary_gear_power.name}, {sale.price:,} coins",
+                inline=False,
+            )
+        return self._credit(embed.set_image(url=pickup.image.url)), [
+            await self._favicon()
+        ]
 
     async def send_schedule(
         self,
@@ -989,6 +1393,65 @@ class Splatoon3(Cog):
                 embed=embed,
                 files=[File(fp=BytesIO(data), filename=name) for name, data in files],
             )
+
+    @splatoon3.group(name="watch")  # type: ignore[arg-type]  # bad d.py export
+    async def watch(self, ctx: CustomContext) -> None:
+        """
+        Post Splatoon 3 updates in a channel as they happen.
+        Powered by https://splatoon3.ink/
+        """
+        if ctx.invoked_subcommand is None:
+            await list_watches(ctx, self.watcher)
+
+    @watch.command(name="add")  # type: ignore[arg-type]  # bad d.py export
+    @describe(
+        topic="What to post.",
+        channel="The channel to post in, if not this one.",
+        dms="Post in your direct messages instead.",
+        role="A role to mention with each update.",
+    )
+    @choices(topic=[Choice(name=name, value=topic) for topic, name in TOPICS.items()])
+    async def watch_add(
+        self,
+        ctx: CustomContext,
+        topic: str,
+        channel: TextChannel = parameter(
+            default=attrgetter("channel"), displayed_default="this channel"
+        ),
+        dms: bool = False,
+        role: Role | None = None,
+    ) -> None:
+        """Post a kind of Splatoon 3 update in a channel as it happens."""
+        await add_watch(ctx, self.watcher, topic, channel, dms, role)
+
+    @watch.command(name="remove")  # type: ignore[arg-type]  # bad d.py export
+    @describe(
+        topic="What to stop posting.",
+        channel="The channel to stop posting in, if not this one.",
+        dms="Stop posting in your direct messages instead.",
+    )
+    @choices(
+        topic=[
+            Choice(name="Everything", value="all"),
+            *(Choice(name=name, value=topic) for topic, name in TOPICS.items()),
+        ]
+    )
+    async def watch_remove(
+        self,
+        ctx: CustomContext,
+        topic: str,
+        channel: TextChannel = parameter(
+            default=attrgetter("channel"), displayed_default="this channel"
+        ),
+        dms: bool = False,
+    ) -> None:
+        """Stop posting a kind of Splatoon 3 update in a channel."""
+        await remove_watch(ctx, self.watcher, topic, channel, dms)
+
+    @watch.command(name="list")  # type: ignore[arg-type]  # bad d.py export
+    async def watch_list(self, ctx: CustomContext) -> None:
+        """List what this server's channels, or your direct messages, get posted."""
+        await list_watches(ctx, self.watcher)
 
 
 async def setup(bot: CustomBot) -> None:

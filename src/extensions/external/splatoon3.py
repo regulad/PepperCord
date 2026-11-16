@@ -396,7 +396,8 @@ class SplatfestSelectionMenu(Select["SplatfestView"]):
                 description=splatfest.description,
                 emoji=ctx.bot.get_custom_emoji("tricolor.png"),
             )
-            for splatfest in data
+            # A select menu takes at most 25 options. The feed lists the newest first, and has had more than 25.
+            for splatfest in data[:25]
         ]
 
         super().__init__(

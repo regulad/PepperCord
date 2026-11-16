@@ -1,19 +1,31 @@
+# Only a local `docker build .` reads this. docker-publish.yml builds from the git tree, where BuildKit skips it,
+# so the Dockerfile copies the files it needs by path rather than relying on what's excluded here.
+
+# Never send these to a local build: secrets, git metadata, and this checkout's worktrees.
+.env
+.git
+.claude
+
+# Tooling state
+.venv
+.tox
+.mypy_cache
+.pytest_cache
+.hypothesis
+.cache
+.coverage
+.coverage.*
+coverage.xml
+nosetests.xml
+*.cover
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Bytecode and build artifacts
 __pycache__
 *.pyc
 *.pyo
 *.pyd
 .Python
 env
-pip-log.txt
-pip-delete-this-directory.txt
-.tox
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.mypy_cache
-.pytest_cache
-.hypothesis

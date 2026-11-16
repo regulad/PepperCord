@@ -5,7 +5,7 @@ from discord import Embed, Message, PCMVolumeTransformer, VoiceClient
 import discord
 from discord.app_commands import describe
 from discord.app_commands import guild_only as ac_guild_only
-from discord.ext.commands import hybrid_command, Cog, guild_only
+from discord.ext.commands import BadArgument, hybrid_command, Cog, guild_only
 
 from discord.ext.menus import ListPageSource, Menu, MenuPages
 from discord.ext.voice_recv import VoiceRecvClient
@@ -13,6 +13,7 @@ from utils.audio import CustomVoiceClient, EnhancedSource
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.checks.audio import check_voice_client_predicate
+from utils.commands import UserFacingError
 from utils.converters import duration_to_str
 from utils.sources.ytdl import YTDLSource
 
@@ -215,7 +216,7 @@ class Audio(Cog):
 
         maybe_source = ctx.voice_client.source
         if maybe_source is None:
-            raise RuntimeError("No track is playing.")
+            raise UserFacingError("No track is playing.")
         else:
             # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
             await ctx.send("Raised the menu for the queue.", ephemeral=True)
@@ -243,7 +244,7 @@ class Audio(Cog):
 
         maybe_source = ctx.voice_client.source
         if maybe_source is None:
-            raise RuntimeError("No track is playing.")
+            raise UserFacingError("No track is playing.")
         else:
             # We have to do this because the legacy AudioSourceMenu doesn't respond to the Interaction
             await ctx.send("Raised the menu for now playing.", ephemeral=True)
@@ -283,16 +284,16 @@ class Audio(Cog):
         """
         assert ctx.voice_client is not None  # guaranteed at runtime
         if volume <= 0 or volume > 1:
-            raise ValueError(
+            raise BadArgument(
                 "Volume must be greater than 0 and less than or equal to 1."
             )
         if not isinstance(ctx.voice_client, CustomVoiceClient):
             raise RuntimeError("This command cannot be run right now.")
         maybe_source = ctx.voice_client.source
         if maybe_source is None:
-            raise RuntimeError("No track is playing.")
+            raise UserFacingError("No track is playing.")
         if not isinstance(maybe_source, PCMVolumeTransformer):
-            raise RuntimeError("The volume of this track cannot be changed.")
+            raise UserFacingError("The volume of this track cannot be changed.")
         maybe_source.volume = volume
         await ctx.send("Changed the volume.", ephemeral=True)
 

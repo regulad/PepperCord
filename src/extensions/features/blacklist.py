@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from utils.checks.blacklisted import is_blacklisted, EBlacklisted
+from utils.commands import UserFacingError
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 
@@ -42,7 +43,7 @@ class Blacklist(commands.Cog):
         """Disallows a user, member, or a guild from using the bot."""
         entity = entity or ctx.guild
         if entity is None:
-            raise RuntimeError("No entity could be determined!")
+            raise UserFacingError("No entity could be determined!")
         if isinstance(entity, discord.Guild):
             document = await ctx.bot.get_guild_document(entity)
         else:
@@ -60,7 +61,7 @@ class Blacklist(commands.Cog):
         """Allows a user, member, or a guild to use the bot"""
         entity = entity or ctx.guild
         if entity is None:
-            raise RuntimeError("No entity could be determined!")
+            raise UserFacingError("No entity could be determined!")
         if isinstance(entity, discord.Guild):
             document = await ctx.bot.get_guild_document(entity)
         elif isinstance(entity, (discord.Member, discord.User)):

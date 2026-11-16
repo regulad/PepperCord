@@ -27,7 +27,9 @@ from aiosplatoon3ink import (
 from aiosplatoon3ink.festivals import Fest, FestState
 from aiosplatoon3ink.schedules import (
     BankaraMode,
+    CoopSchedule,
     CoopWeapon,
+    CurrentFest,
     FestMode,
     LeagueMatchEvent,
     TimePeriod,
@@ -137,8 +139,10 @@ class VsRotation:
     event: LeagueMatchEvent | None = None
 
 
-def vs_rotations(schedules: Schedules, mode: MODE_LITERAL) -> list[VsRotation]:
-    """Every rotation of a battle mode that hasn't ended yet, in order."""
+def vs_rotations(
+    schedules: Schedules, mode: MODE_LITERAL, now: datetime | None = None
+) -> list[VsRotation]:
+    """Every rotation of a battle mode that hasn't ended by ``now``, in order."""
     rotations: list[VsRotation]
     match mode:
         case "Regular Battle":
@@ -186,8 +190,25 @@ def vs_rotations(schedules: Schedules, mode: MODE_LITERAL) -> list[VsRotation]:
             )
         case "Salmon Run":
             raise ValueError("Salmon Run has no battle rotations.")
-    now = datetime.now(UTC)
+    now = now or datetime.now(UTC)
     return [rotation for rotation in rotations if rotation.period.end_time > now]
+
+
+def salmon_run_rotations(
+    schedules: Schedules, now: datetime | None = None
+) -> list[CoopSchedule]:
+    """Every Salmon Run rotation that hasn't ended by ``now``, in order, with Big Runs in their place."""
+    now = now or datetime.now(UTC)
+    coop = schedules.coop_grouping_schedule
+    # Regular Salmon Run pauses while a Big Run is on, so a Big Run takes its place in the rotations.
+    return sorted(
+        (
+            node
+            for node in (*coop.regular_schedules, *coop.big_run_schedules)
+            if node.end_time > now
+        ),
+        key=lambda node: node.start_time,
+    )
 
 
 class TimeSlotData:  # This could probably extend SelectOption, but this is separate for the sake of selfbot support.
@@ -566,6 +587,281 @@ class Splatoon3(Cog):
             None, vrt_concat_pngs, stage1_png, stage2_png
         )
 
+    async def _favicon(self) -> tuple[str, bytes]:
+        async with aopen(
+            join(getcwd(), "resources", "images", "splatoon3", "favicon.png"), "rb"
+        ) as fp:
+            return "favicon.png", await fp.read()
+
+    @staticmethod
+    def _credit(embed: Embed) -> Embed:
+        return embed.set_footer(
+            text="Powered by https://splatoon3.ink/",
+            icon_url="attachment://favicon.png",
+        )
+
+    async def vs_message(
+        self, schedules: Schedules, mode: MODE_LITERAL, rotation: VsRotation | None
+    ) -> tuple[Embed, list[tuple[str, bytes]]]:
+        """A battle rotation's embed and files, or a note that the mode isn't being played."""
+        files = [await self._favicon()]
+
+        color: int = MODE_COLORS[mode]
+        if (
+            mode in ("Splatfest Battle (Open)", "Splatfest Battle (Pro)")
+            and schedules.current_fest is not None
+        ):
+            color = Colour.from_rgb(
+                *choice(schedules.current_fest.teams).color.rgb
+            ).value
+
+        if rotation is None or rotation.setting is None:
+            embed = self._credit(
+                Embed(
+                    title=mode,
+                    color=color,
+                    description="This game mode is not currently available.",
+                )
+            )
+            return embed, files
+
+        vsmatch_settings = rotation.setting
+        rule_emoji = self.bot.get_custom_emoji(
+            f"{RULE_EMOJI_NAME[vsmatch_settings.vs_rule.rule]}.png"
+        )
+        description = f"{vsmatch_settings.vs_rule.name} {rule_emoji or ''}"
+        if rotation.event is not None:
+            # SplatNet breaks the summary where the game wraps it.
+            summary = rotation.event.desc.replace("<br />", " ")
+            description = f"**{rotation.event.name}**: {summary}\n{description}"
+
+        files.append(
+            ("stages.png", await self._make_two_stage_image(vsmatch_settings.vs_stages))
+        )
+
+        embed = self._credit(
+            Embed(
+                title=f"{mode} "
+                f"{self.bot.get_custom_emoji(f'{MODE_EMOJI_NAME[mode]}.png') or ''}",
+                color=color,
+                description=description,
+            )
+            .add_field(
+                name="Start Time",
+                value=format_dt(rotation.period.start_time, "R"),
+            )
+            .add_field(
+                name="End Time",
+                value=format_dt(rotation.period.end_time, "R"),
+            )
+            .add_field(
+                name="Stage 1",
+                value=vsmatch_settings.vs_stages[0].name,
+                inline=False,
+            )
+            .add_field(
+                name="Stage 2",
+                value=vsmatch_settings.vs_stages[1].name,
+            )
+            .set_image(url="attachment://stages.png")
+        )
+        return embed, files
+
+    async def salmon_run_message(
+        self, rotation: CoopSchedule, title: str
+    ) -> tuple[Embed, list[tuple[str, bytes]]]:
+        """A Salmon Run rotation's embed and files."""
+        files = [await self._favicon()]
+        setting = rotation.setting
+
+        embed = Embed(title=title, color=SALMON_RUN_COLOR)
+
+        salmon_run_thumbnail_bytes = await self._make_salmon_run_thumbnail(
+            setting.weapons
+        )
+        if salmon_run_thumbnail_bytes is not None:
+            embed = embed.set_thumbnail(url="attachment://weapons.png")
+            files.append(("weapons.png", salmon_run_thumbnail_bytes))
+
+        embed = self._credit(
+            embed.add_field(
+                name="Start Time",
+                value=format_dt(rotation.start_time, "R"),
+            )
+            .add_field(name="End Time", value=format_dt(rotation.end_time, "R"))
+            .add_field(
+                name="Stage",
+                value=setting.coop_stage.name,
+            )
+            .set_image(url=setting.coop_stage.image.url)
+        )
+
+        for weapon_index, weapon in enumerate(setting.weapons):
+            embed = embed.add_field(
+                name=f"Weapon {weapon_index + 1}",
+                value=weapon.name,
+                inline=False,
+            )
+        return embed, files
+
+    async def splatfest_message(
+        self, fest: Fest, current_fest: CurrentFest | None, relative: bool
+    ) -> tuple[Embed, list[tuple[str, bytes]]]:
+        """A Splatfest's embed and files.
+
+        With the schedules' ``current_fest`` for it, the embed has the exact midterm and the Tricolor stages, which
+        aren't kept for other Splatfests; without, it has the results, if they're in. ``relative`` shows times relative
+        to now rather than as dates.
+        """
+        assert self.cs is not None
+        files = [await self._favicon()]
+
+        start_time: datetime = fest.start_time
+        end_time: datetime = fest.end_time
+
+        color: int = (
+            SPLATFEST_UNSTARTED_COLOR
+            if fest.state is FestState.SCHEDULED
+            else Colour.from_rgb(*choice(fest.teams).color.rgb).value
+        )
+
+        embed = self._credit(
+            Embed(
+                title=fest.title,
+                description=fest.state.replace("_", " ").title(),
+                color=color,
+            )
+            .add_field(
+                name="Start Time",
+                value=format_dt(start_time, "R" if relative else "D"),
+            )
+            .add_field(
+                name="End Time",
+                value=format_dt(end_time, "R" if relative else "D"),
+            )
+        )
+
+        if current_fest is not None:
+            # Midterm & tricolor data is only available for the current splatfest
+            tricolor_stages = current_fest.tricolor_stages or ()
+
+            embed = embed.add_field(
+                name="Midterm Time",
+                value=format_dt(current_fest.midterm_time, "R" if relative else "D"),
+            ).add_field(
+                name=(
+                    "Tricolor Stages" if len(tricolor_stages) > 1 else "Tricolor Stage"
+                ),
+                value=", ".join(stage.name for stage in tricolor_stages)
+                or "Not announced yet.",
+                inline=False,
+            )
+        else:
+            midterm = start_time + (end_time - start_time) / 2
+            # approx. since we do not have exact
+
+            embed = embed.add_field(
+                name="Midterm Time",
+                value=f"{format_dt(midterm, 'D')} (approx.)",
+            ).add_field(
+                name="Tricolor Stage",
+                value="This data is not stored for previous Splatfests.",
+                inline=False,
+            )
+
+        if current_fest is None and fest.has_results:
+            for team in fest.teams:
+                result = team.result
+                if result is None:
+                    continue
+
+                if result.is_winner:
+                    embed.color = Colour.from_rgb(*team.color.rgb)
+
+                # Each figure is the team's share of a category, named as splatoon3.ink names it. Early Splatfests
+                # didn't count Tricolor Battles.
+                categories: list[tuple[str, float | None, bool | None]] = [
+                    ("Votes", result.vote_ratio, result.is_vote_ratio_top),
+                    (
+                        "Conch Shells",
+                        result.horagai_ratio,
+                        result.is_horagai_ratio_top,
+                    ),
+                    (
+                        "Open",
+                        result.regular_contribution_ratio,
+                        result.is_regular_contribution_ratio_top,
+                    ),
+                    (
+                        "Pro",
+                        result.challenge_contribution_ratio,
+                        result.is_challenge_contribution_ratio_top,
+                    ),
+                    (
+                        "Tricolor Battle",
+                        result.tricolor_contribution_ratio,
+                        result.is_tricolor_contribution_ratio_top,
+                    ),
+                ]
+                lines = [
+                    f"Color: `{Colour.from_rgb(*team.color.rgb)}`",
+                    bold(
+                        f"Was victorious: {'Yes' if result.is_winner else 'No'}",
+                        result.is_winner,
+                    ),
+                    *(
+                        bold(f"{name}: `{ratio * 100:.2f}`%", bool(top))
+                        for name, ratio, top in categories
+                        if ratio is not None
+                    ),
+                ]
+
+                embed = embed.add_field(
+                    name=team.team_name,
+                    value="\n".join(lines),
+                    inline=True,
+                )
+        else:
+            for team in fest.teams:
+                embed = embed.add_field(
+                    name=team.team_name,
+                    value=f"Color: `{Colour.from_rgb(*team.color.rgb)}`",
+                    inline=True,
+                )
+
+        if current_fest is not None and current_fest.tricolor_stages:
+            pngs: list[bytes] = []
+            for url in (
+                fest.image.url,
+                *(stage.image.url for stage in current_fest.tricolor_stages),
+            ):
+                async with self.cs.get(url) as resp:
+                    pngs.append(await resp.read())
+
+            final_png: bytes = await self.bot.loop.run_in_executor(
+                None, reduce, vrt_concat_pngs, pngs
+            )
+
+            files.append(("image.png", final_png))
+
+            embed = embed.set_image(url="attachment://image.png")
+        else:
+            embed = embed.set_image(url=fest.image.url)
+
+        return embed, files
+
+    async def monthly_gear_message(
+        self, gear: MonthlyGear
+    ) -> tuple[Embed, list[tuple[str, bytes]]]:
+        """The month's Salmon Run reward gear's embed and files."""
+        embed = self._credit(
+            Embed(title="Salmon Run Gear", color=SALMON_RUN_COLOR)
+            .add_field(name="Name", value=gear.name)
+            .add_field(name="Slot", value=gear.kind.value)
+            .set_image(url=gear.image.url)
+        )
+        return embed, [await self._favicon()]
+
     async def send_schedule(
         self,
         ctx: CustomContext,
@@ -581,157 +877,27 @@ class Splatoon3(Cog):
         if send is MISSING:
             send = ctx.send
 
-        files: list[tuple[str, bytes]] = []
-        embed: Embed
-        timeslots: list[TimeSlotData] = []
-
-        async with aopen(
-            join(getcwd(), "resources", "images", "splatoon3", "favicon.png"), "rb"
-        ) as fp:
-            files.append(("favicon.png", await fp.read()))
-
+        timeslots: list[TimeSlotData]
         if mode == "Salmon Run":
-            now = datetime.now(UTC)
-            coop = schedules.coop_grouping_schedule
-            # Regular Salmon Run pauses while a Big Run is on, so a Big Run takes its place in the rotations.
-            salmon_run_rotations = sorted(
-                (
-                    node
-                    for node in (*coop.regular_schedules, *coop.big_run_schedules)
-                    if node.end_time > now
-                ),
-                key=lambda node: node.start_time,
+            salmon_run = salmon_run_rotations(schedules)
+            timeslots = TimeSlotData.from_nodes(salmon_run, mode)
+            rotation = salmon_run[index]
+            big_run = rotation in schedules.coop_grouping_schedule.big_run_schedules
+            embed, files = await self.salmon_run_message(
+                rotation, "Big Run" if big_run else "Salmon Run"
             )
-            timeslots = TimeSlotData.from_nodes(salmon_run_rotations, mode)
-
-            salmon_run_schedule = salmon_run_rotations[index]
-            salmon_run_match_settings = salmon_run_schedule.setting
-
-            embed = Embed(
-                title=(
-                    "Big Run"
-                    if salmon_run_schedule in coop.big_run_schedules
-                    else "Salmon Run"
-                ),
-                color=SALMON_RUN_COLOR,
-            )
-
-            salmon_run_thumbnail_bytes = await self._make_salmon_run_thumbnail(
-                salmon_run_match_settings.weapons
-            )
-            if salmon_run_thumbnail_bytes is not None:
-                embed = embed.set_thumbnail(url="attachment://weapons.png")
-                files.append(("weapons.png", salmon_run_thumbnail_bytes))
-
-            embed = (
-                embed.add_field(
-                    name="Start Time",
-                    value=format_dt(salmon_run_schedule.start_time, "R"),
-                )
-                .add_field(
-                    name="End Time", value=format_dt(salmon_run_schedule.end_time, "R")
-                )
-                .add_field(
-                    name="Stage",
-                    value=salmon_run_match_settings.coop_stage.name,
-                )
-                .set_image(url=salmon_run_match_settings.coop_stage.image.url)
-                .set_footer(
-                    text="Powered by https://splatoon3.ink/",
-                    icon_url="attachment://favicon.png",
-                )
-            )
-
-            for weapon_index, weapon in enumerate(salmon_run_match_settings.weapons):
-                embed = embed.add_field(
-                    name=f"Weapon {weapon_index + 1}",
-                    value=weapon.name,
-                    inline=False,
-                )
         else:  # All other modes
             rotations = vs_rotations(schedules, mode)
             timeslots = TimeSlotData.from_nodes(
                 [rotation.period for rotation in rotations], mode
             )
-
-            color: int = MODE_COLORS[mode]
-            if (
-                mode in ("Splatfest Battle (Open)", "Splatfest Battle (Pro)")
-                and schedules.current_fest is not None
-            ):
-                color = Colour.from_rgb(
-                    *choice(schedules.current_fest.teams).color.rgb
-                ).value
-
-            vs_rotation = rotations[index] if index < len(rotations) else None
-
-            if vs_rotation is None or vs_rotation.setting is None:
-                embed = Embed(
-                    title=mode,
-                    color=color,
-                    description="This game mode is not currently available.",
-                ).set_footer(
-                    text="Powered by https://splatoon3.ink/",
-                    icon_url="attachment://favicon.png",
-                )
-            else:
-                vsmatch_settings = vs_rotation.setting
-                rule_emoji = ctx.bot.get_custom_emoji(
-                    f"{RULE_EMOJI_NAME[vsmatch_settings.vs_rule.rule]}.png"
-                )
-                description = f"{vsmatch_settings.vs_rule.name} {rule_emoji or ''}"
-                if vs_rotation.event is not None:
-                    # SplatNet breaks the summary where the game wraps it.
-                    summary = vs_rotation.event.desc.replace("<br />", " ")
-                    description = (
-                        f"**{vs_rotation.event.name}**: {summary}\n{description}"
-                    )
-
-                files.append(
-                    (
-                        "stages.png",
-                        await self._make_two_stage_image(vsmatch_settings.vs_stages),
-                    )
-                )
-
-                embed = (
-                    Embed(
-                        title=f"{mode} "
-                        f"{ctx.bot.get_custom_emoji(f'{MODE_EMOJI_NAME[mode]}.png') or ''}",
-                        color=color,
-                        description=description,
-                    )
-                    .add_field(
-                        name="Start Time",
-                        value=format_dt(vs_rotation.period.start_time, "R"),
-                    )
-                    .add_field(
-                        name="End Time",
-                        value=format_dt(vs_rotation.period.end_time, "R"),
-                    )
-                    .add_field(
-                        name="Stage 1",
-                        value=vsmatch_settings.vs_stages[0].name,
-                        inline=False,
-                    )
-                    .add_field(
-                        name="Stage 2",
-                        value=vsmatch_settings.vs_stages[1].name,
-                    )
-                    .set_image(url="attachment://stages.png")
-                    .set_footer(
-                        text="Powered by https://splatoon3.ink/",
-                        icon_url="attachment://favicon.png",
-                    )
-                )
+            embed, files = await self.vs_message(
+                schedules, mode, rotations[index] if index < len(rotations) else None
+            )
 
         return await send(
             embed=embed,
-            files=(
-                [File(fp=BytesIO(data), filename=name) for name, data in files]
-                if len(files) > 0
-                else None
-            ),
+            files=[File(fp=BytesIO(data), filename=name) for name, data in files],
             view=ScheduleView(ctx, timeslots, mode) if len(timeslots) > 0 else None,
         )
 
@@ -745,7 +911,6 @@ class Splatoon3(Cog):
     ) -> Message:
         assert self.festivals is not None
         assert self.schedules is not None
-        assert self.cs is not None
 
         if send is MISSING:
             send = ctx.send
@@ -755,177 +920,25 @@ class Splatoon3(Cog):
 
         nodes = self.festivals.in_region(Region(region))
         current_fest = self.schedules.current_fest
-        files: list[tuple[str, bytes]] = []
         historic_splatfests: list[SplatfestData] = SplatfestData.from_nodes(nodes)
 
-        async with aopen(
-            join(getcwd(), "resources", "images", "splatoon3", "favicon.png"), "rb"
-        ) as fp:
-            files.append(("favicon.png", await fp.read()))
-
         if current and current_fest is None:
-            embed: Embed = Embed(
-                title="Splatfest",
-                color=SPLATFEST_UNSTARTED_COLOR,
-                description="There is no Splatfest currently running.",
-            ).set_footer(
-                text="Powered by https://splatoon3.ink/",
-                icon_url="attachment://favicon.png",
-            )
-        else:
-            historic_splatfest_info = nodes[index]
-
-            start_time: datetime = historic_splatfest_info.start_time
-            end_time: datetime = historic_splatfest_info.end_time
-
-            is_scheduled: bool = historic_splatfest_info.state is FestState.SCHEDULED
-
-            color: int = (
-                SPLATFEST_UNSTARTED_COLOR
-                if is_scheduled
-                else Colour.from_rgb(
-                    *choice(historic_splatfest_info.teams).color.rgb
-                ).value
-            )
-
-            embed = (
+            embed = self._credit(
                 Embed(
-                    title=historic_splatfest_info.title,
-                    description=historic_splatfest_info.state.replace("_", " ").title(),
-                    color=color,
-                )
-                .add_field(
-                    name="Start Time",
-                    value=format_dt(start_time, "R" if current else "D"),
-                )
-                .add_field(
-                    name="End Time",
-                    value=format_dt(end_time, "R" if current else "D"),
-                )
-                .set_footer(
-                    text="Powered by https://splatoon3.ink/",
-                    icon_url="attachment://favicon.png",
+                    title="Splatfest",
+                    color=SPLATFEST_UNSTARTED_COLOR,
+                    description="There is no Splatfest currently running.",
                 )
             )
-
-            midterm: datetime
-            if current and current_fest is not None:
-                midterm = current_fest.midterm_time
-                # Midterm & tricolor data is only available for the current splatfest
-                tricolor_stages = current_fest.tricolor_stages or ()
-
-                embed = embed.add_field(
-                    name="Midterm Time",
-                    value=format_dt(midterm, "R" if current else "D"),
-                ).add_field(
-                    name=(
-                        "Tricolor Stages"
-                        if len(tricolor_stages) > 1
-                        else "Tricolor Stage"
-                    ),
-                    value=", ".join(stage.name for stage in tricolor_stages)
-                    or "Not announced yet.",
-                    inline=False,
-                )
-            else:
-                midterm = start_time + (end_time - start_time) / 2
-                # approx. since we do not have exact
-
-                embed = embed.add_field(
-                    name="Midterm Time",
-                    value=f"{format_dt(midterm, 'D')} (approx.)",
-                ).add_field(
-                    name="Tricolor Stage",
-                    value="This data is not stored for previous Splatfests.",
-                    inline=False,
-                )
-
-            if not current and historic_splatfest_info.has_results:
-                for team in historic_splatfest_info.teams:
-                    result = team.result
-                    if result is None:
-                        continue
-
-                    if result.is_winner:
-                        embed.color = Colour.from_rgb(*team.color.rgb)
-
-                    # Each figure is the team's share of a category, named as splatoon3.ink names it. Early Splatfests
-                    # didn't count Tricolor Battles.
-                    categories: list[tuple[str, float | None, bool | None]] = [
-                        ("Votes", result.vote_ratio, result.is_vote_ratio_top),
-                        (
-                            "Conch Shells",
-                            result.horagai_ratio,
-                            result.is_horagai_ratio_top,
-                        ),
-                        (
-                            "Open",
-                            result.regular_contribution_ratio,
-                            result.is_regular_contribution_ratio_top,
-                        ),
-                        (
-                            "Pro",
-                            result.challenge_contribution_ratio,
-                            result.is_challenge_contribution_ratio_top,
-                        ),
-                        (
-                            "Tricolor Battle",
-                            result.tricolor_contribution_ratio,
-                            result.is_tricolor_contribution_ratio_top,
-                        ),
-                    ]
-                    lines = [
-                        f"Color: `{Colour.from_rgb(*team.color.rgb)}`",
-                        bold(
-                            f"Was victorious: {'Yes' if result.is_winner else 'No'}",
-                            result.is_winner,
-                        ),
-                        *(
-                            bold(f"{name}: `{ratio * 100:.2f}`%", bool(top))
-                            for name, ratio, top in categories
-                            if ratio is not None
-                        ),
-                    ]
-
-                    embed = embed.add_field(
-                        name=team.team_name,
-                        value="\n".join(lines),
-                        inline=True,
-                    )
-            else:
-                for team in historic_splatfest_info.teams:
-                    embed = embed.add_field(
-                        name=team.team_name,
-                        value=f"Color: `{Colour.from_rgb(*team.color.rgb)}`",
-                        inline=True,
-                    )
-
-            if current and current_fest is not None and current_fest.tricolor_stages:
-                pngs: list[bytes] = []
-                for url in (
-                    historic_splatfest_info.image.url,
-                    *(stage.image.url for stage in current_fest.tricolor_stages),
-                ):
-                    async with self.cs.get(url) as resp:
-                        pngs.append(await resp.read())
-
-                final_png: bytes = await self.bot.loop.run_in_executor(
-                    None, reduce, vrt_concat_pngs, pngs
-                )
-
-                files.append(("image.png", final_png))
-
-                embed = embed.set_image(url="attachment://image.png")
-            else:
-                embed = embed.set_image(url=historic_splatfest_info.image.url)
+            files = [await self._favicon()]
+        else:
+            embed, files = await self.splatfest_message(
+                nodes[index], current_fest if current else None, relative=current
+            )
 
         return await send(
             embed=embed,
-            files=(
-                [File(fp=BytesIO(data), filename=name) for name, data in files]
-                if len(files) > 0
-                else None
-            ),
+            files=[File(fp=BytesIO(data), filename=name) for name, data in files],
             view=None if current else SplatfestView(ctx, historic_splatfests, region),
         )
 
@@ -971,29 +984,10 @@ class Splatoon3(Cog):
         assert self.monthly_gear is not None
 
         async with ctx.typing():
-            monthly_gear_info = self.monthly_gear
-
-            embed: Embed = (
-                Embed(title="Salmon Run Gear", color=SALMON_RUN_COLOR)
-                .add_field(
-                    name="Name",
-                    value=monthly_gear_info.name,
-                )
-                .add_field(
-                    name="Slot",
-                    value=monthly_gear_info.kind.value,
-                )
-                .set_image(url=monthly_gear_info.image.url)
-                .set_footer(
-                    text="Powered by https://splatoon3.ink/",
-                    icon_url="attachment://favicon.png",
-                )
-            )
+            embed, files = await self.monthly_gear_message(self.monthly_gear)
             await ctx.send(
                 embed=embed,
-                file=File(
-                    join(getcwd(), "resources", "images", "splatoon3", "favicon.png")
-                ),
+                files=[File(fp=BytesIO(data), filename=name) for name, data in files],
             )
 
 

@@ -69,8 +69,9 @@ jobs:
 
   # Tells Sentry about each image main publishes. It creates the release, named by the raw commit hash as the bot's
   # own events are (src/utils/reporting.py), links its commits through Sentry's GitHub integration, and records a
-  # production deploy. Nothing pulls the image automatically, so the deploy marks when latest was published, not when
-  # production started running it. Scheduled rebuilds are skipped: same commit, nothing new to record.
+  # production deploy. The hosts pull latest themselves, on podman-auto-update.timer's daily run, so the deploy marks
+  # when latest was published and production starts running it within about a day. Scheduled rebuilds are skipped:
+  # same commit, nothing new to record.
   sentry-release:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name != 'schedule'

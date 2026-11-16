@@ -68,14 +68,12 @@ class Info(commands.Cog):
         activity: Optional[str],
     ) -> None:
         """Sets the bot's status. If no status is specified, it will go back to the default."""
-        task_is_running = self.activity_update.is_running()
-
-        if activity is None and not task_is_running:
-            self.activity_update.start()
+        if activity is None:
+            if not self.activity_update.is_running():
+                self.activity_update.start()
         else:
             self.activity_update.cancel()
-            watching_string = f"{activity}"
-            await ctx.bot.change_presence(activity=discord.Game(name=watching_string))
+            await ctx.bot.change_presence(activity=discord.Game(name=activity))
         await ctx.send("Status updated.", ephemeral=True)
 
     @hybrid_command()  # type: ignore[arg-type]  # bad d.py export
@@ -218,8 +216,9 @@ class Info(commands.Cog):
                         f"{round(psutil.virtual_memory().used / 1073741824, 1)}GB/"
                         f"{round(psutil.virtual_memory().total / 1073741824, 1)}GB "
                         f"({psutil.virtual_memory().percent}%)"
+                        # cpu_freq() is None where the kernel exposes no frequency, as on many ARM hosts.
                         f"\nCPU: {platform.processor()} running at "
-                        f"{round(psutil.cpu_freq().current) / 1000}GHz, "
+                        f"{f'{round(freq.current) / 1000}GHz' if (freq := psutil.cpu_freq()) is not None else 'an unknown speed'}, "
                         f"{psutil.cpu_percent(interval=None)}% utilized ({psutil.cpu_count()} logical cores, "
                         f"{psutil.cpu_count(logical=False)} physical cores",
                     )

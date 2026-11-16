@@ -231,7 +231,9 @@ async def generate_minecraft_embed(
             inline=False,
         )
 
-    if isinstance(status_response, (JavaStatusResponse, BedrockStatusResponse)):
+    if include_latency and isinstance(
+        status_response, (JavaStatusResponse, BedrockStatusResponse)
+    ):
         embed = embed.add_field(name="Ping:", value=f"{status_response.latency:.1f}ms")
 
     if isinstance(status_response, QueryResponse):

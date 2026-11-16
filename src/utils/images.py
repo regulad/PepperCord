@@ -1,29 +1,6 @@
 from io import BytesIO
-from tempfile import NamedTemporaryFile
 
 from PIL import Image
-from reportlab.graphics.renderPM import drawToFile
-from svglib.svglib import svg2rlg
-
-
-def svg2png(svg: bytes) -> bytes:
-    with BytesIO() as png_file, NamedTemporaryFile(suffix=".svg") as svg_file:
-        # The comment says that File-like objects are permitted for svg2rlg, but the types and code tell a different story.
-        # A NamedTemporaryFile is used as a shim
-        svg_file.write(svg)
-        svg_file.flush()
-        svg_file.seek(0)
-
-        drawing = svg2rlg(svg_file.name)
-
-        if drawing is None:
-            raise RuntimeError("Failed to load SVG!")
-
-        drawToFile(
-            drawing, png_file, "png", bg=0x000000
-        )  # Transparent background doesn't want to work with this library.
-        png_file.seek(0)
-        return png_file.read()
 
 
 def vrt_concat_pngs(png1: bytes, png2: bytes) -> bytes:
@@ -72,4 +49,4 @@ def hrz_concat_pngs(png1: bytes, png2: bytes) -> bytes:
         return buffer.read()
 
 
-__all__ = ["svg2png", "vrt_concat_pngs", "hrz_concat_pngs"]
+__all__ = ["vrt_concat_pngs", "hrz_concat_pngs"]

@@ -235,7 +235,7 @@ async def generate_minecraft_embed(
         embed = embed.add_field(name="Ping:", value=f"{status_response.latency:.1f}ms")
 
     if isinstance(status_response, QueryResponse):
-        embed = embed.add_field(name="Map:", value=status_response.map)
+        embed = embed.add_field(name="Map:", value=status_response.map_name)
 
     players_max: int | None = None
     players_online: int | None = None
@@ -270,7 +270,7 @@ async def generate_minecraft_embed(
         version_name: str
         if isinstance(status_response.version, BedrockStatusVersion):
             version_name = (
-                f"{status_response.version.brand} {status_response.version.version}"
+                f"{status_response.version.brand} {status_response.version.name}"
             )
         else:
             version_name = status_response.version.name

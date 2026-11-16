@@ -1,6 +1,8 @@
 import asyncio
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from io import BytesIO
+from os.path import exists
 from pathlib import Path
 from typing import Any, cast
 
@@ -11,7 +13,7 @@ from aiosplatoon2ink import CoopSchedules, Festivals, Region, Schedules, Timelin
 from aiosplatoon2ink.gear import _MerchandisesFeed
 from PIL import Image
 
-from extensions.external.splatoon2 import TOPICS, Splatoon2, Splatoon2Watch
+from extensions.external.splatoon2 import FAVICON, TOPICS, Splatoon2, Splatoon2Watch
 from utils.bots.bot import CustomBot
 
 FIXTURES = Path(__file__).parent / "fixtures" / "splatoon2"
@@ -74,6 +76,11 @@ def due(watch: Splatoon2Watch, now: datetime) -> list[str]:
     return sorted(event.key for event in watch.events(now) if event.is_due(now))
 
 
+def pictures(files: Iterable[tuple[str, bytes]]) -> list[str]:
+    """The names of a message's files, but the favicon, which only a checkout with the private resources has."""
+    return [name for name, _ in files if name != "favicon.png"]
+
+
 def test_topics_fit_discords_choices() -> None:
     assert len(TOPICS) <= 25
     assert all(
@@ -113,9 +120,10 @@ async def test_renders_each_kind_of_update() -> None:
 
     rotation = await events["regular:2026-11-16T12:00:00+00:00"].render()
     assert rotation.content == "A new Regular Battle rotation has started."
-    assert [name for name, _ in rotation.files] == [
-        "stages.png"
-    ]  # and no favicon, which the resources lack
+    assert pictures(rotation.files) == ["stages.png"]
+    assert rotation.embed.footer.icon_url == (
+        "attachment://favicon.png" if exists(FAVICON) else None
+    )
 
     salmon_run = await events["salmon-run:2026-11-16T12:00:00+00:00"].render()
     assert [field.value for field in salmon_run.embed.fields][3:] == [
@@ -124,7 +132,7 @@ async def test_renders_each_kind_of_update() -> None:
         "Splat Brella",
         "Bamboozler 14 Mk I",
     ]
-    assert [name for name, _ in salmon_run.files] == ["weapons.png"]
+    assert pictures(salmon_run.files) == ["weapons.png"]
 
     reward = await events["gear:reward:21005:2026-11-14T12:00:00+00:00"].render()
     assert reward.content == "Salmon Run's reward gear is now North-Country Parka."
@@ -144,7 +152,7 @@ async def test_a_random_weapon_and_a_rotation_without_details() -> None:
         embed.description
         == "Grizzco hasn't announced this rotation's stage and weapons yet."
     )
-    assert files == []
+    assert pictures(files) == []
 
 
 async def test_splatfest_results_under_both_scorings() -> None:

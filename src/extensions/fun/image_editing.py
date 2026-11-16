@@ -100,7 +100,8 @@ class Images(commands.Cog):
         x_offset: int = 0,
         y_offset: int = -10,
         flip: bool = True,
-        size: int = 70,
+        # Scaled by the image's size, so a large value on a large avatar asks for gigabytes.
+        size: commands.Range[int, 1, 200] = 70,
     ) -> None:
         """Put a Santa Hat on a member."""
         async with ctx.typing():
@@ -137,7 +138,8 @@ class Images(commands.Cog):
         x_offset: int = 0,
         y_offset: int = -10,
         flip: bool = True,
-        size: int = 70,
+        # Scaled by the image's size, so a large value on a large avatar asks for gigabytes.
+        size: commands.Range[int, 1, 200] = 70,
     ) -> None:
         """Put a Santa Hat on a file."""
         async with ctx.typing():

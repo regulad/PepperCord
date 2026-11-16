@@ -215,7 +215,16 @@ async def generate_minecraft_embed(
                 Motd.parse(player_name).to_plain() for player_name in player_list
             )
             # Servers fill the sample with any text they like, which would otherwise render as Markdown.
-            player_field += "\n" + "\n".join(map(escape_markdown, player_list_sorted))
+            lines = [escape_markdown(name) for name in player_list_sorted]
+            # A field holds at most 1,024 characters, and a query lists every player online.
+            shown = 0
+            for line in lines:
+                if len(player_field) + len(line) + 1 > 990:
+                    break
+                player_field += f"\n{line}"
+                shown += 1
+            if shown < len(lines):
+                player_field += f"\n…and {len(lines) - shown} more"
         embed = embed.add_field(
             name="Players:",
             value=player_field,

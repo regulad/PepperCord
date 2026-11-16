@@ -9,7 +9,6 @@ on:
   # latest (see meta-tags). Deliberately no pull_request trigger: PRs never build here.
   push:
     branches: ["main", "testing"]
-    tags: ["v*.*.*"]
 
 # Serialize the pipeline per ref, across push, scheduled, and manual runs. Each new run cancels the active run and
 # replaces any pending run on the same ref; a push to testing must not cancel main's run, or the other way round.
@@ -52,15 +51,13 @@ jobs:
       meta-flavor: |
         latest=false
       # latest on main, latest-testing on testing, the branch name on every branch push but testing's, a dated tag on
-      # each scheduled rebuild, and the version on release tags.
+      # each scheduled rebuild, and the raw commit hash on every build. Images are identified by commit, not version.
       meta-tags: |
         type=raw,value=latest,enable={{is_default_branch}}
         type=raw,value=latest,enable=${{ github.ref == 'refs/heads/testing' }},suffix=-testing
         type=schedule,pattern={{date 'YYYYMMDD'}}
         type=ref,event=branch,enable=${{ github.ref != 'refs/heads/testing' }}
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=semver,pattern={{major}}
+        type=sha,format=long,prefix=
     secrets:
       registry-auths: |
         - registry: ghcr.io
@@ -69,3 +66,31 @@ jobs:
       # The resources submodule is private, and github.token can only read this repository. BuildKit fetches the
       # submodule with this token: for github.com remotes it reuses the context's token for every github.com URL.
       github-token: ${{ secrets.PAT }}
+
+  # Tells Sentry about each image main publishes. It creates the release, named by the raw commit hash as the bot's
+  # own events are (src/utils/reporting.py), links its commits through Sentry's GitHub integration, and records a
+  # production deploy. Nothing pulls the image automatically, so the deploy marks when latest was published, not when
+  # production started running it. Scheduled rebuilds are skipped: same commit, nothing new to record.
+  sentry-release:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # The whole history, so set_commits can find the commits since the previous release.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: regulad
+          SENTRY_PROJECT: peppercord
+        with:
+          release: ${{ github.sha }}
+          environment: production
+          set_commits: auto
+          # The first release has no previous one to find commits since.
+          ignore_missing: true

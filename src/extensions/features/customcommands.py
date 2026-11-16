@@ -144,18 +144,19 @@ def match_commands(
         return None  # No CC found
 
 
-def get_custom_command_from_guild(
+async def get_custom_command_from_guild(
     ctx: CustomContext, query: Optional[str] = None
 ) -> Optional[CustomCommand]:
     query = query or ctx.message.clean_content
+    document = ctx["guild_document"]
 
     return match_commands(
-        CustomCommand.from_dict(ctx["guild_document"].get("commands", {})),
+        CustomCommand.from_dict(await document.safe_get("commands", {})),
         query,
-        case_insensitive=ctx["guild_document"].get("cc_is_case_insensitive", True),
-        first_word_only=ctx["guild_document"].get("cc_first_word_only", True),
-        starts_with=ctx["guild_document"].get("cc_starts_with", True),
-        exact=ctx["guild_document"].get("cc_exact", True),
+        case_insensitive=await document.safe_get("cc_is_case_insensitive", True),
+        first_word_only=await document.safe_get("cc_first_word_only", True),
+        starts_with=await document.safe_get("cc_starts_with", True),
+        exact=await document.safe_get("cc_exact", True),
     )
 
 
@@ -168,7 +169,7 @@ class CustomCommandConverter(commands.Converter[CustomCommand]):
 
     async def convert(self, ctx: commands.Context[Any], argument: str) -> CustomCommand:
         custom_ctx = cast(CustomContext, ctx)  # known at runtime
-        custom_command = get_custom_command_from_guild(custom_ctx, argument)
+        custom_command = await get_custom_command_from_guild(custom_ctx, argument)
         if custom_command is None:
             raise CustomCommandDoesNotExist()
         else:
@@ -218,7 +219,7 @@ class CustomCommands(commands.Cog):
             # Lots of conditions to get here.
             # Oh well, that will happen if you have to make your own command invocation system.
 
-            custom_command = get_custom_command_from_guild(ctx)
+            custom_command = await get_custom_command_from_guild(ctx)
 
             if custom_command is None:
                 return

@@ -10,6 +10,7 @@ from discord.app_commands import describe, context_menu
 from discord.app_commands import guild_only as ac_guild_only
 from discord.ext import commands, tasks
 from discord.ext.commands import hybrid_command
+from discord.utils import format_dt
 
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
@@ -100,7 +101,7 @@ class Info(commands.Cog):
                 )
             embed = embed.add_field(
                 name="Account creation date:",
-                value=f"<t:{user.created_at.timestamp():.0f}:R>",
+                value=format_dt(user.created_at, "R"),
             )
             if isinstance(user, discord.Member):
                 after_breakdown = status_breakdown(
@@ -118,12 +119,12 @@ class Info(commands.Cog):
                 if user.joined_at is not None:
                     embed = embed.add_field(
                         name="Server join date:",
-                        value=f"<t:{user.joined_at.timestamp():.0f}:R>",
+                        value=format_dt(user.joined_at, "R"),
                     )
                 if user.premium_since:
                     embed = embed.add_field(
                         name="Server boosting since:",
-                        value=f"<t:{user.premium_since.timestamp():.0f}:R>",
+                        value=format_dt(user.premium_since, "R"),
                     )
             await ctx.send(embed=embed, ephemeral=True)
 
@@ -148,7 +149,7 @@ class Info(commands.Cog):
         embed = (
             embed.add_field(
                 name="Created at:",
-                value=f"<t:{ctx.guild.created_at.timestamp():.0f}:R>",
+                value=format_dt(ctx.guild.created_at, "R"),
             )
             .add_field(name="Roles:", value=len(ctx.guild.roles))
             .add_field(

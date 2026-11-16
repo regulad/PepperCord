@@ -4,10 +4,8 @@ from datetime import datetime, timedelta
 import logging
 from os import sep
 import os
-from tarfile import data_filter
 from tempfile import TemporaryDirectory, tempdir
 from typing import (
-    Annotated,
     Awaitable,
     Callable,
     NotRequired,

@@ -1,4 +1,3 @@
-from asyncio import Lock
 from collections.abc import KeysView, ValuesView, ItemsView
 import logging
 from typing import Any, Iterator, Mapping, Never, Sequence, TypeVar

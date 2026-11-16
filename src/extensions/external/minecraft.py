@@ -226,6 +226,10 @@ async def generate_minecraft_embed(
             )
         else:
             version_name = status_response.version.name
+        # Servers colour their version names with the same codes as their MOTDs.
+        version_name = Motd.parse(
+            version_name, bedrock=isinstance(status_response, BedrockStatusResponse)
+        ).to_plain()
 
         embed = embed.add_field(
             name="Version:",

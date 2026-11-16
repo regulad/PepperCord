@@ -87,8 +87,11 @@ jobs:
       # Mints the GitHub OIDC token the federated identity accepts; no long-lived Tailscale secret is stored.
       id-token: write
     steps:
+      # Each step has a time limit, so a hang becomes an ordinary failure that continue-on-error absorbs. Without them the
+      # job could run to GitHub's 6-hour default, holding up sentry-release and every run queued behind this one.
       - name: Join the tailnet
         uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        timeout-minutes: 3
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
@@ -96,10 +99,13 @@ jobs:
           hostname: peppercord-deploy-${{ github.run_id }}-${{ github.run_attempt }}
       # Every host is called even if an earlier one fails, then the step fails if any did.
       - name: Start the update on each host
+        timeout-minutes: 2
         run: |
           failed=0
           for host in peppercord cordpepperer; do
-            if curl -fsS --retry 3 --retry-connrefused -X POST "https://$host.tail11540.ts.net:8108/auto-update"; then
+            # The hook answers within about half a second, so 30 seconds per attempt is plenty.
+            if curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-connrefused \
+              -X POST "https://$host.tail11540.ts.net:8108/auto-update"; then
               echo "Started the update on $host."
             else
               echo "::warning::Couldn't start the update on $host; its daily podman-auto-update.timer run will pick latest up."

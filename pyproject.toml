@@ -32,6 +32,8 @@ pre-commit = "^4.7.0"
 tox = "^4.67.13"
 poetry = "2.5.1"  # Pinned in .pre-commit-config.yaml; the Dockerfile installs the version pinned here
 black = "26.10.1"  # Pinned in .pre-commit-config.yaml
+pytest = "^9.2.0"
+pytest-asyncio = "^1.5.0"
 
 [tool.poetry.group.ci]
 optional = true
@@ -74,3 +76,14 @@ strict_bytes = true
 # formatting only
 show_error_code_links = true
 pretty = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    # Deprecations inside discord.py and PyNaCl, which PepperCord can't fix.
+    "ignore::DeprecationWarning:discord.*",
+    "ignore::DeprecationWarning:nacl.*",
+]

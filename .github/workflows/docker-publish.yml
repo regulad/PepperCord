@@ -10,12 +10,14 @@ on:
   push:
     branches: ["main", "testing"]
 
-# Serialize the pipeline per ref, across push, scheduled, and manual runs. Each new run cancels the active run and
-# replaces any pending run on the same ref; a push to testing must not cancel main's run, or the other way round.
+# Serialize the pipeline per ref, across push, scheduled, and manual runs: one run at a time, and every run finishes.
+# Each run on main creates a Sentry release and deploy and restarts production, so none may be cancelled or skipped.
+# Pushes that arrive while a run is going wait in line (queue: max, up to 100) and run in order. A push carrying several
+# commits is still one run, for the newest of them. testing and main queue separately.
 concurrency:
   group: docker-publish-${{ github.ref }}
-  cancel-in-progress: true
-  queue: single
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   # docker/github-builder handles checkout (via a BuildKit git context), buildx, registry login, metadata, native

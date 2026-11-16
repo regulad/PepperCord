@@ -93,7 +93,7 @@ class Info(commands.Cog):
                 user = ctx.author
             embed = discord.Embed(
                 colour=user.colour,
-                title=f"All about {user.name}#{user.discriminator}\n({user.id})",
+                title=f"All about {user}\n({user.id})",
             )
             if user.avatar is not None:
                 embed = embed.set_thumbnail(url=user.avatar).add_field(

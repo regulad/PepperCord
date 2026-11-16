@@ -39,7 +39,7 @@ class Startup(commands.Cog):
     async def describe_user(self) -> None:
         # self.bot.user will always be ClientUser after on_ready is fired
         logger.info(
-            f"Logged in as {cast(ClientUser, self.bot.user).display_name}#{cast(ClientUser, self.bot.user).discriminator} ({cast(ClientUser, self.bot.user).id}), "
+            f"Logged in as {cast(ClientUser, self.bot.user)} ({cast(ClientUser, self.bot.user).id}), "
             f"in {len(self.bot.guilds)} {'guild' if len(self.bot.guilds) == 1 else 'guilds'}"
         )
 

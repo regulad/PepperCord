@@ -406,7 +406,7 @@ class Minecraft(Cog):
         user_query = {"minecraft_servers": {"$exists": True}}
         raw_user_documents = await user_collection.find(user_query).to_list(length=None)
         user_documents = [
-            document.wrap(user_collection, user_query)
+            document.wrap(user_collection, {"_id": document["_id"]})
             for document in raw_user_documents
         ]
 
@@ -416,7 +416,7 @@ class Minecraft(Cog):
             length=None
         )
         guild_documents = [
-            document.wrap(guild_collection, guild_query)
+            document.wrap(guild_collection, {"_id": document["_id"]})
             for document in raw_guild_documents
         ]
 

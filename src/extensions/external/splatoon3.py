@@ -628,18 +628,27 @@ class Splatoon3(Cog):
 
         if mode == "Salmon Run":
             now = datetime.now(UTC)
-            salmon_run_rotations = [
-                node
-                for node in schedules.coop_grouping_schedule.regular_schedules
-                if node.end_time > now
-            ]
+            coop = schedules.coop_grouping_schedule
+            # Regular Salmon Run pauses while a Big Run is on, so a Big Run takes its place in the rotations.
+            salmon_run_rotations = sorted(
+                (
+                    node
+                    for node in (*coop.regular_schedules, *coop.big_run_schedules)
+                    if node.end_time > now
+                ),
+                key=lambda node: node.start_time,
+            )
             timeslots = TimeSlotData.from_nodes(salmon_run_rotations, mode)
 
             salmon_run_schedule = salmon_run_rotations[index]
             salmon_run_match_settings = salmon_run_schedule.setting
 
             embed = Embed(
-                title="Salmon Run",
+                title=(
+                    "Big Run"
+                    if salmon_run_schedule in coop.big_run_schedules
+                    else "Salmon Run"
+                ),
                 color=SALMON_RUN_COLOR,
             )
 

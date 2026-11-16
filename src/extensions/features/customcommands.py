@@ -12,6 +12,7 @@ from discord.ext.menus import ListPageSource, MenuPages
 from utils.attachments import find_url_recurse
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
+from utils.commands import UserFacingError
 
 
 class CustomCommand:
@@ -148,7 +149,7 @@ def get_custom_command_from_guild(
     query = query or ctx.message.clean_content
 
     return match_commands(
-        CustomCommand.from_dict(ctx["guild_document"].get("commands", [])),
+        CustomCommand.from_dict(ctx["guild_document"].get("commands", {})),
         query,
         case_insensitive=ctx["guild_document"].get("cc_is_case_insensitive", True),
         first_word_only=ctx["guild_document"].get("cc_first_word_only", True),
@@ -344,6 +345,11 @@ class CustomCommands(commands.Cog):
         If a Message is not specified, the most recently sent media will be used.
         If a ⏰ is added to the message, it means you are being rate-limited.
         """
+        # The name becomes part of a MongoDB field path, where "." nests the value and a leading "$" is refused.
+        if "." in command or command.startswith("$"):
+            raise UserFacingError(
+                'Custom command names can\'t contain "." or start with "$".'
+            )
         message = (
             message
             if message is not None

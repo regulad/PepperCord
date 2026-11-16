@@ -35,9 +35,12 @@ Run these before committing:
 ```sh
 poetry install --with dev,type --no-root   # once; needs Python 3.15.x
 poetry run black src
-poetry run mypy src                        # strict; CI runs it, pre-commit doesn't
+poetry run mypy src tests                  # strict; CI runs it, pre-commit doesn't
 poetry run pre-commit run --all-files      # also runs on every commit
+poetry run pytest                          # CI runs it, pre-commit doesn't
 ```
+
+The watch store's tests need a MongoDB and skip without one: start the throwaway database below and set `PEPPERCORD_TEST_MONGO_URI=mongodb://127.0.0.1:27017`. CI runs them against `mongo:9.0`.
 
 The CI image job imports every extension inside a running event loop (some read the loop at import time). Run the same locally:
 
@@ -62,7 +65,7 @@ For anything touching startup, the database or command registration, also start 
 2. `.env` (gitignored) holds a test bot's token with `PEPPERCORD_DEBUG=1` and a throwaway `PEPPERCORD_DB_NAME`. Never print the token, and never use a production token.
 3. Run `poetry run python src/main.py`, poll `http://127.0.0.1:8080/health` until it reports `"ok"`, then send SIGINT: the bot must exit 0. Scan the log for `ERROR`, `WARNING` and `Traceback`, then `podman stop pc-test-mongo`.
 
-Pull requests (Dependabot's) must pass `lint`, `type`, `image (linux/amd64)` and `image (linux/arm64)`, as `.github/settings.yml` requires.
+Pull requests (Dependabot's) must pass `lint`, `type`, `test`, `image (linux/amd64)` and `image (linux/arm64)`, as `.github/settings.yml` requires.
 
 ## Code traps
 

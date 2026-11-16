@@ -1,7 +1,7 @@
 name: CI
 
-# Checks every pull request into main: the pre-commit hooks, the types, and the image on both architectures. main
-# requires these checks (.github/settings.yml), which is what lets dependabot-auto-merge.yml merge Dependabot's PRs
+# Checks every pull request into main: the pre-commit hooks, the types, the tests, and the image on both architectures.
+# main requires these checks (.github/settings.yml), which is what lets dependabot-auto-merge.yml merge Dependabot's PRs
 # without a person: a merge to main deploys.
 #
 # Nothing here uses a secret, so it runs the same on Dependabot's PRs, which only see Dependabot secrets.

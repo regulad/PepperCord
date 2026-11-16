@@ -28,6 +28,7 @@ branches:
         contexts:
           - lint
           - type
+          - test
           - image (linux/amd64)
           - image (linux/arm64)
       # Required. Enforce all configured restrictions for administrators. Set to true to enforce required status checks for repository administrators. Set to null to disable.

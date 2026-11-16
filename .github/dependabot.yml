@@ -1,5 +1,6 @@
 # Dependabot keeps every pinned version current: Python packages, the Dockerfile's images (uv, which also brings the
-# interpreter's patch releases, and deno), the example compose file's images, GitHub Actions, and pre-commit hooks.
+# interpreter's patch releases, and deno), GitHub Actions, and pre-commit hooks. Production's compose file, with its
+# database images, lives in regulad/homelab, which keeps those current.
 #
 # Each ecosystem gets one PR a week grouping its minor and patch updates. workflows/dependabot-auto-merge.yml has GitHub
 # merge those once CI passes, except the GitHub Actions group, and a merge to main deploys. The GitHub Actions group,
@@ -42,20 +43,6 @@ updates:
       default-days: 7
     groups:
       docker:
-        update-types: ["minor", "patch"]
-
-  # docker-compose.yml, the example stack: its database images.
-  - package-ecosystem: "docker-compose"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
-    cooldown:
-      default-days: 7
-    groups:
-      compose:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"

@@ -28,7 +28,7 @@ Fully-documented source code is available for those able to make improvements.
 
 ### Setup
 
-Docker is the best way to run an instance of the bot. See the file `docker-compose.yml` for an example compose file.
+Docker is the best way to run an instance of the bot. The public instance runs from [this compose file](https://github.com/regulad/homelab/blob/master/ansible-generated/files/shared/peppercord/docker-compose.yml) in [regulad/homelab](https://github.com/regulad/homelab); use it as a starting point for your own.
 
 ### Configuration
 
@@ -36,4 +36,4 @@ PepperCord uses MongoDB as a datastore, and environment variables for configurat
 
 #### Environment variables:
 
-See `.env.example`. Before running `docker compose up`, copy `.env.example` to `.env` and fill out the variables.
+See `.env.example`. Before starting the stack, copy `.env.example` to `.env` next to the compose file and fill out the variables.

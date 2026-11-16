@@ -21,7 +21,7 @@ ARG DEBIAN_RELEASE=trixie
 FROM ghcr.io/astral-sh/uv:0.13.8 AS uv
 
 # yt-dlp runs deno for YouTube's JavaScript challenges.
-FROM docker.io/denoland/deno:bin-2.3.1 AS deno
+FROM docker.io/denoland/deno:bin-2.9.8 AS deno
 
 # python-build-standalone's CPython, built with Clang, PGO, full LTO, mimalloc and the tail-calling interpreter (and BOLT
 # on x86-64). Measured about 1.4x faster than the official python image's GCC build on PepperCord-like workloads.

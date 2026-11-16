@@ -136,8 +136,19 @@ async def async_main(shutdown_event: asyncio.Event) -> None:
             bot_runner_task = event_loop.create_task(
                 bot.start(config_source["PEPPERCORD_TOKEN"]), name="main"
             )
+            shutdown_requested = event_loop.create_task(shutdown_event.wait())
 
-            await shutdown_event.wait()
+            # The bot can also stop by itself: a revoked token, a fatal gateway close, or jishaku's shutdown. Exit then
+            # too, raising its error if it had one, so the container restarts instead of idling without a bot.
+            await asyncio.wait(
+                (bot_runner_task, shutdown_requested),
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if bot_runner_task.done():
+                shutdown_requested.cancel()
+                await bot_runner_task
+                return
+
             logger.info("Got a request to shut down gracefully. We're going to comply.")
             await bot.wait_for_dispatch("graceful_shutdown")
             await bot.close()

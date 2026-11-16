@@ -6,7 +6,7 @@ from typing import Any
 
 import sentry_sdk
 
-from utils.version import get_version
+from utils.version import get_commit, get_version
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -38,10 +38,12 @@ def init_sentry(config: Mapping[str, str], *, debug: bool) -> None:
             return 0.0
         return traces_sample_rate
 
-    version, _ = get_version()
+    # Releases are named by the raw commit hash, which is what docker-publish.yml creates them as.
+    # Without a commit (no image metadata and no checkout), fall back to the version.
+    release = get_commit() or f"peppercord@{get_version()[0]}"
     sentry_sdk.init(
         dsn=dsn,
-        release=f"peppercord@{version}",
+        release=release,
         environment="development" if debug else "production",
         traces_sampler=traces_sampler,
         enable_logs=True,

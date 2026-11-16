@@ -89,13 +89,13 @@ class PCDocument(UPSTREAM_DICT_TYPE):
                         self._filter, update, array_filters=array_filters, upsert=True
                     )
 
-            super().clear()
-
+            # Read before clearing: if the read fails, the cached document keeps its old contents instead of none.
             new_int_doc = await self._collection.find_one(self._filter)
 
             if new_int_doc is None:
                 raise RuntimeError("Document didn't exist, right after upserting it!")
 
+            super().clear()
             super().update(new_int_doc)
 
     async def replace_db(self) -> None:

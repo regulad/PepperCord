@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from asyncio import get_event_loop, AbstractEventLoop
+from contextlib import suppress
 from dataclasses import MISSING
 import functools
+import logging
 from io import BytesIO
 import operator
 from typing import TYPE_CHECKING, Any, Optional, cast
 
-from discord import ButtonStyle, File, SelectOption, ui, Message
+from discord import ButtonStyle, File, HTTPException, SelectOption, ui, Message
 from PIL.Image import Image as ImageType
 from discord import Embed, Guild, Interaction, Member, Message
 from discord.user import BaseUser
@@ -29,6 +31,8 @@ from utils.bots.context import CustomContext
 from utils.database import PCDocument
 from .abstract import *
 from .render import *
+
+logger = logging.getLogger(__name__)
 
 
 def fully_render(game_state: GameState) -> BytesIO:
@@ -242,8 +246,8 @@ class OfficeGUI(ui.View):
                 door_state=self._game_state_holder.game_state.door_state.change_left()
             )
         )
-        await self._game_state_holder.on_update(interaction)
         await interaction.response.defer()
+        await self._game_state_holder.on_update(interaction)
 
     @ui.button(emoji="⬜")
     async def left_door_light(
@@ -254,8 +258,8 @@ class OfficeGUI(ui.View):
                 light_state=self._game_state_holder.game_state.light_state.change_left()
             )
         )
-        await self._game_state_holder.on_update(interaction)
         await interaction.response.defer()
+        await self._game_state_holder.on_update(interaction)
 
     @ui.button(emoji="⏬", label="Open Cameras")
     async def open_cams(self, interaction: Interaction, button: ui.Button[Any]) -> None:
@@ -264,8 +268,8 @@ class OfficeGUI(ui.View):
                 True
             )
         )
-        await self._game_state_holder.on_update(interaction)
         await interaction.response.defer()
+        await self._game_state_holder.on_update(interaction)
         self.stop()
 
     @ui.button(emoji="⬜")
@@ -275,8 +279,8 @@ class OfficeGUI(ui.View):
         self._game_state_holder.game_state = self._game_state_holder.game_state.process_input_changes(
             light_state=self._game_state_holder.game_state.light_state.change_right()
         )
-        await self._game_state_holder.on_update(interaction)
         await interaction.response.defer()
+        await self._game_state_holder.on_update(interaction)
 
     @ui.button(emoji="🟥")
     async def right_door_close(
@@ -287,8 +291,8 @@ class OfficeGUI(ui.View):
                 door_state=self._game_state_holder.game_state.door_state.change_right()
             )
         )
-        await self._game_state_holder.on_update(interaction)
         await interaction.response.defer()
+        await self._game_state_holder.on_update(interaction)
 
 
 class CameraSelectionMenu(ui.Select["CameraSelectionView"]):
@@ -312,6 +316,7 @@ class CameraSelectionMenu(ui.Select["CameraSelectionView"]):
                 Room.from_simple_name(self.values[0])
             )
         )
+        await interaction.response.defer()
         await self._game_state_holder.on_update(interaction)
 
 
@@ -332,8 +337,8 @@ class CameraSelectionView(ui.View):
                 False
             )
         )
-        await self._game_state_holder.on_update(interaction)
         await interaction.response.defer()
+        await self._game_state_holder.on_update(interaction)
         self.stop()
 
 
@@ -359,11 +364,19 @@ class FiveNightsAtFreddys(Cog):
     @tasks.loop(seconds=5)  # Determines how many minutes the game will last
     async def update_games(self) -> None:
         for game in list(self.games):
-            game.game_state = game.game_state.full_tick()
-            await game.on_update()
-            if game.game_state.done:
-                await game.stop()
-                self.games.remove(game)
+            try:
+                game.game_state = game.game_state.full_tick()
+                await game.on_update()
+                if game.game_state.done:
+                    await game.stop()
+                    self.games.remove(game)
+            except Exception:
+                # discord.py ends the loop on most errors, which froze every game. End only this one.
+                logger.exception("A FNAF game failed to update, so it was ended.")
+                if game in self.games:
+                    self.games.remove(game)
+                with suppress(HTTPException):
+                    await game.stop()
 
     def cog_unload(self) -> None:  # type: ignore[override]  # it is compatible
         self.update_games.stop()

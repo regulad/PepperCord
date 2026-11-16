@@ -251,6 +251,27 @@ files = [
 frozenlist = ">=1.1.0"
 
 [[package]]
+name = "aiosplatoon2ink"
+version = "0.1.0"
+description = "An asyncio client for the Splatoon 2 data that splatoon2.ink publishes, with typed models of each feed."
+optional = false
+python-versions = ">=3.12,<4"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+aiohttp = ">=3.9,<4"
+pydantic = ">=2.11,<3"
+yarl = ">=1.9,<2"
+
+[package.source]
+type = "git"
+url = "https://github.com/regulad/aiosplatoon2ink.git"
+reference = "ed226941be9f817e598de2857f3b2ef7bc8cf124"
+resolved_reference = "ed226941be9f817e598de2857f3b2ef7bc8cf124"
+
+[[package]]
 name = "aiosplatoon3ink"
 version = "0.1.0"
 description = "An asyncio client for the Splatoon 3 data that splatoon3.ink publishes, with typed models of each feed."
@@ -4815,4 +4836,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.15.2"
-content-hash = "d073e7da1898a33bc540624ece58c8ec71e147d8b7d0089a5c897e625098c302"
+content-hash = "19ab24b6a27dda8fa617b355c87c3c1c71740046c182a9fa0f56c5e1212e3ce9"

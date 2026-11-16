@@ -273,6 +273,7 @@ class CustomCommands(commands.Cog):
             ephemeral=True,
         )
 
+    # invoke_without_command skips this group's checks when a subcommand runs, so each subcommand repeats them.
     @customcommands.group(aliases=["m"], invoke_without_command=True)  # type: ignore[arg-type]  # valid at runtime; bad d.py type
     @commands.has_permissions(administrator=True)
     @guild_only()
@@ -280,6 +281,7 @@ class CustomCommands(commands.Cog):
         pass
 
     @match.command()  # type: ignore[arg-type]  # valid at runtime; bad d.py type
+    @commands.has_permissions(administrator=True)
     @guild_only()
     async def case(
         self, ctx: CustomContext, *, is_case_sensitive: bool = False
@@ -291,6 +293,7 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @match.command()  # type: ignore[arg-type]  # valid at runtime; bad d.py type
+    @commands.has_permissions(administrator=True)
     @guild_only()
     async def firstword(
         self, ctx: CustomContext, *, first_word_only: bool = True
@@ -302,6 +305,7 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @match.command()  # type: ignore[arg-type]  # valid at runtime; bad d.py type
+    @commands.has_permissions(administrator=True)
     @guild_only()
     async def startswith(
         self, ctx: CustomContext, *, must_start_with: bool = True
@@ -313,6 +317,8 @@ class CustomCommands(commands.Cog):
         await ctx.send("Settings updated.", ephemeral=True)
 
     @match.command()  # type: ignore[arg-type]  # valid at runtime; bad d.py type
+    @commands.has_permissions(administrator=True)
+    @guild_only()
     async def exact(self, ctx: CustomContext, *, must_be_exact: bool = True) -> None:
         """Configures if only the start of a message should be checked for a custom command."""
         await ctx["guild_document"].update_db({"$set": {"cc_exact": must_be_exact}})

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta, tzinfo
-from functools import partial, reduce
+from datetime import UTC, datetime, timedelta
+from functools import partial
 from io import BytesIO
 from logging import getLogger
 from operator import attrgetter
@@ -9,7 +9,6 @@ from os.path import join
 from random import choice
 from typing import (
     Literal,
-    Any,
     cast,
     Awaitable,
     Callable,
@@ -44,9 +43,8 @@ from aiosplatoon3ink.schedules import (
 from discord import (
     Colour,
     Embed,
+    Emoji,
     File,
-    SelectOption,
-    Interaction,
     Message,
     Role,
     TextChannel,
@@ -54,16 +52,20 @@ from discord import (
 from discord.app_commands import Choice, choices, describe
 from discord.ext import tasks
 from discord.ext.commands import Cog, hybrid_group, CheckFailure, parameter
-from discord.ui import Select, View
-from discord.utils import format_dt, get, MISSING
-from pytz import UTC as PYTZ_UTC
+from discord.utils import format_dt, MISSING
 
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
-from utils.consts import TIME_EMOJIS
-from utils.images import vrt_concat_pngs, hrz_concat_pngs
 from utils.markdown_tools import bold
-from utils.misc import edit_with_files_send_wrapper, FrozenDict
+from utils.misc import FrozenDict
+from utils.splatoon import (
+    ScheduleView,
+    SplatfestData,
+    SplatfestView,
+    TimeSlotData,
+    stack_images,
+    tile_four_images,
+)
 from utils.watch import (
     GRACE,
     FirstSeen,
@@ -88,12 +90,6 @@ X_BATTLE_COLOR: int = 0x5D2EEF
 LEAGUE_BATTLE_COLOR: int = 0xF02D7D
 SPLATNET_COLOR: int = 0xEAFF3D
 
-TIMESLOT_LONG: str = "%m/%d"
-TIMESLOT_SHORT: str = "%I:%M %p"
-TIMESLOT_TZ: str = "%Z"
-
-SPLATFEST_LONG: str = "%m/%d/%y"
-
 MODE_LITERAL = Literal[
     "Regular Battle",
     "Anarchy Battle (Series)",
@@ -104,7 +100,7 @@ MODE_LITERAL = Literal[
     "Splatfest Battle (Open)",
     "Splatfest Battle (Pro)",
 ]
-MODES: set[MODE_LITERAL] = {
+MODES: tuple[MODE_LITERAL, ...] = (
     "Regular Battle",
     "Anarchy Battle (Series)",
     "Anarchy Battle (Open)",
@@ -113,7 +109,7 @@ MODES: set[MODE_LITERAL] = {
     "Salmon Run",
     "Splatfest Battle (Open)",
     "Splatfest Battle (Pro)",
-}
+)
 MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict(
     {
         "Regular Battle": REGULAR_BATTLE_COLOR,
@@ -577,272 +573,13 @@ class Splatoon3Watch:
         )
 
 
-class TimeSlotData:  # This could probably extend SelectOption, but this is separate for the sake of selfbot support.
-    def __init__(
-        self, start: datetime, end: datetime, index: int, mode: MODE_LITERAL
-    ) -> None:
-        self.start: datetime = start
-        self.end: datetime = end
-        self.index: int = index
-        self.mode: str = mode
-
-    @classmethod
-    def from_nodes(
-        cls,
-        nodes: Sequence[TimePeriod],
-        mode: MODE_LITERAL,
-    ) -> list["TimeSlotData"]:
-        return [
-            cls(node.start_time, node.end_time, index, mode)
-            for index, node in enumerate(nodes)
-        ]
-
-    __slots__ = ("start", "end", "index", "mode")
-
-    @property
-    def name(self) -> str:
-        now: datetime = datetime.now()
-        ctz: tzinfo = now.tzinfo or PYTZ_UTC
-        return (
-            f"{self.start.astimezone(ctz).strftime(TIMESLOT_SHORT)} "
-            f"- {self.end.astimezone(ctz).strftime(TIMESLOT_SHORT)} "
-            f"({self.index + 1})"
-        )
-
-    @property
-    def description(self) -> str:
-        now: datetime = datetime.now()
-        ctz: tzinfo = now.tzinfo or PYTZ_UTC
-        now = now.astimezone(ctz)  # weird.
-        return (
-            f"{self.start.astimezone(ctz).strftime(TIMESLOT_LONG)} "
-            f"- {self.end.astimezone(ctz).strftime(TIMESLOT_LONG)} "
-            f"({now.strftime(TIMESLOT_TZ)})"
-        )
-
-    @property
-    def emoji(self) -> str:
-        now: datetime = datetime.now()
-        ctz: tzinfo = now.tzinfo or PYTZ_UTC
-        localized_start: datetime = self.start.astimezone(ctz)
-
-        hour_str: str = localized_start.strftime("%I")
-        hour: int = int(hour_str)
-
-        while hour > 11:
-            hour -= 12
-
-        return TIME_EMOJIS[hour]
-
-    def __repr__(self) -> str:
-        return f"<TimeSlotData start={self.start} end={self.end} index={self.index}>"
-
-
-class SplatfestData:  # Same deal as above with SelectOption
-    def __init__(self, name: str, start: datetime, end: datetime, index: int) -> None:
-        self.name: str = name
-        self.start: datetime = start
-        self.end: datetime = end
-        self.index: int = index
-
-    __slots__ = ("name", "start", "end", "index")
-
-    @property
-    def description(self) -> str:
-        now: datetime = datetime.now()
-        ctz: tzinfo = now.tzinfo or PYTZ_UTC
-        now = now.astimezone(ctz)  # weird.
-        return (
-            f"{self.start.astimezone(ctz).strftime(SPLATFEST_LONG)} "
-            f"- {self.end.astimezone(ctz).strftime(SPLATFEST_LONG)} "
-            f"({now.strftime(TIMESLOT_TZ)})"
-        )
-
-    @classmethod
-    def from_nodes(cls, nodes: Sequence[Fest]) -> list["SplatfestData"]:
-        return [
-            cls(node.title, node.start_time, node.end_time, index)
-            for index, node in enumerate(nodes)
-        ]
-
-
-class ScheduleSelectionMenu(Select["ScheduleView"]):
-    def __init__(
-        self,
-        ctx: CustomContext,
-        data: list[TimeSlotData],
-        mode: MODE_LITERAL,
-        **attrs: Any,  # TODO: better passthrough kwargs
-    ) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[TimeSlotData] = data
-        self.game: MODE_LITERAL = mode
-
-        self.splatoon_3_cog: "Splatoon3" = cast(
-            "Splatoon3", self.ctx.bot.get_cog("Splatoon3")
-        )
-
-        options: list[SelectOption] = [
-            SelectOption(
-                label=timeslot.name,
-                emoji=timeslot.emoji,
-                description=timeslot.description,
-            )
-            for timeslot in data
-        ]
-
-        super().__init__(
-            placeholder="Select Time Window...",
-            options=options,
-            min_values=1,
-            max_values=1,
-            **attrs,
-        )
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-
-        # Each option is named after one of self.data, and the user can't pick anything else.
-        timeslot = cast(TimeSlotData, get(self.data, name=self.values[0]))
-
-        await self.splatoon_3_cog.send_schedule(
-            self.ctx,
-            self.game,
-            timeslot.index,
-            lambda *args, **kwargs: edit_with_files_send_wrapper(
-                self.ctx["response"].edit, *args, **kwargs
-            ),
-        )
-
-
-class ModeSelectionMenu(Select["ScheduleView"]):
-    def __init__(
-        self, ctx: CustomContext, **attrs: Any
-    ) -> None:  # TODO: better kwarg passthrough
-        self.ctx = ctx
-
-        self.splatoon_3_cog = cast("Splatoon3", self.ctx.bot.get_cog("Splatoon3"))
-
-        options: list[SelectOption] = [
-            SelectOption(
-                label=mode,
-                emoji=ctx.bot.get_custom_emoji(MODE_EMOJI_NAME[mode]),
-            )
-            for mode in MODES
-        ]
-
-        super().__init__(
-            placeholder="Select Game Mode...",
-            options=options,
-            min_values=1,
-            max_values=1,
-            **attrs,
-        )
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-
-        await self.splatoon_3_cog.send_schedule(
-            self.ctx,
-            cast(MODE_LITERAL, self.values[0]),
-            0,
-            lambda *args, **kwargs: edit_with_files_send_wrapper(
-                self.ctx["response"].edit, *args, **kwargs
-            ),
-        )
-
-
-class SplatfestSelectionMenu(Select["SplatfestView"]):
-    def __init__(
-        self,
-        ctx: CustomContext,
-        data: list[SplatfestData],
-        region: REGION_LITERAL = DEFAULT_REGION,
-        **attrs: Any,  # TODO: Better kwarg passthrough
-    ) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[SplatfestData] = data
-        self.region: REGION_LITERAL = region
-
-        self.splatoon_3_cog: "Splatoon3" = cast(
-            "Splatoon3", self.ctx.bot.get_cog("Splatoon3")
-        )
-
-        options: list[SelectOption] = [
-            SelectOption(
-                label=splatfest.name,
-                description=splatfest.description,
-                emoji=ctx.bot.get_custom_emoji("tricolor.png"),
-            )
-            # A select menu takes at most 25 options. The feed lists the newest first, and has had more than 25.
-            for splatfest in data[:25]
-        ]
-
-        super().__init__(
-            placeholder="Select Splatfest...",
-            options=options,
-            min_values=1,
-            max_values=1,
-            **attrs,
-        )
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.defer()
-
-        # Each option is named after one of self.data, and the user can't pick anything else.
-        timeslot = cast(SplatfestData, get(self.data, name=self.values[0]))
-
-        await self.splatoon_3_cog.send_splatfest(
-            self.ctx,
-            False,
-            timeslot.index,
-            self.region,
-            lambda *args, **kwargs: edit_with_files_send_wrapper(
-                self.ctx["response"].edit, *args, **kwargs
-            ),
-        )
-
-
-class ScheduleView(View):
-    def __init__(
-        self,
-        ctx: CustomContext,
-        data: list[TimeSlotData],
-        mode: MODE_LITERAL,
-        **attrs: Any,  # TODO: Better kwarg passthrough
-    ) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[TimeSlotData] = data
-        self.game: MODE_LITERAL = mode
-
-        super().__init__(**attrs)
-
-        self.add_item(ScheduleSelectionMenu(ctx, data, mode))
-        self.add_item(ModeSelectionMenu(ctx))
-
-
-class SplatfestView(View):
-    def __init__(
-        self,
-        ctx: CustomContext,
-        data: list[SplatfestData],
-        region: REGION_LITERAL,
-        **attrs: Any,  # TODO: Better kwarg passthrough
-    ) -> None:
-        self.ctx: CustomContext = ctx
-        self.data: list[SplatfestData] = data
-        self.game: REGION_LITERAL = region
-
-        super().__init__(**attrs)
-
-        self.add_item(SplatfestSelectionMenu(ctx, data, region))
-
-
 class Splatoon3(Cog):
     """
     Get information about the current status of Splatoon 3.
     Powered by https://splatoon3.ink/ and https://splatoonwiki.org/wiki/
     """
+
+    modes: Sequence[str] = MODES
 
     def __init__(self, bot: CustomBot) -> None:
         self.bot: CustomBot = bot
@@ -923,44 +660,11 @@ class Splatoon3(Cog):
             self.update_cache.cancel()
         self.watcher.stop()
 
-    async def _make_salmon_run_thumbnail(
-        self, weapons: Sequence[CoopWeapon]
-    ) -> bytes | None:
-        assert self.cs is not None
+    def mode_emoji(self, mode: str) -> Emoji | None:
+        return self.bot.get_custom_emoji(MODE_EMOJI_NAME[cast(MODE_LITERAL, mode)])
 
-        weapon_urls = [weapon.image.url for weapon in weapons]
-
-        weapon_pngs: list[bytes] = []
-
-        for weapon_url in weapon_urls:
-            async with self.cs.get(weapon_url) as resp:
-                weapon_pngs.append(await resp.read())
-
-        if len(weapons) == 4:
-            set_1: bytes = await self.bot.loop.run_in_executor(
-                None, hrz_concat_pngs, *weapon_pngs[:2]  # type: ignore[arg-type]  # it is compatible.
-            )
-            set_2: bytes = await self.bot.loop.run_in_executor(
-                None, hrz_concat_pngs, *weapon_pngs[2:]  # type: ignore[arg-type]  # it is compatible.
-            )
-            return await self.bot.loop.run_in_executor(
-                None, vrt_concat_pngs, set_1, set_2
-            )
-        else:
-            return None  # TODO: Handle this case (probably for special weapons)
-
-    async def _make_two_stage_image(self, vs_stages: Sequence[VsStage]) -> bytes:
-        assert self.cs is not None
-
-        async with self.cs.get(vs_stages[0].image.url) as resp:
-            stage1_png: bytes = await resp.read()
-
-        async with self.cs.get(vs_stages[1].image.url) as resp:
-            stage2_png: bytes = await resp.read()
-
-        return await self.bot.loop.run_in_executor(
-            None, vrt_concat_pngs, stage1_png, stage2_png
-        )
+    def splatfest_emoji(self) -> Emoji | None:
+        return self.bot.get_custom_emoji("tricolor.png")
 
     async def _favicon(self) -> tuple[str, bytes]:
         async with aopen(
@@ -1010,9 +714,11 @@ class Splatoon3(Cog):
             summary = rotation.event.desc.replace("<br />", " ")
             description = f"**{rotation.event.name}**: {summary}\n{description}"
 
-        files.append(
-            ("stages.png", await self._make_two_stage_image(vsmatch_settings.vs_stages))
+        assert self.cs is not None
+        stages = await stack_images(
+            self.cs, [stage.image.url for stage in vsmatch_settings.vs_stages[:2]]
         )
+        files.append(("stages.png", stages))
 
         embed = self._credit(
             Embed(
@@ -1051,8 +757,9 @@ class Splatoon3(Cog):
 
         embed = Embed(title=title, color=SALMON_RUN_COLOR)
 
-        salmon_run_thumbnail_bytes = await self._make_salmon_run_thumbnail(
-            setting.weapons
+        assert self.cs is not None
+        salmon_run_thumbnail_bytes = await tile_four_images(
+            self.cs, [weapon.image.url for weapon in setting.weapons]
         )
         if salmon_run_thumbnail_bytes is not None:
             embed = embed.set_thumbnail(url="attachment://weapons.png")
@@ -1209,18 +916,13 @@ class Splatoon3(Cog):
                 )
 
         if current_fest is not None and current_fest.tricolor_stages:
-            pngs: list[bytes] = []
-            for url in (
-                fest.image.url,
-                *(stage.image.url for stage in current_fest.tricolor_stages),
-            ):
-                async with self.cs.get(url) as resp:
-                    pngs.append(await resp.read())
-
-            final_png: bytes = await self.bot.loop.run_in_executor(
-                None, reduce, vrt_concat_pngs, pngs
+            final_png = await stack_images(
+                self.cs,
+                [
+                    fest.image.url,
+                    *(stage.image.url for stage in current_fest.tricolor_stages),
+                ],
             )
-
             files.append(("image.png", final_png))
 
             embed = embed.set_image(url="attachment://image.png")
@@ -1302,7 +1004,9 @@ class Splatoon3(Cog):
         return await send(
             embed=embed,
             files=[File(fp=BytesIO(data), filename=name) for name, data in files],
-            view=ScheduleView(ctx, timeslots, mode) if len(timeslots) > 0 else None,
+            view=(
+                ScheduleView(self, ctx, timeslots, mode) if len(timeslots) > 0 else None
+            ),
         )
 
     async def send_splatfest(
@@ -1324,7 +1028,9 @@ class Splatoon3(Cog):
 
         nodes = self.festivals.in_region(Region(region))
         current_fest = self.schedules.current_fest
-        historic_splatfests: list[SplatfestData] = SplatfestData.from_nodes(nodes)
+        historic_splatfests = SplatfestData.listing(
+            (fest.title, fest.start_time, fest.end_time) for fest in nodes
+        )
 
         if current and current_fest is None:
             embed = self._credit(
@@ -1343,7 +1049,11 @@ class Splatoon3(Cog):
         return await send(
             embed=embed,
             files=[File(fp=BytesIO(data), filename=name) for name, data in files],
-            view=None if current else SplatfestView(ctx, historic_splatfests, region),
+            view=(
+                None
+                if current
+                else SplatfestView(self, ctx, historic_splatfests, region)
+            ),
         )
 
     @hybrid_group(aliases=["splat", "splatoon", "sp", "sp3"], fallback="schedule")  # type: ignore[arg-type]  # bad d.py export

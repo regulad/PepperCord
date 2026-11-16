@@ -1,107 +1,71 @@
 name: Docker
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 on:
-#  schedule:
-#    - cron: '19 3 * * *'
+  workflow_dispatch:
+  # Weekly, so the image picks up fixes in its Debian and Python base even when nothing is pushed.
+  schedule:
+    - cron: "41 6 * * 1"
+  # testing is where a change gets the whole pipeline before it lands on main. It publishes latest-testing instead of
+  # latest (see meta-tags). Deliberately no pull_request trigger: PRs never build here.
   push:
-    branches: [ "**", "!gh-pages" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ "main" ]
+    branches: ["main", "testing"]
+    tags: ["v*.*.*"]
 
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
+# Serialize the pipeline per ref, across push, scheduled, and manual runs. Each new run cancels the active run and
+# replaces any pending run on the same ref; a push to testing must not cancel main's run, or the other way round.
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+  queue: single
 
 jobs:
+  # docker/github-builder handles checkout (via a BuildKit git context), buildx, registry login, metadata, native
+  # per-platform builds (arm64 on GitHub's arm64 runners, no QEMU), manifest-list merging, and signing.
+  # https://github.com/docker/github-builder
+  #
+  # Building from the git tree means BuildKit skips .dockerignore and strips .git. The Dockerfile is written for that:
+  # it copies by path, and takes the commit as the GIT_SHA build arg.
+  #
+  # note: env context isn't available inside a reusable workflow call's with:/secrets: blocks, so
+  # ghcr.io/${{ github.repository }} is inlined rather than pulled from a top-level env: block.
   build:
-
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
       id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-          submodules: true
-          token: "${{ secrets.PAT }}"
-          fetch-depth: 0
-
-      # Install the cosign tool except on PR
-      # https://github.com/sigstore/cosign-installer
-      # - name: Install cosign
-      #   if: github.event_name != 'pull_request'
-      #   uses: sigstore/cosign-installer@f3c664df7af409cb4873aa5068053ba9d61a57b6 #v2.6.0
-      #   with:
-      #     cosign-release: 'v1.11.0'
-
-
-      # Workaround: https://github.com/docker/build-push-action/issues/461
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@79abd3f86f79a9d68a23c75a09a9a85889262adf
-
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
-        with:
-          registry: ${{ env.REGISTRY }}
+    uses: docker/github-builder/.github/workflows/build.yml@v1
+    with:
+      output: image
+      push: ${{ github.event_name != 'pull_request' }}
+      context: "."
+      file: "./Dockerfile"
+      platforms: linux/amd64,linux/arm64
+      # Both architectures are required for the final manifest.
+      fail-fast: true
+      cache: true
+      cache-scope: peppercord
+      cache-mode: max
+      # GIT_SHA is declared at the end of the runtime stage, so a new commit only rebuilds the layers after it.
+      build-args: |
+        GIT_SHA=${{ github.sha }}
+      meta-images: ghcr.io/${{ github.repository }}
+      meta-flavor: |
+        latest=false
+      # latest on main, latest-testing on testing, the branch name on every branch push but testing's, a dated tag on
+      # each scheduled rebuild, and the version on release tags.
+      meta-tags: |
+        type=raw,value=latest,enable={{is_default_branch}}
+        type=raw,value=latest,enable=${{ github.ref == 'refs/heads/testing' }},suffix=-testing
+        type=schedule,pattern={{date 'YYYYMMDD'}}
+        type=ref,event=branch,enable=${{ github.ref != 'refs/heads/testing' }}
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{major}}
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v4.3.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=tag
-            type=ref,event=pr
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-
-      # Sign the resulting Docker image digest except on PRs.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
-      # https://github.com/sigstore/cosign
-      # - name: Sign the published Docker image
-      #   if: ${{ github.event_name != 'pull_request' }}
-      #   env:
-      #     COSIGN_EXPERIMENTAL: "true"
-      #   # This step uses the identity token to provision an ephemeral certificate
-      #   # against the sigstore community Fulcio instance.
-      #   run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.build-and-push.outputs.digest }}
+      # The resources submodule is private, and github.token can only read this repository. BuildKit fetches the
+      # submodule with this token: for github.com remotes it reuses the context's token for every github.com URL.
+      github-token: ${{ secrets.PAT }}

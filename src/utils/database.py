@@ -101,7 +101,11 @@ class PCDocument(UPSTREAM_DICT_TYPE):
     async def replace_db(self) -> None:
         """Replaces the document on the database with this document."""
         async with self._write_in_flight_lock.writer_lock:
-            await self._collection.replace_one(self._filter, dict(self), upsert=True)
+            # dict(self) would read through keys(), which refuses while this write holds the lock. dict.items reads the
+            # stored contents directly.
+            await self._collection.replace_one(
+                self._filter, dict(dict.items(self)), upsert=True
+            )
 
     async def delete_db(self) -> None:
         """Deletes the document from the database."""

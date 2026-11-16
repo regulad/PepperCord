@@ -71,7 +71,7 @@ class QueueMenuSource(_QueueMenuSource_Base):
             base_embed.add_field(
                 name=f"{iteration + 1}: {duration_to_str(int(time_until / 1000))} left",
                 value=(
-                    f"[{value.name}]({value.description})\n{duration_to_str(int(value.duration or 0 / 1000))} long"
+                    f"[{value.name}]({value.description})\n{duration_to_str(int((value.duration or 0) / 1000))} long"
                     f"\nAdded by: {value.invoker.display_name}"
                     if value.invoker is not None
                     else ""
@@ -127,12 +127,7 @@ class AudioSourceMenu(_AudioSourceMenu_Base):
                 squares: list[str] = []
                 for i in range(1, COUNT + 1):
                     squares.append(
-                        PROGRESS
-                        if (
-                            (self.client.progress or 0)
-                            > (self.source.duration / COUNT) * i
-                        )
-                        else VOID
+                        PROGRESS if ((self.client.progress or 0) > i / COUNT) else VOID
                     )
                 embed.add_field(
                     name="Left:",

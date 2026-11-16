@@ -55,6 +55,8 @@ class AudioQueue(Queue[EnhancedSource]):
 
 
 def _maybe_exception(future: Future[None], exception: Optional[Exception]) -> None:
+    if future.done():
+        return  # disconnect() cancelled the wait
     if exception is not None:
         future.set_exception(exception)
     else:
@@ -92,7 +94,13 @@ class CustomVoiceClient(VoiceRecvClient):
 
     def play_future(self, source: AudioSource) -> Future[None]:
         future: Future[None] = self.loop.create_future()
-        self.play(source, after=lambda exception: _maybe_exception(future, exception))
+        # discord.py calls after from its audio thread, and a future must be resolved on its own event loop.
+        self.play(
+            source,
+            after=lambda exception: self.loop.call_soon_threadsafe(
+                _maybe_exception, future, exception
+            ),
+        )
         return future
 
     async def _run(self) -> None:
@@ -156,7 +164,7 @@ class CustomVoiceClient(VoiceRecvClient):
         elif self.source.duration is None:
             return None
         else:
-            return self.ms_read or 0 / self.source.duration
+            return (self.ms_read or 0) / self.source.duration
 
 
 __all__: list[str] = ["CustomVoiceClient", "EnhancedSource", "AudioQueue"]

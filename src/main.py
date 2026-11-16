@@ -19,6 +19,7 @@ from redis.asyncio import Redis, ConnectionPool
 from utils import misc
 from utils.bots.bot import CustomBot
 from utils.database import PCInternalDocument
+from utils.reporting import init_sentry
 from utils.version import get_version
 
 DEFAULT_LOG_LEVEL: int = logging.INFO
@@ -47,6 +48,8 @@ async def async_main(shutdown_event: asyncio.Event) -> None:
         level=logging.DEBUG if debug else DEFAULT_LOG_LEVEL,
         format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
     )
+
+    init_sentry(config_source, debug=debug)
 
     logger.info("Configuring database connection...")
 

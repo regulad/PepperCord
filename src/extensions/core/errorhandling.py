@@ -6,7 +6,10 @@ from typing import TYPE_CHECKING, Any, Optional, Type
 
 import discord
 from discord import Message
-from discord.app_commands import CommandInvokeError as AppCommandInvokeError
+from discord.app_commands import (
+    AppCommandError,
+    CommandInvokeError as AppCommandInvokeError,
+)
 from discord.ext import commands, menus
 from discord.ext.commands import CommandNotFound
 
@@ -58,6 +61,29 @@ def find_error(error: Exception) -> Optional[str]:
             return None
 
 
+def unwrap_error(error: Exception) -> Exception:
+    """Strip the exceptions discord.py wraps around an error raised inside a command."""
+    # A hybrid command invoked as a slash command nests twice: HybridCommandError(app_commands.CommandInvokeError(...))
+    while isinstance(
+        error,
+        (
+            commands.HybridCommandError,
+            commands.CommandInvokeError,
+            AppCommandInvokeError,
+        ),
+    ):
+        error = error.original
+    return error
+
+
+def is_expected(error: Exception) -> bool:
+    """Whether an unwrapped command error is a problem to tell the user about, rather than a bug to report."""
+    return isinstance(
+        error,
+        (commands.CommandError, AppCommandError, YoutubeDLError, *known_errors),
+    )
+
+
 # Because ListPageSource comes from legacy untyped code and is being patched over with a stub, we need to do this to make sure it never gets subscripted at runtime.
 if TYPE_CHECKING:
     _ErrorMenu_Base = menus.Menu[CustomBot, CustomContext]
@@ -67,15 +93,10 @@ else:
 
 class ErrorMenu(_ErrorMenu_Base):
     def __init__(
-        self, error: Exception, **kwargs: Any
+        self, error: Exception, *, event_id: str | None = None, **kwargs: Any
     ) -> None:  # TODO: better kwarg passthrough
-        if isinstance(error, commands.HybridCommandError):
-            error = error.original
-
-        if isinstance(error, (commands.CommandInvokeError, AppCommandInvokeError)):
-            error = error.original
-
         self.error = error
+        self.event_id = event_id
 
         super().__init__(**kwargs)
 
@@ -100,8 +121,15 @@ class ErrorMenu(_ErrorMenu_Base):
         else:
             embed.description = f"**Type: {self.error.__class__.__name__}**"
 
+        footer_lines: list[str] = []
         if error_response is not None:
-            embed.set_footer(text=f"Tip: {error_response}")
+            footer_lines.append(f"Tip: {error_response}")
+        if self.event_id is not None:
+            footer_lines.append(
+                f"Error ID: {self.event_id} (include this if you report the problem)"
+            )
+        if footer_lines:
+            embed.set_footer(text="\n".join(footer_lines))
 
         return await channel.send(embed=embed)
 
@@ -124,8 +152,18 @@ class ErrorHandling(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: CustomContext, error: Exception) -> None:
+        original = unwrap_error(error)
+
+        event_id: str | None = None
+        if not is_expected(original):
+            event_id = ctx.report_error(original)
+            # Sentry's dedupe integration drops the copy of this event the logging integration would send.
+            logger.error(
+                "Unhandled exception in command %s", ctx.command, exc_info=original
+            )
+
         if ctx.command is not None and not isinstance(error, commands.DisabledCommand):
-            await ErrorMenu(error).start(ctx)
+            await ErrorMenu(original, event_id=event_id).start(ctx)
 
     @commands.Cog.listener("on_command_error")
     async def attempt_to_reinvoke(self, ctx: CustomContext, error: Exception) -> None:
@@ -155,27 +193,6 @@ class ErrorHandling(commands.Cog):
                         # Additonally, reinvoking is broken for interactions.
                         bodged_ctx.interaction = None
                         await bodged_ctx.reinvoke(restart=False)
-
-    @commands.Cog.listener("on_command_error")
-    async def determine_if_critical(self, ctx: CustomContext, error: Exception) -> None:
-        if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-
-        critical: bool = not isinstance(
-            error,
-            (
-                commands.UserInputError,
-                commands.CommandOnCooldown,
-                commands.CheckFailure,
-                commands.CommandInvokeError,
-                commands.CommandNotFound,
-                commands.DisabledCommand,
-                commands.CommandError,
-            ),
-        )
-
-        if critical:
-            await self.bot.on_error("command", ctx, error)
 
 
 async def setup(bot: CustomBot) -> None:

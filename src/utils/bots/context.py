@@ -1,6 +1,10 @@
 from abc import ABC
+from contextlib import ExitStack
 from typing import Dict, Any, Literal, cast, TYPE_CHECKING, Coroutine, overload
 
+import sentry_sdk
+from sentry_sdk.consts import SPANSTATUS
+from sentry_sdk.tracing import Span
 from discord import (
     Message,
     HTTPException,
@@ -79,7 +83,69 @@ class CustomContext(Context["CustomBot"]):
     def __init__(self, **kwargs: Any):  # TODO: fix passthrough kwargs
         self._custom_state: Dict[str, Any] = {}
         self.send_handler: SendHandler = _DefaultSendHandler(self)
+        # A NoOpSpan rather than a Transaction when tracing is off, so typed as their common base.
+        self.sentry_transaction: Span | None = None
+        self._sentry_scopes = ExitStack()
         super().__init__(**kwargs)
+
+    # Sentry
+
+    @property
+    def sentry_tags(self) -> dict[str, str]:
+        """Tags that describe this command invocation in Sentry."""
+        tags = {"invocation": "slash" if self.interaction is not None else "prefix"}
+        if self.command is not None:
+            tags["command"] = self.command.qualified_name
+        if self.cog is not None:
+            tags["cog"] = self.cog.qualified_name
+        if self.guild is not None:
+            tags["guild_id"] = str(self.guild.id)
+        return tags
+
+    def start_sentry_transaction(self) -> None:
+        """
+        Open a Sentry transaction for this command, in its own scope so concurrent commands don't share spans or tags.
+
+        It has to be finished from the same task it was started in. The bot's before_invoke and after_invoke hooks
+        both run in the command's task, for prefix and slash invocations alike.
+        """
+        if self.command is None or self.sentry_transaction is not None:
+            return
+
+        scope = self._sentry_scopes.enter_context(sentry_sdk.isolation_scope())
+        scope.set_user({"id": str(self.author.id)})
+        for key, value in self.sentry_tags.items():
+            scope.set_tag(key, value)
+
+        self.sentry_transaction = self._sentry_scopes.enter_context(
+            sentry_sdk.start_transaction(
+                op="discord.command", name=self.command.qualified_name
+            )
+        )
+
+    def finish_sentry_transaction(self) -> None:
+        """Close the transaction opened by start_sentry_transaction, marking it failed if the command failed."""
+        if self.sentry_transaction is None:
+            return
+
+        self.sentry_transaction.set_status(
+            SPANSTATUS.INTERNAL_ERROR if self.command_failed else SPANSTATUS.OK
+        )
+        self._sentry_scopes.close()
+
+    def report_error(self, error: BaseException) -> str | None:
+        """Send an error raised by this command to Sentry. Returns the event ID, or None if reporting is off."""
+        contexts: dict[str, dict[str, Any]] = {}
+        if self.sentry_transaction is not None:
+            # A prefix command's error handlers run after its transaction has closed, so link the trace explicitly.
+            contexts["trace"] = self.sentry_transaction.get_trace_context()
+
+        return sentry_sdk.capture_exception(
+            error,
+            user={"id": str(self.author.id)},
+            tags=self.sentry_tags,
+            contexts=contexts,
+        )
 
     # Special cases for keys this bot uses often
     # Other keys are forbidden

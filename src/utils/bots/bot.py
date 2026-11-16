@@ -1,6 +1,4 @@
 import logging
-import sys
-import traceback
 from asyncio import Semaphore
 from collections import deque
 from os import getcwd
@@ -17,6 +15,7 @@ from typing import (
 )
 
 import discord
+import sentry_sdk
 from aiofiles import open as aopen
 from discord import (
     Interaction,
@@ -49,6 +48,8 @@ class CustomBot(Bot):
     async def before_invoke_handler(
         ctx: CustomContext, *args: Any, **kwargs: Any
     ) -> None:
+        # Started first so the before_invocation listeners land in the transaction too.
+        ctx.start_sentry_transaction()
         await ctx.bot.wait_for_dispatch("before_invocation_blocking", ctx)
         ctx.bot.dispatch("before_invocation_nonblocking", ctx)
         # On custom contexts with interactions, the original kwargs can be discarded when a command is re-prepared
@@ -59,8 +60,11 @@ class CustomBot(Bot):
     async def after_invoke_handler(
         ctx: CustomContext, *args: Any, **kwargs: Any
     ) -> None:
-        await ctx.bot.wait_for_dispatch("after_invocation_blocking", ctx)
-        ctx.bot.dispatch("after_invocation_nonblocking", ctx)
+        try:
+            await ctx.bot.wait_for_dispatch("after_invocation_blocking", ctx)
+            ctx.bot.dispatch("after_invocation_nonblocking", ctx)
+        finally:
+            ctx.finish_sentry_transaction()
 
     def __init__(
         self,
@@ -340,20 +344,10 @@ class CustomBot(Bot):
             await self._schedule_event(coro, method, *args, **kwargs)
 
     async def on_error(self, event_method: str, /, *args: Any, **kwargs: Any) -> None:
-        log = f"A critical exception occurred in {event_method}!"
-
-        exc_info = sys.exc_info()
-
-        if not any(exc_info) and len(args) > 1 and isinstance(args[1], Exception):
-            exc_info = (type(args[1]), args[1], args[1].__traceback__)  # type: ignore[assignment] # it's close enough, barring traceback being maybe none
-
-        if exc_info[0] is not None:
-            log += f"\nException: {exc_info[0].__name__}: {exc_info[1]}"
-
-        if exc_info[2] is not None:
-            log += f"\nTraceback:\n" "".join(traceback.format_tb(exc_info[2]))
-
-        logger.exception(log, exc_info=exc_info if exc_info[0] is not None else None)
+        # discord.py calls this from inside the except block around the listener that failed.
+        sentry_sdk.capture_exception(tags={"event": event_method})
+        # Sentry's dedupe integration drops the copy of this event the logging integration would send.
+        logger.exception("Unhandled exception in %s", event_method)
 
 
 __all__ = ("CustomBot",)

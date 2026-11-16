@@ -30,6 +30,7 @@ pytz = "2025.2.0"  # has stubs
 discord-ext-voice-recv = {git = "https://github.com/rdphillips7/discord-ext-voice-recv", rev = "ddd28601fe556f585b869e215f29c8236b95f88f"}  # track https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/54
 redis = {extras = ["hiredis"], version = "^7.1.0"}
 aiorwlock = "^1.5.0"
+sentry-sdk = "^2.73.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"

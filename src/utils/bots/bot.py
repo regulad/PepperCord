@@ -27,7 +27,6 @@ from discord.ext.commands import Bot, Context
 from pymongo.asynchronous.database import AsyncDatabase
 from discord.user import BaseUser
 from discord.utils import find
-from redis.asyncio import Redis
 
 from utils.database import PCDocument, PCInternalDocument
 from utils.reporting import identify_bot
@@ -68,13 +67,11 @@ class CustomBot(Bot):
     def __init__(
         self,
         *,
-        cdb: Redis,
         ddb: AsyncDatabase[PCInternalDocument],
         config: MutableMapping[str, str],
         **options: Any,
     ):
         self.ddb = ddb
-        self.cdb = cdb
 
         self._config = config
 

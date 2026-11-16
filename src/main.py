@@ -14,7 +14,6 @@ from typing import Any, Sequence
 from discord import Intents, Object, Game, Forbidden
 from dotenv import load_dotenv
 from pymongo import AsyncMongoClient
-from redis.asyncio import Redis
 
 from utils import misc
 from utils.bots.bot import CustomBot
@@ -53,16 +52,11 @@ async def async_main(shutdown_event: asyncio.Event) -> None:
 
     logger.info("Configuring database connection...")
 
-    cdb_uri = config_source["PEPPERCORD_CACHEDB_URI"]
-    # from_url gives the client its own pool, which it applies protocol= to and closes on exit. A pool passed in with
-    # connection_pool= ignores both.
-    cdb = Redis.from_url(cdb_uri, protocol=3)
-
     ddb_uri = config_source["PEPPERCORD_DOCUMENTDB_URI"]
     ddb_client = AsyncMongoClient(ddb_uri, document_class=PCInternalDocument)
 
     # Configure the database
-    async with ddb_client, cdb:
+    async with ddb_client:
         # DB context manager: enables auto-close
         ddb = ddb_client[config_source.get("PEPPERCORD_DB_NAME", "peppercord")]
         logger.info("Done.")
@@ -73,7 +67,6 @@ async def async_main(shutdown_event: asyncio.Event) -> None:
         bot = CustomBot(
             # Explicitly handled in type
             ddb=ddb,
-            cdb=cdb,
             config=config_source,
             # Implicitly handled in type
             case_insensitive=True,

@@ -1,0 +1,36 @@
+name: Dependabot auto-merge
+
+# Turns on GitHub's auto-merge for Dependabot's grouped PRs, which hold only minor and patch updates (see
+# dependabot.yml). GitHub then merges each one once CI's required checks pass (.github/settings.yml), and the merge's
+# push to main runs docker-publish.yml like any other: it builds, deploys, and creates the Sentry release.
+#
+# Major updates, discord.py, and the git dependencies come as PRs of their own and wait for a person, and so does the
+# grouped GitHub Actions PR: workflow changes get a review.
+#
+# Auto-merge is turned on with the DEPENDABOT_MERGE_TOKEN secret, not GITHUB_TOKEN. GitHub credits the merge to whoever
+# turned auto-merge on, and starts no workflows for a push credited to GITHUB_TOKEN, so docker-publish.yml would never
+# run. The token is a fine-grained personal access token for this repository only, with read and write access to
+# Contents and Pull requests. It has no access to workflows, so it couldn't merge the GitHub Actions updates even by
+# mistake. It's a Dependabot secret because runs started by Dependabot can only read Dependabot secrets.
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-26.04
+    steps:
+      - id: metadata
+        uses: dependabot/fetch-metadata@v3
+      - name: Merge once CI passes
+        if: >-
+          steps.metadata.outputs.dependency-group != ''
+          && steps.metadata.outputs.dependency-group != 'actions'
+          && steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.DEPENDABOT_MERGE_TOKEN }}

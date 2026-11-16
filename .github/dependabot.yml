@@ -1,10 +1,86 @@
+# Dependabot keeps every pinned version current: Python packages, the Dockerfile's images (uv, which also brings the
+# interpreter's patch releases, and deno), the example compose file's images, GitHub Actions, and pre-commit hooks.
+#
+# Each ecosystem gets one PR a week grouping its minor and patch updates. workflows/dependabot-auto-merge.yml has GitHub
+# merge those once CI passes, except the GitHub Actions group, and a merge to main deploys. The GitHub Actions group,
+# major updates, discord.py, and the dependencies installed from git wait for a person.
+#
+# The cooldown holds each release back until it is a week old, so nothing ships while it's days old.
 version: 2
+
 updates:
+  # Poetry: pyproject.toml and poetry.lock.
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    cooldown:
+      default-days: 7
+    groups:
+      python:
+        update-types: ["minor", "patch"]
+        exclude-patterns:
+          # Pinned: PepperCord uses its internals.
+          - "discord.py"
+          # Installed from git at a pinned commit.
+          - "discord-ext-menus"
+          - "discord-ext-voice-recv"
+          - "mc-formatting-sirnapkin1334"
+
+  # Dockerfile: uv and deno. The Debian base follows trixie's tag, which the weekly rebuild in docker-publish.yml refreshes.
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    cooldown:
+      default-days: 7
+    groups:
+      docker:
+        update-types: ["minor", "patch"]
+
+  # docker-compose.yml, the example stack: its database images.
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    cooldown:
+      default-days: 7
+    groups:
+      compose:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        update-types: ["minor", "patch"]
+
+  # .pre-commit-config.yaml. black's and Poetry's hooks are also pinned in pyproject.toml, which the pip updates bump.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    cooldown:
+      default-days: 7
+    groups:
+      pre-commit:
+        update-types: ["minor", "patch"]

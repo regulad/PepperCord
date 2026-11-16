@@ -22,6 +22,7 @@ from discord import (
 from discord.app_commands import describe
 from discord.ext.commands import hybrid_command, Cog
 from discord.ext.tasks import loop
+from discord.utils import escape_markdown
 from mcstatus import JavaServer, BedrockServer
 from mcstatus.motd import Motd
 from mcstatus.motd.components import (
@@ -188,7 +189,9 @@ async def generate_minecraft_embed(
         embed = embed.add_field(name="Ping:", value=f"{status_response.latency:.1f}ms")
 
     if isinstance(status_response, QueryResponse):
-        embed = embed.add_field(name="Map:", value=status_response.map_name)
+        embed = embed.add_field(
+            name="Map:", value=escape_markdown(status_response.map_name)
+        )
 
     players_max: int | None = None
     players_online: int | None = None
@@ -211,7 +214,8 @@ async def generate_minecraft_embed(
             player_list_sorted = sorted(
                 Motd.parse(player_name).to_plain() for player_name in player_list
             )
-            player_field += "\n" + "\n".join(player_list_sorted)
+            # Servers fill the sample with any text they like, which would otherwise render as Markdown.
+            player_field += "\n" + "\n".join(map(escape_markdown, player_list_sorted))
         embed = embed.add_field(
             name="Players:",
             value=player_field,
@@ -233,13 +237,15 @@ async def generate_minecraft_embed(
 
         embed = embed.add_field(
             name="Version:",
-            value=f"{version_name}, (ver. {status_response.version.protocol})",
+            value=f"{escape_markdown(version_name)}, (ver. {status_response.version.protocol})",
             inline=False,
         )
     else:  # must be Query
         embed = embed.add_field(
             name="Software:",
-            value=f"{status_response.software.brand} {status_response.software.version}",
+            value=escape_markdown(
+                f"{status_response.software.brand} {status_response.software.version}"
+            ),
             inline=False,
         )
 

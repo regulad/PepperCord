@@ -624,6 +624,7 @@ class Splatoon3(Cog):
                 for node in schedules.coop_grouping_schedule.regular_schedules
                 if node.end_time > now
             ]
+            timeslots = TimeSlotData.from_nodes(salmon_run_rotations, mode)
 
             salmon_run_schedule = salmon_run_rotations[index]
             salmon_run_match_settings = salmon_run_schedule.setting

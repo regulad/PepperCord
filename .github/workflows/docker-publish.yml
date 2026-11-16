@@ -67,14 +67,55 @@ jobs:
       # submodule with this token: for github.com remotes it reuses the context's token for every github.com URL.
       github-token: ${{ secrets.PAT }}
 
+  # Tells both production hosts to update now, rather than at their daily podman-auto-update.timer run. Each host runs
+  # webhookd on loopback behind Tailscale Serve, and the tailnet policy lets only tag:ci-client-peppercord reach it.
+  # So the job joins the tailnet as that tag, through a Tailscale federated identity that trusts this repository's
+  # main branch: its OIDC subject is repo:regulad@52430642/PepperCord@364397477:ref:refs/heads/main, the immutable
+  # form, which names the owner and repository by ID as well as by name.
+  #
+  # The hook starts podman-auto-update.service and answers at once: 200 means the update started, and the stack
+  # restarts within about a minute if latest's digest changed. Scheduled rebuilds run this too, since they publish a
+  # new digest. A failure doesn't fail the run: the daily timer still picks the image up within a day.
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      # Mints the GitHub OIDC token the federated identity accepts; no long-lived Tailscale secret is stored.
+      id-token: write
+    steps:
+      - name: Join the tailnet
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci-client-peppercord
+          hostname: peppercord-deploy-${{ github.run_id }}-${{ github.run_attempt }}
+      # Every host is called even if an earlier one fails, then the step fails if any did.
+      - name: Start the update on each host
+        run: |
+          failed=0
+          for host in peppercord cordpepperer; do
+            if curl -fsS --retry 3 --retry-connrefused -X POST "https://$host.tail11540.ts.net:8108/auto-update"; then
+              echo "Started the update on $host."
+            else
+              echo "::warning::Couldn't start the update on $host; its daily podman-auto-update.timer run will pick latest up."
+              failed=1
+            fi
+          done
+          exit "$failed"
+
   # Tells Sentry about each image main publishes. It creates the release, named by the raw commit hash as the bot's
   # own events are (src/utils/reporting.py), links its commits through Sentry's GitHub integration, and records a
-  # production deploy. The hosts pull latest themselves, on podman-auto-update.timer's daily run, so the deploy marks
-  # when latest was published and production starts running it within about a day. Scheduled rebuilds are skipped:
-  # same commit, nothing new to record.
+  # production deploy. It runs after deploy, so the deploy marks when the hosts were told to update; production runs
+  # the image a minute or so later. If deploy failed, the release is still recorded, and the hosts' daily timer
+  # delivers the image within a day. Scheduled rebuilds are skipped: same commit, nothing new to record.
   sentry-release:
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'schedule'
+    needs: [build, deploy]
+    if: >-
+      !cancelled() && needs.build.result == 'success'
+      && github.ref == 'refs/heads/main' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     permissions:
       contents: read

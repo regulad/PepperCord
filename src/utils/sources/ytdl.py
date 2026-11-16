@@ -223,7 +223,8 @@ class _YTDLStreamSource(YTDLSource):
     async def refresh(self, voice_client: CustomVoiceClient) -> Self:
         """Regrabs audio from site. Useful if video is time limited."""
 
-        if (self._created + STREAM_SOURCE_EXPIRATION_TIMEDELTA) > datetime.now():
+        # Streams are only used for tracks too long to download, so by the time one replays it has expired.
+        if (self._created + STREAM_SOURCE_EXPIRATION_TIMEDELTA) < datetime.now():
             return cast(
                 Self,
                 await YTDLSource._do_load(

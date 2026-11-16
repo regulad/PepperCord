@@ -144,12 +144,11 @@ class YoutubeDLCog(Cog, name="YoutubeDL"):
 
                 # No check for an oversize file should be required, since YTDL won't fetch one.
 
-                files = list(os.listdir())
-
-                if len(files) == 0:
+                if not os.listdir(tempdir):
                     await ctx.send(
                         "Sorry, but I couldn't find anything for that! Please try with another link."
                     )
+                    return
 
                 discord_files: list[File] = []
 

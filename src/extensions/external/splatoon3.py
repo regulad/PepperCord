@@ -79,7 +79,8 @@ MODE_LITERAL = Literal[
     "League Battle",
     "X Battle",
     "Salmon Run",
-    "Splatfest Battle",
+    "Splatfest Battle (Open)",
+    "Splatfest Battle (Pro)",
 ]
 MODES: set[MODE_LITERAL] = {
     "Regular Battle",
@@ -88,7 +89,8 @@ MODES: set[MODE_LITERAL] = {
     "League Battle",
     "X Battle",
     "Salmon Run",
-    "Splatfest Battle",
+    "Splatfest Battle (Open)",
+    "Splatfest Battle (Pro)",
 }
 MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict(
     {
@@ -98,7 +100,8 @@ MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict(
         "League Battle": LEAGUE_BATTLE_COLOR,
         "X Battle": X_BATTLE_COLOR,
         "Salmon Run": SALMON_RUN_COLOR,
-        "Splatfest Battle": SPLATFEST_UNSTARTED_COLOR,  # special case
+        "Splatfest Battle (Open)": SPLATFEST_UNSTARTED_COLOR,  # special case
+        "Splatfest Battle (Pro)": SPLATFEST_UNSTARTED_COLOR,  # special case
     }
 )
 MODE_EMOJI_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict(
@@ -109,7 +112,8 @@ MODE_EMOJI_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict(
         "League Battle": "league",
         "X Battle": "xb",
         "Salmon Run": "coop",
-        "Splatfest Battle": "tricolor",
+        "Splatfest Battle (Open)": "tricolor",
+        "Splatfest Battle (Pro)": "tricolor",
     }
 )
 # The emojis are named after SplatNet's Japanese names for the rules.
@@ -160,9 +164,14 @@ def vs_rotations(schedules: Schedules, mode: MODE_LITERAL) -> list[VsRotation]:
             rotations = [
                 VsRotation(node, node.x_match_setting) for node in schedules.x_schedules
             ]
-        case "Splatfest Battle":
+        case "Splatfest Battle (Open)":
             rotations = [
                 VsRotation(node, node.setting(FestMode.OPEN))
+                for node in schedules.fest_schedules
+            ]
+        case "Splatfest Battle (Pro)":
+            rotations = [
+                VsRotation(node, node.setting(FestMode.PRO))
                 for node in schedules.fest_schedules
             ]
         case "League Battle":
@@ -673,7 +682,10 @@ class Splatoon3(Cog):
             )
 
             color: int = MODE_COLORS[mode]
-            if mode == "Splatfest Battle" and schedules.current_fest is not None:
+            if (
+                mode in ("Splatfest Battle (Open)", "Splatfest Battle (Pro)")
+                and schedules.current_fest is not None
+            ):
                 color = Colour.from_rgb(
                     *choice(schedules.current_fest.teams).color.rgb
                 ).value

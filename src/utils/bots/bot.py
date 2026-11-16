@@ -30,6 +30,7 @@ from discord.utils import find
 from redis.asyncio import Redis
 
 from utils.database import PCDocument, PCInternalDocument
+from utils.reporting import identify_bot
 from .context import CustomContext
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -131,7 +132,9 @@ class CustomBot(Bot):
     # end custom state
 
     async def setup_hook(self) -> None:
-        # Runs after login, so the application ID the emoji endpoints need is known, and before the gateway connects.
+        # Runs after login, so the bot's user and application IDs are known, and before the gateway connects.
+        assert self.user is not None
+        identify_bot(self.user.id)
         await self.sync_application_emojis()
 
     # Emojis

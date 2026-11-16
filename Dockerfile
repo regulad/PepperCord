@@ -9,13 +9,15 @@
 # docker-publish.yml builds from the git tree with docker/github-builder, which skips .dockerignore and strips .git.
 # So nothing here may depend on either: files are copied by path, and git facts come in as build args.
 
-ARG PYTHON_VERSION=3.15.2
+# The Python minor version. uv installs the newest patch release of it that it knows.
+ARG PYTHON_MINOR=3.15
 ARG DEBIAN_RELEASE=trixie
 
 # Images are named with their registry, so no builder has to guess one (podman refuses to without a TTY).
 
 # uv only installs the interpreter; it ships in neither later stage. Each uv release pins the python-build-standalone
-# builds it downloads, and their checksums, so this tag pins the interpreter build too.
+# builds it downloads, and their checksums, so this tag pins the interpreter's patch release and build too. Dependabot
+# bumps it, and Python patch releases (and the OpenSSL and SQLite built into the interpreter) arrive with those bumps.
 FROM ghcr.io/astral-sh/uv:0.13.8 AS uv
 
 # yt-dlp runs deno for YouTube's JavaScript challenges.
@@ -26,10 +28,11 @@ FROM docker.io/denoland/deno:bin-2.3.1 AS deno
 # amd64 gets the x86-64-v3 build: v3 is the minimum CPU level for every amd64 deployment. arm64 gets the aarch64 build.
 # The "gnu" builds need glibc 2.17 or newer and nothing else from the system; OpenSSL, SQLite and the rest are built in.
 FROM docker.io/library/debian:${DEBIAN_RELEASE}-slim AS python
-ARG PYTHON_VERSION
+ARG PYTHON_MINOR
 ARG TARGETARCH
 COPY --from=uv /uv /usr/local/bin/uv
-# /opt/python/current is one path for every architecture, so later stages and the virtualenv never name the build.
+# /opt/python/current is one path for every architecture and patch release, so later stages and the virtualenv never
+# name the build. uv names the install by its full version (cpython-3.15.2-…), which the glob picks out.
 RUN --mount=type=cache,target=/var/cache/buildkit/uv \
   case "$TARGETARCH" in \
   amd64) build=x86_64_v3 ;; \
@@ -37,8 +40,10 @@ RUN --mount=type=cache,target=/var/cache/buildkit/uv \
   *) echo "No python-build-standalone build is chosen for $TARGETARCH." >&2; exit 1 ;; \
   esac \
   && UV_CACHE_DIR=/var/cache/buildkit/uv uv python install --no-bin --install-dir /opt/python \
-  "cpython-${PYTHON_VERSION}-linux-${build}-gnu" \
-  && ln -s "cpython-${PYTHON_VERSION}-linux-${build}-gnu" /opt/python/current
+  "cpython-${PYTHON_MINOR}-linux-${build}-gnu" \
+  && install=$(basename /opt/python/cpython-"${PYTHON_MINOR}".*-linux-"${build}"-gnu) \
+  && ln -s "$install" /opt/python/current \
+  && echo "Installed $install"
 
 # The interpreter as the runtime gets it: without the C headers (only the build stage compiles anything), its own pip
 # (the virtualenv has what it needs), or Tcl/Tk, tkinter, IDLE and turtledemo. About 30 MB lighter.
@@ -78,18 +83,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   && apt-get install -y --no-install-recommends \
   ca-certificates \
   git
-# Poetry only ever runs in this stage, from a virtualenv of its own. Pinned to the version poetry.lock is generated with.
+# Poetry only ever runs in this stage, from a virtualenv of its own. Its version is the one pyproject.toml pins in the dev
+# group, which poetry.lock is generated with and Dependabot keeps current.
 ENV PIP_CACHE_DIR=/var/cache/buildkit/pip \
   POETRY_CACHE_DIR=/var/cache/buildkit/poetry \
   POETRY_NO_INTERACTION=1 \
   POETRY_VIRTUALENVS_IN_PROJECT=true \
   POETRY_VIRTUALENVS_OPTIONS_NO_PIP=true
-# DL3042 wants --no-cache-dir, but pip's cache here is a BuildKit cache mount, which never lands in a layer.
-# hadolint ignore=DL3042
-RUN --mount=type=cache,target=/var/cache/buildkit/pip \
-  python -m venv /opt/poetry \
-  && /opt/poetry/bin/pip install poetry==2.5.1
 COPY pyproject.toml poetry.lock ./
+# DL3042 wants --no-cache-dir, but pip's cache here is a BuildKit cache mount, which never lands in a layer.
+# DL3013 wants a literal version, but the version is pyproject.toml's exact pin.
+# hadolint ignore=DL3042,DL3013
+RUN --mount=type=cache,target=/var/cache/buildkit/pip \
+  version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["tool"]["poetry"]["group"]["dev"]["dependencies"]["poetry"])') \
+  && python -m venv /opt/poetry \
+  && /opt/poetry/bin/pip install "poetry==$version"
 RUN --mount=type=cache,target=/var/cache/buildkit/pip \
   --mount=type=cache,target=/var/cache/buildkit/poetry \
   --mount=type=tmpfs,target=/tmp \

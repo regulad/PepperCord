@@ -43,7 +43,9 @@ class Info(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         await sleep(10)
-        self.activity_update.start()
+        # on_ready fires again after every new gateway session, and starting a running loop raises.
+        if not self.activity_update.is_running():
+            self.activity_update.start()
 
     @tasks.loop(seconds=600)
     async def activity_update(self) -> None:

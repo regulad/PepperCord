@@ -657,7 +657,9 @@ class Splatoon3(Cog):
 
     @Cog.listener()
     async def on_ready(self) -> None:
-        self.update_cache.start()
+        # on_ready fires again after every new gateway session, and starting a running loop raises.
+        if not self.update_cache.is_running():
+            self.update_cache.start()
 
     async def cog_load(self) -> None:
         self.cs = ClientSession(

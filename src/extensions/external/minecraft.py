@@ -323,7 +323,9 @@ class Minecraft(Cog):
 
     @Cog.listener()
     async def on_ready(self) -> None:
-        self.check_for_server_status_changes.start()
+        # on_ready fires again after every new gateway session, and starting a running loop raises.
+        if not self.check_for_server_status_changes.is_running():
+            self.check_for_server_status_changes.start()
 
     async def cog_unload(self) -> None:
         self.check_for_server_status_changes.stop()

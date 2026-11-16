@@ -119,10 +119,12 @@ class Music(Cog):
                 loop=ctx.voice_client.loop,
                 preload_checker=self._info_checker,
             )
-            for source in ytdl_sources:
-                if len(ctx.voice_client.queue.deque) > 1:
-                    ctx.voice_client.queue.deque.appendleft(source)
-                else:
+            if len(ctx.voice_client.queue.deque) > 0:
+                # extendleft adds them one at a time, so reverse them to keep their order at the front.
+                ctx.voice_client.queue.deque.extendleft(reversed(ytdl_sources))
+            else:
+                # put, not the deque, so a player waiting on the empty queue wakes up.
+                for source in ytdl_sources:
                     await ctx.voice_client.queue.put(source)
 
             if len(ytdl_sources) == 1:

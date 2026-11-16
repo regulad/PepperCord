@@ -8,7 +8,16 @@ from json import dumps, loads
 from logging import getLogger
 from typing import Optional, List, TypedDict, cast
 
-from discord import Colour, Embed, File, Forbidden, Member, TextChannel, DMChannel
+from discord import (
+    Colour,
+    Embed,
+    File,
+    Forbidden,
+    Member,
+    NotFound,
+    TextChannel,
+    DMChannel,
+)
 from discord.app_commands import describe
 from discord.ext.commands import hybrid_command, Cog
 from discord.ext.tasks import loop
@@ -46,7 +55,7 @@ class ComponentDict(TypedDict):
     text: str
 
     # Children
-    extra: List["ComponentDict"]
+    extra: List["ComponentDict | str"]
 
     # Formatting
     color: Optional[str]
@@ -67,10 +76,13 @@ def minecraft_legacy_to_plain_text(legacy: str) -> str:
     return re.sub(r"§[0-9a-fklmnor]", "", legacy)
 
 
-def minecraft_component_to_markdown(component: ComponentDict) -> str:
+def minecraft_component_to_markdown(component: ComponentDict | str) -> str:
+    if isinstance(component, str):
+        return component
+
     strings: list[str] = []
 
-    text: str = component["text"]
+    text: str = component.get("text", "")
 
     if component.get("bold"):
         text = f"**{text}**"
@@ -97,10 +109,14 @@ def minecraft_component_to_markdown(component: ComponentDict) -> str:
     return "".join(strings)
 
 
-def minecraft_component_to_ansi(component: ComponentDict) -> str:
+def minecraft_component_to_ansi(component: ComponentDict | str) -> str:
+    # Adventure (Paper) and vanilla 1.20.3+ send plain strings as children.
+    if isinstance(component, str):
+        return component
+
     strings: list[str] = []
 
-    text: str = component["text"]
+    text: str = component.get("text", "")
 
     if color := component.get("color"):
         if color == "black":
@@ -135,8 +151,7 @@ def minecraft_component_to_ansi(component: ComponentDict) -> str:
             text = f"\033[93m{text}\033[0m"
         elif color == "white":
             text = f"\033[97m{text}\033[0m"
-        else:
-            # hex color
+        elif color.startswith("#") and len(color) == 7:
             hex_color = color.lstrip("#")
             r, g, b = (
                 int(hex_color[:2], 16),
@@ -227,7 +242,8 @@ async def generate_minecraft_embed(
     if motd is not None:
         embed = embed.add_field(
             name="MOTD:",
-            value=f"```ansi\n{motd}```",
+            # A field holds at most 1,024 characters, and a colourful MOTD spends most of them on escape codes.
+            value=f"```ansi\n{motd[:1000]}```",
             inline=False,
         )
 
@@ -327,7 +343,15 @@ class Minecraft(Cog):
         previous_status_dict = (
             loads(previous_status_json) if previous_status_json is not None else None
         )
-        channel = cast(TextChannel | None, self.bot.get_channel(channel_id))
+        channel = cast(TextChannel | DMChannel | None, self.bot.get_channel(channel_id))
+        if channel is None:
+            # DM channels aren't cached after a restart until someone messages the bot there.
+            try:
+                channel = cast(
+                    TextChannel | DMChannel, await self.bot.fetch_channel(channel_id)
+                )
+            except (NotFound, Forbidden):
+                pass
 
         if channel is None:
             logger.warning(
@@ -373,7 +397,7 @@ class Minecraft(Cog):
             except Forbidden:
                 logger.warning(
                     f"Could not send message to {channel_id} in {document._collection.name} "
-                    f"{document.safe_subscript('_id')}"
+                    f"{await document.safe_subscript('_id')}"
                 )
             await document.update_db(
                 {
@@ -388,6 +412,15 @@ class Minecraft(Cog):
                 array_filters=[{"server.address": server_address}],
             )
 
+    async def _check_server_safely(
+        self, document: PCDocument, server: SerializedServerType
+    ) -> None:
+        # One failing server would otherwise cancel the checks of every other server in the same pass.
+        try:
+            await self._check_for_server_updates_single_server(document, server)
+        except Exception:
+            logger.exception(f"Couldn't check {server['address']} for status changes.")
+
     async def _check_for_server_updates_document(self, document: PCDocument) -> None:
         logger.debug(
             f"Checking for server status changes in {document._collection.name} "
@@ -395,12 +428,17 @@ class Minecraft(Cog):
         )
         async with TaskGroup() as tg:
             for server in await document.safe_get("minecraft_servers", []):
-                tg.create_task(
-                    self._check_for_server_updates_single_server(document, server)
-                )
+                tg.create_task(self._check_server_safely(document, server))
 
     @loop(minutes=1)
     async def check_for_server_status_changes(self) -> None:
+        # discord.py ends a loop on any error it doesn't treat as a dropped connection, such as a database error.
+        try:
+            await self._check_all_servers()
+        except Exception:
+            logger.exception("Couldn't check Minecraft servers for status changes.")
+
+    async def _check_all_servers(self) -> None:
         logger.debug("Checking for server status changes...")
 
         # first step: get any documents in either the users or guild collection that have minecraft_servers set

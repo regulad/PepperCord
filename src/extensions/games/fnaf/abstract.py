@@ -175,7 +175,7 @@ class Animatronic(Enum):
                     [2, 2, 2, 3, 4, 4],
                     [6, 6, 6, 7, 8, 8],
                     [5, 5, 5, 6, 7, 7],
-                    [16, 16, 16, 17, 18],
+                    [16, 16, 16, 17, 18, 18],
                 ]
 
     def difficulty(self, night: int, time: DisplayTime = DisplayTime.TWELVE_AM) -> int:

@@ -13,7 +13,14 @@ from discord import Embed, Guild, Interaction, Member, Message
 from discord.user import BaseUser
 from discord.app_commands import describe
 from discord.ext import tasks
-from discord.ext.commands import hybrid_group, guild_only, Cog, cooldown, BucketType
+from discord.ext.commands import (
+    hybrid_group,
+    guild_only,
+    Cog,
+    cooldown,
+    BucketType,
+    Range,
+)
 
 from discord.ext.menus import ListPageSource, MenuPages
 from utils import misc
@@ -374,19 +381,14 @@ class FiveNightsAtFreddys(Cog):
     async def fnaf(
         self,
         ctx: CustomContext,
-        night: Optional[int] = 5,
-        freddy: Optional[int] = Animatronic.FREDDY.default_diff,
-        bonnie: Optional[int] = Animatronic.BONNIE.default_diff,
-        chica: Optional[int] = Animatronic.CHICA.default_diff,
-        foxy: Optional[int] = Animatronic.FOXY.default_diff,
+        night: Range[int, 1, 7] = 5,
+        # Animatronic AI levels run from 0 to 20 in the game.
+        freddy: Range[int, 0, 20] = Animatronic.FREDDY.default_diff,
+        bonnie: Range[int, 0, 20] = Animatronic.BONNIE.default_diff,
+        chica: Range[int, 0, 20] = Animatronic.CHICA.default_diff,
+        foxy: Range[int, 0, 20] = Animatronic.FOXY.default_diff,
     ) -> None:
         """Play a game of Five Nights at Freddy's!"""
-        assert night is not None
-        assert freddy is not None
-        assert bonnie is not None
-        assert chica is not None
-        assert foxy is not None
-        # informing mypy that Optional is merely an annotation
         result = self.get_game(ctx.author)
         if freddy == 1 and bonnie == 9 and chica == 8 and foxy == 7:
             # har har har har

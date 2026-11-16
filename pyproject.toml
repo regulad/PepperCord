@@ -3,7 +3,7 @@ name = "peppercord"
 version = "10.0.0"
 description = "A multi-purpose Discord bot written in Python."
 authors = ["Parker Wahle <regulad@regulad.xyz>"]
-license = "GPLv3"
+license = "AGPL-3.0-only"  # PepperCord <10.0.0 was GPLv3 (README.md)
 package-mode = false
 
 [tool.poetry.dependencies]

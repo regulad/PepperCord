@@ -325,6 +325,18 @@ class CustomBot(Bot):
         else:
             await self._schedule_event(coro, method, *args, **kwargs)
 
+    def dispatch(self, event_name: str, /, *args: Any, **kwargs: Any) -> None:
+        if (
+            event_name == "command_error"
+            and args
+            and isinstance(args[0], CustomContext)
+        ):
+            # Command.dispatch_error calls this synchronously from the command's own task, on both the prefix and slash
+            # paths. That makes it the one place to finish a failed slash command's transaction, which discord.py
+            # never passes to after_invoke. It runs before the error listeners are scheduled.
+            args[0].finish_sentry_transaction()
+        super().dispatch(event_name, *args, **kwargs)
+
     async def on_error(self, event_method: str, /, *args: Any, **kwargs: Any) -> None:
         # discord.py calls this from inside the except block around the listener that failed.
         sentry_sdk.capture_exception(tags={"event": event_method})

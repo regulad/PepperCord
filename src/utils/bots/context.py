@@ -106,8 +106,9 @@ class CustomContext(Context["CustomBot"]):
         """
         Open a Sentry transaction for this command, in its own scope so concurrent commands don't share spans or tags.
 
-        It has to be finished from the same task it was started in. The bot's before_invoke and after_invoke hooks
-        both run in the command's task, for prefix and slash invocations alike.
+        It has to be finished from the same task it was started in. The bot's before_invoke hook starts it in the
+        command's task. Its after_invoke hook finishes it there too, except when a slash invocation of a hybrid
+        command fails: discord.py skips after_invoke in that case, so CustomBot.dispatch finishes it on command_error.
         """
         if self.command is None or self.sentry_transaction is not None:
             return
@@ -124,8 +125,12 @@ class CustomContext(Context["CustomBot"]):
         )
 
     def finish_sentry_transaction(self) -> None:
-        """Close the transaction opened by start_sentry_transaction, marking it failed if the command failed."""
-        if self.sentry_transaction is None:
+        """
+        Close the transaction opened by start_sentry_transaction, marking it failed if the command failed.
+
+        Safe to call more than once: a failed prefix command reaches both after_invoke and command_error.
+        """
+        if self.sentry_transaction is None or self.sentry_transaction.timestamp:
             return
 
         self.sentry_transaction.set_status(

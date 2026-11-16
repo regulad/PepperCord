@@ -2159,22 +2159,6 @@ files = [
 ]
 
 [[package]]
-name = "mc-formatting-SirNapkin1334"
-version = "1.0"
-description = "A package for converting MC (Section-Symbol) Codes to ANSI Escape Codes."
-optional = false
-python-versions = ">=3.6"
-groups = ["main"]
-files = []
-develop = false
-
-[package.source]
-type = "git"
-url = "https://github.com/Moire9/MC-Formatting.git"
-reference = "6f4796683e114cb7632814c577507c8bafecf88a"
-resolved_reference = "6f4796683e114cb7632814c577507c8bafecf88a"
-
-[[package]]
 name = "mcstatus"
 version = "14.2.0"
 description = "A library to query Minecraft Servers for their status and capabilities."
@@ -4540,4 +4524,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.15.2"
-content-hash = "4e45e8b8ac6f82de1ec77b65ab24aa459f50fad5a6fe7afe6c98815f9e13dc59"
+content-hash = "cff3d5a9dd76fcd7b87e46dc3ae30470f6dc497b0d16280d10a06ebd636607c5"

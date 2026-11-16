@@ -1,12 +1,13 @@
 # from __future__ import annotations  # cant do this -- breaks discord
-import re
 from asyncio import TaskGroup
 from base64 import b64decode
+from bisect import bisect
+from colorsys import rgb_to_hsv
 from enum import Enum, auto
 from io import BytesIO
 from json import dumps, loads
 from logging import getLogger
-from typing import Optional, List, TypedDict, cast
+from typing import Optional, TypedDict, cast
 
 from discord import (
     Colour,
@@ -21,8 +22,15 @@ from discord import (
 from discord.app_commands import describe
 from discord.ext.commands import hybrid_command, Cog
 from discord.ext.tasks import loop
-from mc_format import color as minecraft_legacy_to_ansi
 from mcstatus import JavaServer, BedrockServer
+from mcstatus.motd import Motd
+from mcstatus.motd.components import (
+    BedrockFormatting,
+    BedrockMinecraftColor,
+    JavaFormatting,
+    JavaMinecraftColor,
+    WebColor,
+)
 from mcstatus.responses import (
     BedrockStatusResponse,
     JavaStatusResponse,
@@ -36,6 +44,7 @@ from mcstatus.responses import (
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.database import PCDocument
+from utils.misc import FrozenDict
 
 logger = getLogger(__name__)
 
@@ -45,144 +54,81 @@ class MinecraftServerType(Enum):
     BEDROCK = auto()
 
 
-class ComponentDict(TypedDict):
-    """Represents a Minecraft component dict."""
-
-    # https://minecraft.fandom.com/wiki/Raw_JSON_text_format#Java_Edition
-    # this is only a plaintext component because server MOTDs cannot be localized
-
-    # Content
-    text: str
-
-    # Children
-    extra: List["ComponentDict | str"]
-
-    # Formatting
-    color: Optional[str]
-    font: Optional[str]
-    bold: Optional[bool]
-    italic: Optional[bool]
-    underlined: Optional[bool]
-    strikethrough: Optional[bool]
-    obfuscated: Optional[bool]
-
-    # Interactivity
-    # insertion # not used in MOTDs
-    # clickEvent # not used in MOTDs
-    # hoverEvent # not used in MOTDs
+# Discord's ansi code blocks draw eight colours on every client, shaded to suit each reader's theme. Newer clients also
+# draw bright and RGB colours, but older ones leave that text plain, so each Minecraft colour maps to one of the eight.
+# White and quartz keep the theme's own text colour.
+_DISCORD_ANSI_COLOURS: dict[int, tuple[str, ...]] = {
+    30: ("BLACK",),
+    31: ("DARK_RED", "RED", "MATERIAL_REDSTONE"),
+    32: ("DARK_GREEN", "GREEN", "MATERIAL_EMERALD"),
+    33: (
+        "GOLD",
+        "YELLOW",
+        "MINECOIN_GOLD",
+        "MATERIAL_GOLD",
+        "MATERIAL_COPPER",
+        "MATERIAL_RESIN",
+    ),
+    34: ("DARK_BLUE", "BLUE", "MATERIAL_LAPIS"),
+    35: ("DARK_PURPLE", "LIGHT_PURPLE", "MATERIAL_AMETHYST"),
+    36: ("DARK_AQUA", "AQUA", "MATERIAL_DIAMOND"),
+    37: ("GRAY", "DARK_GRAY", "MATERIAL_IRON", "MATERIAL_NETHERITE"),
+}
+_DISCORD_ANSI_COLOUR_BY_NAME: FrozenDict[str, int] = FrozenDict(
+    {name: code for code, names in _DISCORD_ANSI_COLOURS.items() for name in names}
+)
 
 
-def minecraft_legacy_to_plain_text(legacy: str) -> str:
-    return re.sub(r"§[0-9a-fklmnor]", "", legacy)
+def _discord_ansi_colour(rgb: tuple[int, int, int]) -> int | None:
+    """Pick the Discord ansi colour nearest in hue to an RGB colour, or None for white."""
+    red, green, blue = rgb
+    hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+    if value < 0.2:
+        return 30
+    if saturation < 0.25:
+        return None if value > 0.85 else 37
+    # Red, yellow (orange and gold too), green, cyan, blue, magenta, then red again, split at these hues in degrees.
+    return (31, 33, 32, 36, 34, 35, 31)[bisect((15, 70, 160, 200, 260, 330), hue * 360)]
 
 
-def minecraft_component_to_markdown(component: ComponentDict | str) -> str:
-    if isinstance(component, str):
-        return component
-
-    strings: list[str] = []
-
-    text: str = component.get("text", "")
-
-    if component.get("bold"):
-        text = f"**{text}**"
-
-    if component.get("italic"):
-        text = f"*{text}*"
-
-    if component.get("underlined"):
-        text = f"__{text}__"
-
-    if component.get("strikethrough"):
-        text = f"~~{text}~~"
-
-    if component.get("obfuscated"):
-        text = f"||{text}||"
-
-    if text:
-        strings.append(text)
-
-    if component.get("extra"):
-        for child in component["extra"]:
-            strings.append(minecraft_component_to_markdown(child))
-
-    return "".join(strings)
-
-
-def minecraft_component_to_ansi(component: ComponentDict | str) -> str:
-    # Adventure (Paper) and vanilla 1.20.3+ send plain strings as children.
-    if isinstance(component, str):
-        return component
-
-    strings: list[str] = []
-
-    text: str = component.get("text", "")
-
-    if color := component.get("color"):
-        if color == "black":
-            text = f"\033[30m{text}\033[0m"
-        elif color == "dark_blue":
-            text = f"\033[34m{text}\033[0m"
-        elif color == "dark_green":
-            text = f"\033[32m{text}\033[0m"
-        elif color == "dark_aqua":
-            text = f"\033[36m{text}\033[0m"
-        elif color == "dark_red":
-            text = f"\033[31m{text}\033[0m"
-        elif color == "dark_purple":
-            text = f"\033[35m{text}\033[0m"
-        elif color == "gold":
-            text = f"\033[33m{text}\033[0m"
-        elif color == "gray":
-            text = f"\033[37m{text}\033[0m"
-        elif color == "dark_gray":
-            text = f"\033[90m{text}\033[0m"
-        elif color == "blue":
-            text = f"\033[94m{text}\033[0m"
-        elif color == "green":
-            text = f"\033[92m{text}\033[0m"
-        elif color == "aqua":
-            text = f"\033[96m{text}\033[0m"
-        elif color == "red":
-            text = f"\033[91m{text}\033[0m"
-        elif color == "light_purple":
-            text = f"\033[95m{text}\033[0m"
-        elif color == "yellow":
-            text = f"\033[93m{text}\033[0m"
-        elif color == "white":
-            text = f"\033[97m{text}\033[0m"
-        elif color.startswith("#") and len(color) == 7:
-            hex_color = color.lstrip("#")
-            r, g, b = (
-                int(hex_color[:2], 16),
-                int(hex_color[2:4], 16),
-                int(hex_color[4:], 16),
-            )
-            text = f"\033[38;2;{r};{g};{b}m{text}\033[0m"
-
-    if component.get("bold"):
-        text = f"\033[1m{text}\033[0m"
-
-    if component.get("italic"):
-        text = f"\033[3m{text}\033[0m"
-
-    if component.get("underlined"):
-        text = f"\033[4m{text}\033[0m"
-
-    if component.get("strikethrough"):
-        text = f"\033[9m{text}\033[0m"
-
-    if component.get("obfuscated"):
-        text = f"\033[8m{text}\033[0m"
-
-    if text:
-        strings.append(text)
-
-    if component.get("extra"):
-        for child in component["extra"]:
-            strings.append(minecraft_component_to_ansi(child))
-
-    return "".join(strings)
+def motd_to_discord_ansi(motd: Motd) -> str:
+    """Render a MOTD for an ansi code block, in the colours and styles that every Discord client draws."""
+    colour: int | None = None
+    bold = underlined = False
+    drawn: tuple[int | None, bool, bool] = (None, False, False)
+    rendered: list[str] = []
+    for component in motd.parsed:
+        match component:
+            case JavaMinecraftColor() | BedrockMinecraftColor():
+                # As in Minecraft, a colour code also ends bold and underline.
+                colour = _DISCORD_ANSI_COLOUR_BY_NAME.get(component.name)
+                bold = underlined = False
+            case WebColor():
+                colour = _discord_ansi_colour(component.rgb)
+            case JavaFormatting.RESET | BedrockFormatting.RESET:
+                colour = None
+                bold = underlined = False
+            case JavaFormatting.BOLD | BedrockFormatting.BOLD:
+                bold = True
+            case JavaFormatting.UNDERLINED:
+                underlined = True
+            case str() if component:
+                if (colour, bold, underlined) != drawn:
+                    # Resetting before each new style is how Discord reliably switches from one style to the next.
+                    codes = ["0"]
+                    if bold:
+                        codes.append("1")
+                    if underlined:
+                        codes.append("4")
+                    if colour is not None:
+                        codes.append(str(colour))
+                    rendered.append(f"\033[{';'.join(codes)}m")
+                    drawn = (colour, bold, underlined)
+                rendered.append(component)
+            # Discord draws no italic, strikethrough or obfuscated text, and translation keys have no text to show.
+    if drawn != (None, False, False):
+        rendered.append("\033[0m")
+    return "".join(rendered)
 
 
 async def generate_minecraft_embed(
@@ -227,23 +173,12 @@ async def generate_minecraft_embed(
     if file:
         embed = embed.set_thumbnail(url=f"attachment://{file.filename}")
 
-    motd: str | None = None
-    if isinstance(status_response, JavaStatusResponse) and (
-        description_raw := status_response.raw.get("description")
-    ):
-        if isinstance(description_raw, str):
-            motd = minecraft_legacy_to_ansi(description_raw)
-        elif isinstance(description_raw, dict):
-            motd = minecraft_component_to_ansi(cast(ComponentDict, description_raw))
-    elif isinstance(status_response, BedrockStatusResponse):
-        motd = minecraft_legacy_to_ansi(status_response.description)
-    elif isinstance(status_response, QueryResponse):
-        motd = minecraft_legacy_to_ansi(str(status_response.motd.raw))
-    if motd is not None:
+    # mcstatus parses every kind of MOTD: Java's legacy text or JSON components, Bedrock's and Query's legacy text.
+    if status_response.motd.to_plain().strip():
         embed = embed.add_field(
             name="MOTD:",
             # A field holds at most 1,024 characters, and a colourful MOTD spends most of them on escape codes.
-            value=f"```ansi\n{motd[:1000]}```",
+            value=f"```ansi\n{motd_to_discord_ansi(status_response.motd)[:1000]}```",
             inline=False,
         )
 
@@ -274,8 +209,7 @@ async def generate_minecraft_embed(
         player_field = f"**{players_online}**/**{players_max}**"
         if player_list is not None and len(player_list) > 0:
             player_list_sorted = sorted(
-                minecraft_legacy_to_plain_text(player_name)
-                for player_name in player_list
+                Motd.parse(player_name).to_plain() for player_name in player_list
             )
             player_field += "\n" + "\n".join(player_list_sorted)
         embed = embed.add_field(

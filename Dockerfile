@@ -75,7 +75,7 @@ WORKDIR /app
 FROM base AS build
 COPY --from=python /opt/python /opt/python
 # ca-certificates: Poetry and pip fetch over HTTPS.
-# git: three dependencies are installed from git repositories.
+# git: some dependencies are installed from git repositories (see pyproject.toml).
 # No compiler: every other dependency installs from a wheel, on both architectures.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \

@@ -29,7 +29,6 @@ updates:
           # Installed from git at a pinned commit.
           - "discord-ext-menus"
           - "discord-ext-voice-recv"
-          - "mc-formatting-sirnapkin1334"
 
   # Dockerfile: uv and deno. The Debian base follows trixie's tag, which the weekly rebuild in docker-publish.yml refreshes.
   - package-ecosystem: "docker"

@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Union
 
 import discord
 from discord.ext import commands
@@ -7,6 +7,20 @@ from utils.checks.blacklisted import is_blacklisted, EBlacklisted
 from utils.commands import UserFacingError
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
+
+
+def _this_guild(ctx: CustomContext) -> discord.Guild:
+    if ctx.guild is None:
+        raise UserFacingError(
+            "Name a user or server: there's no server here to default to."
+        )
+    return ctx.guild
+
+
+# Without None in the Union, a name that matches nothing fails to convert instead of falling back to this server.
+_ENTITY_DEFAULT = commands.parameter(
+    default=_this_guild, displayed_default="this server"
+)
 
 
 class Blacklist(commands.Cog):
@@ -38,12 +52,9 @@ class Blacklist(commands.Cog):
         self,
         ctx: CustomContext,
         *,
-        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
+        entity: Union[discord.User, discord.Member, discord.Guild] = _ENTITY_DEFAULT,
     ) -> None:
         """Disallows a user, member, or a guild from using the bot."""
-        entity = entity or ctx.guild
-        if entity is None:
-            raise UserFacingError("No entity could be determined!")
         if isinstance(entity, discord.Guild):
             document = await ctx.bot.get_guild_document(entity)
         else:
@@ -56,15 +67,12 @@ class Blacklist(commands.Cog):
         self,
         ctx: CustomContext,
         *,
-        entity: Optional[Union[discord.User, discord.Member, discord.Guild]],
+        entity: Union[discord.User, discord.Member, discord.Guild] = _ENTITY_DEFAULT,
     ) -> None:
         """Allows a user, member, or a guild to use the bot"""
-        entity = entity or ctx.guild
-        if entity is None:
-            raise UserFacingError("No entity could be determined!")
         if isinstance(entity, discord.Guild):
             document = await ctx.bot.get_guild_document(entity)
-        elif isinstance(entity, (discord.Member, discord.User)):
+        else:
             document = await ctx.bot.get_user_document(entity)
         await document.update_db({"$set": {"blacklisted": False}})
         await ctx.send(f"Unblacklisted {entity.name}.", ephemeral=True)

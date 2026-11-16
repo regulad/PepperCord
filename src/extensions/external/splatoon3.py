@@ -863,22 +863,47 @@ class Splatoon3(Cog):
                     if result.is_winner:
                         embed.color = Colour.from_rgb(*team.color.rgb)
 
-                    line1: str = (
-                        f"Was victorious: {'Yes' if result.is_winner else 'No'}"
-                    )
-                    line2: str = f"Vote Percentage: `{result.vote_ratio * 100:.2f}`%"
-                    line3: str = f"Pro Win Rate: `{result.horagai_ratio * 100:.2f}`%"
-                    line4: str = (
-                        f"Open/Tricolor Win Rate: `{result.regular_contribution_ratio * 100:.2f}`%"
-                    )
+                    # Each figure is the team's share of a category, named as splatoon3.ink names it. Early Splatfests
+                    # didn't count Tricolor Battles.
+                    categories: list[tuple[str, float | None, bool | None]] = [
+                        ("Votes", result.vote_ratio, result.is_vote_ratio_top),
+                        (
+                            "Conch Shells",
+                            result.horagai_ratio,
+                            result.is_horagai_ratio_top,
+                        ),
+                        (
+                            "Open",
+                            result.regular_contribution_ratio,
+                            result.is_regular_contribution_ratio_top,
+                        ),
+                        (
+                            "Pro",
+                            result.challenge_contribution_ratio,
+                            result.is_challenge_contribution_ratio_top,
+                        ),
+                        (
+                            "Tricolor Battle",
+                            result.tricolor_contribution_ratio,
+                            result.is_tricolor_contribution_ratio_top,
+                        ),
+                    ]
+                    lines = [
+                        f"Color: `{rgb_human_readable(*team.color.rgb)}`",
+                        bold(
+                            f"Was victorious: {'Yes' if result.is_winner else 'No'}",
+                            result.is_winner,
+                        ),
+                        *(
+                            bold(f"{name}: `{ratio * 100:.2f}`%", bool(top))
+                            for name, ratio, top in categories
+                            if ratio is not None
+                        ),
+                    ]
 
                     embed = embed.add_field(
                         name=team.team_name,
-                        value=f"Color: `{rgb_human_readable(*team.color.rgb)}`\n"
-                        f"{bold(line1, result.is_winner)}\n"
-                        f"{bold(line2, result.is_vote_ratio_top)}\n"
-                        f"{bold(line3, result.is_horagai_ratio_top)}\n"
-                        f"{bold(line4, result.is_regular_contribution_ratio_top)}",
+                        value="\n".join(lines),
                         inline=True,
                     )
             else:

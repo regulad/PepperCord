@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, Self, Sequence, cast
 
 import discord
@@ -188,7 +189,8 @@ class CustomCommands(commands.Cog):
     async def on_custom_command_success(
         self, custom_command: CustomCommand, ctx: CustomContext
     ) -> None:
-        await ctx.message.add_reaction("✅")
+        with suppress(discord.NotFound, discord.Forbidden):
+            await ctx.message.add_reaction("✅")
 
     @commands.Cog.listener()
     async def on_custom_command_error(
@@ -197,10 +199,11 @@ class CustomCommands(commands.Cog):
         ctx: CustomContext,
         reason: BaseException,
     ) -> None:
-        if isinstance(reason, commands.CommandOnCooldown):
-            await ctx.message.add_reaction("⏰")
-        else:
-            await ctx.message.add_reaction("❌")
+        with suppress(discord.NotFound, discord.Forbidden):
+            if isinstance(reason, commands.CommandOnCooldown):
+                await ctx.message.add_reaction("⏰")
+            else:
+                await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:

@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+from contextlib import suppress
 from copy import copy
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, Optional, Type
@@ -140,15 +141,18 @@ class ErrorHandling(commands.Cog):
     def __init__(self, bot: CustomBot):
         self.bot = bot
 
+    # A command can delete its own message (purge does), and a channel can deny the bot reactions. Neither is a bug.
     @commands.Cog.listener("on_command_completion")
     async def affirm_working(self, ctx: CustomContext) -> None:
         if ctx.interaction is None:
-            await ctx.message.add_reaction("✅")
+            with suppress(discord.NotFound, discord.Forbidden):
+                await ctx.message.add_reaction("✅")
 
     @commands.Cog.listener("on_command_error")
     async def soft_affirm_error(self, ctx: CustomContext, error: Exception) -> None:
         if ctx.interaction is None and not isinstance(error, CommandNotFound):
-            await ctx.message.add_reaction("❌")
+            with suppress(discord.NotFound, discord.Forbidden):
+                await ctx.message.add_reaction("❌")
 
     @commands.Cog.listener("on_command_error")
     async def affirm_error(self, ctx: CustomContext, error: Exception) -> None:

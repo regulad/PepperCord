@@ -7,7 +7,6 @@ from os import getcwd
 from os.path import join
 from random import choice
 from typing import (
-    TYPE_CHECKING,
     Literal,
     Any,
     cast,
@@ -41,7 +40,7 @@ from discord.app_commands import describe
 from discord.ext import tasks
 from discord.ext.commands import Cog, hybrid_group, CheckFailure
 from discord.ui import Select, View
-from discord.utils import format_dt, MISSING
+from discord.utils import format_dt, get, MISSING
 from pytz import UTC as PYTZ_UTC
 
 from utils.bots.bot import CustomBot
@@ -50,9 +49,6 @@ from utils.consts import TIME_EMOJIS
 from utils.images import vrt_concat_pngs, hrz_concat_pngs
 from utils.markdown_tools import bold
 from utils.misc import rgb_human_readable, edit_with_files_send_wrapper, FrozenDict
-
-if TYPE_CHECKING:
-    from discord.ui.select import SelectMessageComponentInteractionData  # type: ignore[attr-defined]
 
 logger = getLogger(__name__)
 
@@ -316,27 +312,11 @@ class ScheduleSelectionMenu(Select["ScheduleView"]):
             **attrs,
         )
 
-    def _get_timeslot(self, name: str) -> TimeSlotData | None:
-        """
-        Helper to get the timeslot info.
-        """
-        for timeslot in self.data:
-            if timeslot.name == name:
-                return timeslot
-        else:
-            return None
-
     async def callback(self, interaction: Interaction) -> None:
         await interaction.response.defer()
 
-        timeslot = cast(
-            TimeSlotData,
-            self._get_timeslot(
-                cast(SelectMessageComponentInteractionData, interaction.data)["values"][
-                    0
-                ]
-            ),
-        )  # user can't pick a timeslot we didn't insert into the options
+        # Each option is named after one of self.data, and the user can't pick anything else.
+        timeslot = cast(TimeSlotData, get(self.data, name=self.values[0]))
 
         await self.splatoon_3_cog.send_schedule(
             self.ctx,
@@ -419,27 +399,11 @@ class SplatfestSelectionMenu(Select["SplatfestView"]):
             **attrs,
         )
 
-    def _get_splatfestdata(self, name: str) -> SplatfestData | None:
-        """
-        Helper to get the timeslot info.
-        """
-        for splatfest in self.data:
-            if splatfest.name == name:
-                return splatfest
-        else:
-            return None
-
     async def callback(self, interaction: Interaction) -> None:
         await interaction.response.defer()
 
-        timeslot = cast(
-            SplatfestData,
-            self._get_splatfestdata(
-                cast(SelectMessageComponentInteractionData, interaction.data)["values"][
-                    0
-                ]
-            ),
-        )  # user can't pick a timeslot we didn't insert into the options
+        # Each option is named after one of self.data, and the user can't pick anything else.
+        timeslot = cast(SplatfestData, get(self.data, name=self.values[0]))
 
         await self.splatoon_3_cog.send_splatfest(
             self.ctx,

@@ -48,7 +48,7 @@ from utils.bots.context import CustomContext
 from utils.consts import TIME_EMOJIS
 from utils.images import vrt_concat_pngs, hrz_concat_pngs
 from utils.markdown_tools import bold
-from utils.misc import rgb_human_readable, edit_with_files_send_wrapper, FrozenDict
+from utils.misc import edit_with_files_send_wrapper, FrozenDict
 
 logger = getLogger(__name__)
 
@@ -875,7 +875,7 @@ class Splatoon3(Cog):
                         ),
                     ]
                     lines = [
-                        f"Color: `{rgb_human_readable(*team.color.rgb)}`",
+                        f"Color: `{Colour.from_rgb(*team.color.rgb)}`",
                         bold(
                             f"Was victorious: {'Yes' if result.is_winner else 'No'}",
                             result.is_winner,
@@ -896,7 +896,7 @@ class Splatoon3(Cog):
                 for team in historic_splatfest_info.teams:
                     embed = embed.add_field(
                         name=team.team_name,
-                        value=f"Color: `{rgb_human_readable(*team.color.rgb)}`",
+                        value=f"Color: `{Colour.from_rgb(*team.color.rgb)}`",
                         inline=True,
                     )
 

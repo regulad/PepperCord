@@ -14,10 +14,6 @@ from typing import (
 from discord import Status
 
 
-def rgb_human_readable(r: int, g: int, b: int) -> str:
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-
 def status_breakdown(
     desktop_status: Status, mobile_status: Status, web_status: Status
 ) -> str | None:
@@ -115,6 +111,5 @@ __all__: list[str] = [
     "get_list_of_files_in_base",
     "get_python_modules",
     "status_breakdown",
-    "rgb_human_readable",
     "edit_with_files_send_wrapper",
 ]

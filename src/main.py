@@ -131,19 +131,6 @@ async def async_main(shutdown_event: asyncio.Event) -> None:
                             pass
                     logger.info("Synced global commands.")
 
-            @bot.listen("on_ready")
-            async def setup_emojis() -> None:
-                if bot.home_server is not None:
-                    await gather(
-                        *[
-                            bot.fetch_or_upload_custom_emoji(emoji)
-                            for emoji in os.listdir(
-                                os.path.join(os.getcwd(), "resources", "emojis")
-                            )
-                        ]
-                    )
-                    logger.info("Finished uploading emojis.")
-
             await bot.wait_for_dispatch("startup")
             bot_runner_task = event_loop.create_task(
                 bot.start(config_source["PEPPERCORD_TOKEN"]), name="main"

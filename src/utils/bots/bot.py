@@ -1,8 +1,8 @@
 import logging
 from asyncio import Semaphore
 from collections import deque
-from os import getcwd
-from os.path import splitext, join
+from os import getcwd, listdir
+from os.path import isdir, join, splitext
 from typing import (
     Dict,
     Literal,
@@ -20,8 +20,6 @@ from aiofiles import open as aopen
 from discord import (
     Interaction,
     Member,
-    Guild,
-    PartialEmoji,
     Emoji,
     Message,
 )
@@ -81,6 +79,9 @@ class CustomBot(Bot):
 
         self._custom_state: Dict[str, Any] = {}
 
+        # Filled by sync_application_emojis during setup_hook.
+        self._application_emojis: dict[str, Emoji] = {}
+
         self._context_cache: deque[CustomContext] = deque(maxlen=100)
         self._context_semaphores: deque[tuple[int, Semaphore]] = deque(maxlen=100)
         self._context_fetch_semaphore: Semaphore = Semaphore(1)
@@ -129,68 +130,49 @@ class CustomBot(Bot):
 
     # end custom state
 
-    @property
-    def home_server(self) -> Guild | None:
-        maybe_home_server = self._config.get("PEPPERCORD_HOME_SERVER")
-        if maybe_home_server is not None:
-            maybe_home_guild = super().get_guild(int(maybe_home_server))
-            if maybe_home_guild is not None:
-                return maybe_home_guild
-            else:
-                logger.critical(
-                    f"Home server is set to {maybe_home_server}, but could not find!"
-                )
-                return None
+    async def setup_hook(self) -> None:
+        # Runs after login, so the application ID the emoji endpoints need is known, and before the gateway connects.
+        await self.sync_application_emojis()
+
+    # Emojis
+
+    async def sync_application_emojis(self) -> None:
+        """
+        Upload each image in resources/emojis that the application doesn't have yet, then cache them all by name.
+
+        Application emojis belong to the bot itself, so they work in every guild and DM without a server to host them.
+        """
+        emojis = {emoji.name: emoji for emoji in await self.fetch_application_emojis()}
+
+        emoji_directory = join(getcwd(), "resources", "emojis")
+        if not isdir(emoji_directory):
+            logger.warning(
+                "resources/emojis is missing, so there are no custom emojis to upload."
+            )
         else:
-            return None
+            for filename in sorted(listdir(emoji_directory)):
+                name = splitext(filename)[0]
+                if name in emojis:
+                    continue
 
-    def get_custom_emoji(self, emoji_filename: str) -> PartialEmoji | Emoji | None:
-        """Gets a custom emoji from the bot's home server."""
-
-        home_server = self.home_server
-
-        if home_server is None:
-            return None
-
-        emoji_filename_split: tuple[str, str] = splitext(emoji_filename)
-
-        for emoji in home_server.emojis:
-            if emoji.name == emoji_filename_split[0]:
-                return emoji
-        else:
-            return None
-
-    async def fetch_or_upload_custom_emoji(
-        self, emoji_filename: str
-    ) -> PartialEmoji | Emoji | None:
-        """Fetches a custom emoji from the bot's home server."""
-
-        maybe_exists: PartialEmoji | Emoji | None = self.get_custom_emoji(
-            emoji_filename
-        )
-
-        if maybe_exists is not None:
-            return maybe_exists
-        else:
-            home_server: Guild | None = self.home_server
-            emoji_filename_split: tuple[str, str] = splitext(emoji_filename)
-            if home_server is not None:
-                if home_server.me.guild_permissions.manage_emojis:
-                    async with aopen(
-                        join(getcwd(), "resources", "emojis", emoji_filename), "rb"
-                    ) as f:
-                        emoji_bytes: bytes = await f.read()
-
-                    # upload
-                    return await home_server.create_custom_emoji(
-                        name=emoji_filename_split[0],
-                        image=emoji_bytes,
-                        reason="Emoji upload for PepperCord.",
+                async with aopen(join(emoji_directory, filename), "rb") as f:
+                    image = await f.read()
+                try:
+                    emojis[name] = await self.create_application_emoji(
+                        name=name, image=image
                     )
+                except discord.HTTPException:
+                    # Emojis are decoration, so a failed upload shouldn't stop the bot from starting.
+                    logger.exception(f"Failed to upload application emoji {name}.")
                 else:
-                    return None
-            else:
-                return None
+                    logger.info(f"Uploaded application emoji {name}.")
+
+        self._application_emojis = emojis
+        logger.info(f"{len(emojis)} application emojis are available.")
+
+    def get_custom_emoji(self, emoji_filename: str) -> Emoji | None:
+        """Gets one of the bot's application emojis by its file name in resources/emojis, with or without the extension."""
+        return self._application_emojis.get(splitext(emoji_filename)[0])
 
     @property
     def config(self) -> MutableMapping[str, str]:

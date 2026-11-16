@@ -24,8 +24,10 @@ MS_TRACK_LENGTH_LIMIT = (
 
 
 async def too_long_to_download_checker(ytdlinfo: YTDLInfo) -> bool:
-    # True downloads the track before playing it. Long tracks, and livestreams (which have no duration and would never
-    # finish downloading), are streamed instead.
+    # True downloads the whole track before playing it. That's the default because the older stream-only player
+    # sometimes dropped a stream a few minutes in. Tracks over MS_TRACK_LENGTH_LIMIT, and livestreams (which have no
+    # duration and would never finish downloading), are streamed instead. That streaming path is untested: until
+    # 8a12308 this check never fired, so every track was downloaded. See TODO.md.
     duration = ytdlinfo.get("duration")
     return duration is not None and duration * 1000 < MS_TRACK_LENGTH_LIMIT
 

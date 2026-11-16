@@ -17,3 +17,6 @@ Their inclusion on this list is not a guarantee that they will eventually be imp
 - [x] MOTD system
 - [ ] ERC-20 gambling (incredibly stupid)
 - [ ] FNAF3 (all assets are in the source tree, but are entirely unused)
+
+## November 2026
+- [ ] Test playing tracks over 90 minutes and livestreams. Since 8a12308 they stream instead of downloading first (`too_long_to_download_checker` in `extensions/audio/music.py`), on a path that hadn't run before, and the older stream-only player sometimes dropped streams a few minutes in.

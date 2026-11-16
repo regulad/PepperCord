@@ -14,7 +14,6 @@ from discord.ext.commands import hybrid_command
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 
-
 DISCORD_MAX_PINS = 250  # up-to-date as of 11/9/25
 
 

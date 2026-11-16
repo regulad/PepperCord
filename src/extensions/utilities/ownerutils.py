@@ -9,7 +9,6 @@ from discord.ext.menus import ListPageSource, MenuPages
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 
-
 if TYPE_CHECKING:
     from _typeshed import SupportsRichComparison
 

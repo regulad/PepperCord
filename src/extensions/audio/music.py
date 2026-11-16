@@ -18,7 +18,6 @@ from utils.sources.common import YTDL_AUDIO_FORMAT_INITIAL_OPTIONS
 from utils.sources.ytdl import YTDLInfo, YTDLSource
 from utils.validators import str_is_url
 
-
 MS_TRACK_LENGTH_LIMIT = (
     datetime.timedelta(hours=1, minutes=30).total_seconds() * 1000
 )  # TODO: make more robust

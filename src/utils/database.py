@@ -7,7 +7,6 @@ import warnings
 from aiorwlock import RWLock
 from pymongo.asynchronous.collection import AsyncCollection
 
-
 logger = logging.getLogger(__name__)
 
 

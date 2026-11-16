@@ -124,7 +124,7 @@ class Categories(Cog):
         """Adds a category to the list of categories with AutoSort."""
         async with ctx.typing(ephemeral=True):
             await ctx["guild_document"].update_db(
-                {"$push": {"autosort_categories": category.id}}
+                {"$addToSet": {"autosort_categories": category.id}}
             )
             await ctx.send(f"Added {category.mention}.", ephemeral=True)
 
@@ -137,7 +137,7 @@ class Categories(Cog):
         """Removes a category from the list of categories with AutoSort."""
         async with ctx.typing(ephemeral=True):
             await ctx["guild_document"].update_db(
-                {"pull": {"autosort_categories": category.id}}
+                {"$pull": {"autosort_categories": category.id}}
             )
             await ctx.send(f"Removed {category.mention}.", ephemeral=True)
 

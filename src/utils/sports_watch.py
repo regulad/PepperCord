@@ -631,7 +631,11 @@ class LeagueWatcher:
             game = replace(game, thread_id=thread_id)
             if (joined := joined_update(parse_key(league)[0], event)) is not None:
                 try:
-                    await self._thread(thread_id).send(embed=joined.embed())
+                    await self._thread(thread_id).send(
+                        joined.line,
+                        embed=joined.embed(),
+                        allowed_mentions=AllowedMentions.none(),
+                    )
                     game = replace(game, delivered=game.delivered | {joined.key})
                 except HTTPException:
                     logger.warning(
@@ -667,7 +671,11 @@ class LeagueWatcher:
         sent: list[str] = []
         try:
             for update in new:
-                await thread.send(embed=update.embed())
+                await thread.send(
+                    update.line,
+                    embed=update.embed(),
+                    allowed_mentions=AllowedMentions.none(),
+                )
                 sent.append(update.key)
         except (NotFound, Forbidden):
             # The thread was deleted or locked: this game's updates stop, and the channel's other games go on.

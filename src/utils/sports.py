@@ -6,7 +6,7 @@ Everything here works on aioespn's models and makes no requests: the cog decides
 
 import re
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Final
 
 from aioespn import (
@@ -291,7 +291,27 @@ class GameUpdate:
     score: str | None = None
     when: str | None = None
     """When in the game it happened, such as "2nd quarter, 4:31" or "24'"."""
+    moment: str | None = None
+    """When in the game it happened as ESPN puts it in brief, such as "4:31 - 2nd", "End of 1st" or "Final"."""
+    situation: str | None = None
+    """Who has the ball and where, in football, as the update is sent, such as "BAL ball, 1st & 10 at BAL 23"."""
     colour: int | None = None
+
+    @property
+    def line(self) -> str:
+        """The update in a line, as its message's text: the score and when, such as "MEM 57 – 68 WSH; 24.8 - 2nd", or
+        else what happened."""
+        if self.score is not None:
+            line = f"{self.score}; {self.moment or self.title}"
+        elif self.moment is not None:
+            line = f"{self.title}; {self.moment}"
+        elif self.description:
+            line = f"{self.title}: {self.description.splitlines()[0]}"
+        else:
+            line = self.title
+        if self.situation is not None:
+            line += f"\n{self.situation}"
+        return truncate(line, 2000)
 
     def embed(self) -> Embed:
         embed = Embed(
@@ -394,6 +414,37 @@ def _when(sport: Sport, regulation: int, play: Play) -> str | None:
     return f"{period[0].upper()}{period[1:]}, {clock}" if clock else period
 
 
+def _moment(sport: Sport, regulation: int, play: Play) -> str | None:
+    """When a play happened as ESPN's scoreboards put it, such as "8:56 - 1st", "5:00 - OT", "24'" or "Top 2nd"."""
+    clock = play.clock.display_value if play.clock is not None else None
+    number = play.period.number if play.period is not None else None
+    if sport is Sport.BASEBALL and play.period is not None and number:
+        return f"{play.period.type or ''} {ordinal(number)}".strip()
+    if sport in DETAIL_SPORTS or not number:
+        return clock
+    if number <= regulation or sport is Sport.VOLLEYBALL:
+        period = ordinal(number)
+    else:
+        extra = number - regulation
+        period = "OT" if extra == 1 else f"{extra}OT"
+    return f"{clock} - {period}" if clock else period
+
+
+def possession(competition: Competition | None) -> str | None:
+    """Who has the ball and where in a football game under way, such as "BAL ball, 1st & 10 at BAL 23".
+
+    None between downs, as during a kickoff or an extra point, when ESPN gives no down and distance.
+    """
+    situation = competition.situation if competition is not None else None
+    if competition is None or situation is None or not situation.down_distance_text:
+        return None
+    team = _competitor(competition, situation.possession)
+    text = situation.down_distance_text
+    if team is not None:
+        text = f"{_abbreviation(team)} ball, {text}"
+    return f"{text} (red zone)" if situation.is_red_zone else text
+
+
 def _competitor(competition: Competition, team_id: str | None) -> Competitor | None:
     if team_id is None:
         return None
@@ -445,6 +496,7 @@ def _play_update(
         description=play.text or _describe(play),
         score=score,
         when=_when(sport, regulation, play),
+        moment=_moment(sport, regulation, play),
         colour=team_colour(team),
     )
 
@@ -557,6 +609,7 @@ def _period_ends(
             )
             score = _line(sides, *_sets_won(sides, number))
             title = f"End of the {ordinal(number)} set"
+            moment = f"End of {ordinal(number)} set"
         else:
             away_total = _period_total(sides[0], number)
             home_total = _period_total(sides[1], number)
@@ -567,15 +620,20 @@ def _period_ends(
             else:
                 continue
             if halves:
-                title = "Half-time"
+                title = moment = "Half-time"
             elif regulation % 2 == 0 and number == regulation // 2:
-                title = "Halftime"
+                title = moment = "Halftime"
             elif number == regulation:
-                title = "End of regulation"
+                title = moment = "End of regulation"
             else:
                 title = f"End of the {period_name(sport, regulation, number)}"
+                moment = f"End of {ordinal(number)}"
         yield number, GameUpdate(
-            key=f"period:{number}", title=title, description=description, score=score
+            key=f"period:{number}",
+            title=title,
+            description=description,
+            score=score,
+            moment=moment,
         )
 
 
@@ -634,6 +692,7 @@ def _final(sport: Sport, competition: Competition, status: Status) -> GameUpdate
         title=status.type.detail or "Final",
         description="\n".join(lines) or None,
         score=score_line(competition),
+        moment=status.type.short_detail or "Final",
         colour=team_colour(winner),
     )
 
@@ -760,7 +819,13 @@ def game_updates(
             )
         ]
 
-    updates = [GameUpdate(key="start", title=START_TITLES.get(sport, "Underway"))]
+    start = START_TITLES.get(sport, "Underway")
+    sides = _sides(event.competition) if sport is not Sport.GOLF else None
+    updates = [
+        GameUpdate(
+            key="start", title=start, score=_line(sides, 0, 0) if sides else None
+        )
+    ]
     if sport is Sport.GOLF:
         if status.state is State.POST:
             updates.append(
@@ -788,6 +853,10 @@ def game_updates(
     updates += [update for _, update in sorted(timeline, key=lambda item: item[0])]
     if status.state is State.POST:
         updates.append(_final(sport, competition, status))
+    elif sport is Sport.FOOTBALL:
+        # Each update says where the ball is as it's sent, which is what a follower of the game wants next.
+        where = possession(competition)
+        updates = [replace(update, situation=where) for update in updates]
     return updates
 
 
@@ -807,6 +876,8 @@ def joined_update(sport: Sport, event: Event) -> GameUpdate | None:
         title="Under way",
         description=status.type.detail,
         score=score_line(event.competition),
+        moment=status.type.short_detail,
+        situation=possession(event.competition) if sport is Sport.FOOTBALL else None,
     )
 
 
@@ -1153,6 +1224,7 @@ __all__ = [
     "news_embed",
     "ordinal",
     "parse_key",
+    "possession",
     "period_name",
     "score_line",
     "scoreboard_embed",

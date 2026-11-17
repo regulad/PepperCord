@@ -71,12 +71,14 @@ class FakeThread:
     def __init__(self, thread_id: int) -> None:
         self.id = thread_id
         self.sent: list[Embed] = []
+        self.lines: list[str] = []
         self.failures: list[HTTPException] = []
 
-    async def send(self, content: Any = None, *, embed: Embed, **kwargs: Any) -> None:
+    async def send(self, content: str, *, embed: Embed, **kwargs: Any) -> None:
         if self.failures:
             raise self.failures.pop(0)
         self.sent.append(embed)
+        self.lines.append(content)
 
     @property
     def titles(self) -> list[str | None]:
@@ -285,6 +287,11 @@ async def test_posts_a_game_before_it_starts_and_then_its_updates() -> None:
         "End of the 1st quarter",
         "Halftime",
     ]
+    assert bot.threads[thread_id].lines == [
+        "RAP 0 – 0 CAP; Tip-off",
+        "RAP 33 – 22 CAP; End of 1st",
+        "RAP 65 – 59 CAP; Halftime",
+    ]
     assert set(store.game(game.id)["delivered"]) == {"start", "period:1", "period:2"}
 
     # Nothing new: nothing sent, and the game isn't posted again.
@@ -301,7 +308,7 @@ async def test_joins_a_game_under_way_where_it_stands() -> None:
     [thread] = bot.threads.values()
     # What came before is skipped: the thread says only where the game stands.
     assert thread.titles == ["Under way"]
-    assert thread.sent[0].fields[0].value == "RAP 74 – 61 CAP"
+    assert thread.lines == ["RAP 74 – 61 CAP; 9:49 - 3rd"]
     assert set(store.game(game.id)["delivered"]) == {
         "start",
         "period:1",

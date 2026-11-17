@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from aioespn import Event, League, News, Scoreboard, Sport, Standings, State, Summary
-from aioespn.scoreboard import Status, StatusType
+from aioespn.scoreboard import Situation, Status, StatusType
 from aioespn.sports import _LeaguesFeed
 from discord import Embed
 
@@ -118,12 +118,19 @@ def test_basketball_game_under_way() -> None:
     updates = game_updates(Sport.BASKETBALL, "nba-development", game)
     # The 1st and 2nd quarters have ended, with their scores from each quarter's line score.
     assert [(u.key, u.title, u.score) for u in updates] == [
-        ("start", "Tip-off", None),
+        ("start", "Tip-off", "RAP 0 – 0 CAP"),
         ("period:1", "End of the 1st quarter", "RAP 33 – 22 CAP"),
         ("period:2", "Halftime", "RAP 65 – 59 CAP"),
     ]
     joined = joined_update(Sport.BASKETBALL, game)
     assert joined is not None and joined.score == "RAP 74 – 61 CAP"
+    # Each update's message text: the score, then when, as ESPN's scoreboard puts it.
+    assert [u.line for u in updates] == [
+        "RAP 0 – 0 CAP; Tip-off",
+        "RAP 33 – 22 CAP; End of 1st",
+        "RAP 65 – 59 CAP; Halftime",
+    ]
+    assert joined.line == "RAP 74 – 61 CAP; 9:49 - 3rd"
 
 
 def test_basketball_break_between_quarters() -> None:
@@ -138,7 +145,7 @@ def test_soccer_goals_with_running_score() -> None:
     game = event("soccer-concacaf.nations.league-live", "BER @ GDL")
     updates = game_updates(Sport.SOCCER, "concacaf.nations.league", game)
     assert [(u.title.split(":")[0], u.score, u.when) for u in updates] == [
-        ("Kick-off", None, None),
+        ("Kick-off", "BER 0 – 0 GDL", None),
         ("Goal", "BER 0 – 1 GDL", "7'"),
         # Without a line score, half-time's score isn't known once the second half has begun: it isn't sent.
         ("Goal", "BER 0 – 2 GDL", "57'"),
@@ -164,6 +171,53 @@ def test_soccer_half_time() -> None:
     assert [(u.title, u.score) for u in half_time] == [("Half-time", "BER 1 – 2 GDL")]
 
 
+def test_football_says_where_the_ball_is() -> None:
+    game = with_status(
+        event("football-nfl", "LAC @ BAL"), "STATUS_IN_PROGRESS", State.IN, period=1
+    )
+    baltimore = next(
+        c for c in game.competitions[0].competitors if c.home_away == "home"
+    )
+    situation = Situation(
+        down_distance_text="1st & 10 at BAL 23", possession=baltimore.id
+    )
+    live = game.model_copy(
+        update={
+            "competitions": (
+                game.competitions[0].model_copy(update={"situation": situation}),
+            )
+        }
+    )
+    [start] = game_updates(Sport.FOOTBALL, "nfl", live)
+    assert start.line == "LAC 0 – 0 BAL; Kickoff\nBAL ball, 1st & 10 at BAL 23"
+    joined = joined_update(Sport.FOOTBALL, live)
+    assert joined is not None and joined.line.endswith("\nBAL ball, 1st & 10 at BAL 23")
+
+    in_the_red_zone = situation.model_copy(update={"is_red_zone": True})
+    live = game.model_copy(
+        update={
+            "competitions": (
+                game.competitions[0].model_copy(update={"situation": in_the_red_zone}),
+            )
+        }
+    )
+    assert game_updates(Sport.FOOTBALL, "nfl", live)[0].line.endswith(
+        "BAL 23 (red zone)"
+    )
+    # During an extra point ESPN gives the team with the ball but no down: the line is just the score and when.
+    extra_point = Situation(possession=baltimore.id, is_red_zone=True)
+    live = game.model_copy(
+        update={
+            "competitions": (
+                game.competitions[0].model_copy(update={"situation": extra_point}),
+            )
+        }
+    )
+    assert game_updates(Sport.FOOTBALL, "nfl", live)[0].line == "LAC 0 – 0 BAL; Kickoff"
+    # Between plays ESPN can give no situation at all.
+    assert game_updates(Sport.FOOTBALL, "nfl", game)[0].line == "LAC 0 – 0 BAL; Kickoff"
+
+
 def test_baseball_scoring_plays_and_final() -> None:
     game = event("baseball-mlb", "MIL @ TB")
     summary = Summary.model_validate_json(
@@ -187,9 +241,11 @@ def test_baseball_scoring_plays_and_final() -> None:
         ("MIL 4 – 1 TB", "Bottom 9th"),
     ]
     assert plays[0].title == "Play Result: Milwaukee Brewers"
+    assert plays[0].line == "MIL 1 – 0 TB; Top 2nd"
     assert plays[0].description is not None and "Turang scored" in plays[0].description
     final = updates[-1]
     assert final.key == "final" and final.score == "MIL 4 – 1 TB"
+    assert final.line == "MIL 4 – 1 TB; Final"
     assert final.description is not None
     assert final.description.startswith("Milwaukee Brewers win.")
     assert "R H E" in final.description  # the line score, with runs, hits and errors
@@ -211,6 +267,9 @@ def test_results_of_fights_sessions_and_matches() -> None:
     assert all(f.key.startswith("result:") for f in fights)
     assert fights[0].description == "Caio Borralho wins by decision in round 3 at 5:00."
     assert fights[0].when == "Middleweight"
+    assert fights[0].line == (
+        "Caio Borralho vs. Yousri Belgaroui: Caio Borralho wins by decision in round 3 at 5:00."
+    )
 
     weekend = scoreboard("racing-f1").events[0]
     # Practice isn't sent; qualifying and the race are, each with its order.

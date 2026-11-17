@@ -19,8 +19,10 @@ from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.commands import UserFacingError
 from utils.sports import (
+    CREDIT_EMOJI,
     RESULT_SPORTS,
     Directory,
+    credit,
     event_choice,
     game_embed,
     news_embed,
@@ -112,6 +114,11 @@ class Sports(Cog):
             "I'm still loading ESPN's leagues. Try again in a minute, or name the league by its sport and slug, such as "
             "`football/nfl`."
         )
+
+    def credited(self, embed: Embed) -> Embed:
+        """The embed, with ESPN's icon beside its credit."""
+        emoji = self.bot.get_custom_emoji(CREDIT_EMOJI)
+        return credit(embed, emoji.url if emoji is not None else None)
 
     def league(self, key: str) -> League | None:
         return self.directory.league(key) if self.directory is not None else None
@@ -250,7 +257,9 @@ class Sports(Cog):
         async with ctx.typing():
             board = await self.scoreboard(key, when)
             await ctx.send(
-                embed=scoreboard_embed(parse_key(key)[0], board, self.league(key), key)
+                embed=self.credited(
+                    scoreboard_embed(parse_key(key)[0], board, self.league(key), key)
+                )
             )
 
     @sports.command()  # type: ignore[arg-type]  # bad d.py export
@@ -271,7 +280,9 @@ class Sports(Cog):
             summary = await self.summary(key, event)
             sport, slug = parse_key(key)
             await ctx.send(
-                embed=game_embed(sport, slug, event, summary, self.league(key))
+                embed=self.credited(
+                    game_embed(sport, slug, event, summary, self.league(key))
+                )
             )
 
     @sports.command()  # type: ignore[arg-type]  # bad d.py export
@@ -297,7 +308,9 @@ class Sports(Cog):
                 raise UserFacingError(
                     "ESPN isn't answering right now. Try again in a minute."
                 )
-            await ctx.send(embed=standings_embed(standings, self.league(key), key))
+            await ctx.send(
+                embed=self.credited(standings_embed(standings, self.league(key), key))
+            )
 
     @sports.command()  # type: ignore[arg-type]  # bad d.py export
     @describe(league="The league, such as NFL or Premier League.")
@@ -322,7 +335,7 @@ class Sports(Cog):
                 raise UserFacingError(
                     "ESPN isn't answering right now. Try again in a minute."
                 )
-            await ctx.send(embed=news_embed(news, self.league(key), key))
+            await ctx.send(embed=self.credited(news_embed(news, self.league(key), key)))
 
     # Watches.
 

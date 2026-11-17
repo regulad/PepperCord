@@ -143,6 +143,9 @@ class FakeBot:
     async def fetch_channel(self, channel_id: int) -> FakeChannel:
         raise http_error(NotFound, 404)
 
+    def get_custom_emoji(self, name: str) -> Any:
+        return SimpleNamespace(url=f"https://cdn.discordapp.com/emojis/{name}.png")
+
     def get_partial_messageable(
         self, thread_id: int, *, type: Any = None
     ) -> FakeThread:
@@ -269,6 +272,7 @@ async def test_posts_a_game_before_it_starts_and_then_its_updates() -> None:
     await watcher.dispatch(NOW)
     [(content, embed, _)] = bot.channels[CHANNEL].sent
     assert content is None and embed.title == game.name
+    assert embed.footer.icon_url == "https://cdn.discordapp.com/emojis/espn.png"
     [(thread_id, name)] = bot.thread_names.items()
     assert name == "RAP @ CAP"
     assert bot.threads[thread_id].sent == []

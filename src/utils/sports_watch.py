@@ -42,8 +42,10 @@ from pydantic import ValidationError
 from utils.bots.bot import CustomBot
 from utils.database import PCDocument, PCInternalDocument
 from utils.sports import (
+    CREDIT_EMOJI,
     Directory,
     GameUpdate,
+    credit,
     game_message,
     game_updates,
     joined_update,
@@ -574,6 +576,8 @@ class LeagueWatcher:
         embed = game_message(
             event, directory.league(league) if directory is not None else None
         )
+        emoji = self.bot.get_custom_emoji(CREDIT_EMOJI)
+        embed = credit(embed, emoji.url if emoji is not None else None)
         content = None
         mentions = AllowedMentions.none()
         # A role deleted since the watch was set up is skipped, rather than mentioned as "@deleted-role".

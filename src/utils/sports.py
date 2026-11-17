@@ -32,6 +32,8 @@ from utils.commands import UserFacingError
 
 ESPN_RED: Final = 0xCC0000
 CREDIT: Final = "Data from ESPN"
+CREDIT_EMOJI: Final = "espn"
+"""The bot's emoji of ESPN's favicon, from resources/emojis, which the credit under each embed shows."""
 
 SPORT_NAMES: Final[Mapping[Sport, str]] = {
     Sport.AUSTRALIAN_FOOTBALL: "Australian football",
@@ -847,6 +849,11 @@ def _broadcast(event: Event) -> str | None:
     return ", ".join(dict.fromkeys(names)) or None
 
 
+def credit(embed: Embed, icon_url: str | None) -> Embed:
+    """Show ``icon_url``, the address of the credit's emoji, beside the credit under one of the embeds here."""
+    return embed.set_footer(text=CREDIT, icon_url=icon_url)
+
+
 def _base(title: str, league: League | None, colour: int | None = None) -> Embed:
     embed = Embed(
         title=truncate(title, 256), colour=colour if colour is not None else ESPN_RED
@@ -1124,6 +1131,7 @@ def event_choice(event: Event) -> str:
 
 __all__ = [
     "CREDIT",
+    "CREDIT_EMOJI",
     "DETAIL_SPORTS",
     "ESPN_RED",
     "FEATURED",
@@ -1131,6 +1139,7 @@ __all__ = [
     "SPORT_NAMES",
     "SUMMARY_SPORTS",
     "Directory",
+    "credit",
     "GameUpdate",
     "event_choice",
     "game_embed",

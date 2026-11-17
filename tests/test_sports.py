@@ -276,6 +276,16 @@ def test_hockey_penalties() -> None:
             "text": "A hit", "awayScore": 0, "homeScore": 0, "period": {"number": 1}, "clock": {"displayValue": "19:01"},
             "scoringPlay": false, "team": {"id": "10"}}"""
     )
+    # The same penalty three minutes earlier, as ESPN first listed it, before it said what the penalty was for.
+    placeholder = play("""{"id": "401892726000003490", "sequenceNumber": "93",
+            "type": {"id": "143", "text": "Penalty Shot Infraction", "abbreviation": "Closing Hand on the Puck",
+                     "penaltyMinutes": "2", "penaltyType": "Minor"},
+            "text": "Cole Caufield Minor", "awayScore": 0, "homeScore": 0,
+            "period": {"number": 1, "displayValue": "1st"}, "clock": {"displayValue": "18:36"}, "scoringPlay": false,
+            "scoreValue": 0, "team": {"id": "10"}}""")
+    early = Summary(header=SummaryHeader(id=game.id), plays=(hit, placeholder))
+    assert [u.key for u in game_updates(Sport.HOCKEY, "nhl", game, early)] == ["start"]
+
     summary = Summary(header=SummaryHeader(id=game.id), plays=(hit, tripping))
     updates = game_updates(Sport.HOCKEY, "nhl", game, summary)
     assert [u.key for u in updates] == ["start", "play:401892726000003490"]

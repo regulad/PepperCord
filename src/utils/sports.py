@@ -543,8 +543,19 @@ def _misconduct(play: Play) -> bool:
 
 
 def _penalty(play: Play) -> str | None:
-    """A hockey penalty, as a note, such as "Jacob Fowler Tripping against Gabe Perreault (2 min)"."""
+    """A hockey penalty, as a note, such as "Jacob Fowler Tripping against Gabe Perreault (2 min)".
+
+    None while ESPN has yet to say what the penalty was for. It first lists a penalty as a "Penalty Shot Infraction"
+    naming only who serves it, such as "Cole Caufield Minor", and a few minutes later as the infraction it was, such as
+    "Tripping". The penalty is sent then.
+    """
     if play.type is None or not play.type.is_penalty:
+        return None
+    if (
+        play.type.text or ""
+    ).casefold() == "penalty shot infraction" and "penalty shot" not in (
+        play.text or ""
+    ).casefold():
         return None
     text = play.text or play.type.text or "Penalty"
     return (

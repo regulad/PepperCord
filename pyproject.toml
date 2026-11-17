@@ -23,6 +23,7 @@ pymongo = {version = "^4.20.0", extras = ["srv"]}
 discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus", rev = "8686b5d1bbc1d3c862292eb436ab630d6e9c9b53"}
 aiosplatoon2ink = {git = "https://github.com/regulad/aiosplatoon2ink.git", rev = "ed226941be9f817e598de2857f3b2ef7bc8cf124"}
 aiosplatoon3ink = {git = "https://github.com/regulad/aiosplatoon3ink.git", rev = "92288c6369cce5519e8497cb7b5f4aebd20d2965"}
+aioespn = {git = "https://github.com/regulad/aioespn.git", rev = "cf915a1d831878a07d72a90de2c646b8bd845d45"}
 pytz = "2026.6"  # has stubs
 discord-ext-voice-recv = {git = "https://github.com/rdphillips7/discord-ext-voice-recv", rev = "ddd28601fe556f585b869e215f29c8236b95f88f"}  # track https://github.com/imayhaveborkedit/discord-ext-voice-recv/pull/54
 aiorwlock = "^1.5.0"

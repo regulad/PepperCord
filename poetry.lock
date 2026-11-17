@@ -17,6 +17,27 @@ files = [
 pycares = ">=5.0.0,<6"
 
 [[package]]
+name = "aioespn"
+version = "0.1.0"
+description = "An asyncio client for ESPN's public JSON API, with typed models of scoreboards, games, teams, standings and news."
+optional = false
+python-versions = ">=3.12,<4"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+aiohttp = ">=3.9,<4"
+pydantic = ">=2.11,<3"
+yarl = ">=1.9,<2"
+
+[package.source]
+type = "git"
+url = "https://github.com/regulad/aioespn.git"
+reference = "cf915a1d831878a07d72a90de2c646b8bd845d45"
+resolved_reference = "cf915a1d831878a07d72a90de2c646b8bd845d45"
+
+[[package]]
 name = "aiofiles"
 version = "25.1.0"
 description = "File support for asyncio."
@@ -4836,4 +4857,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.15.2"
-content-hash = "19ab24b6a27dda8fa617b355c87c3c1c71740046c182a9fa0f56c5e1212e3ce9"
+content-hash = "3d747f17380469d44a7e6dd37e27655ad32a26dec37bcb8dc64b0370574e8cbf"

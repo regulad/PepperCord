@@ -1,10 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from os.path import exists
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 from aiohttp import ClientSession
 
 # The library's feed envelopes are private: the client unwraps them. These tests read its snapshots directly.
@@ -13,7 +11,12 @@ from aiosplatoon3ink.gear import _CoopFeed, _GearFeed
 from aiosplatoon3ink.schedules import _SchedulesFeed
 from PIL import Image
 
-from extensions.external.splatoon3 import TOPICS, Splatoon3, Splatoon3Watch
+from extensions.external.splatoon3 import (
+    CREDIT_EMOJI,
+    TOPICS,
+    Splatoon3,
+    Splatoon3Watch,
+)
 from utils.bots.bot import CustomBot
 
 FIXTURES = Path(__file__).parent / "fixtures" / "splatoon3"
@@ -23,11 +26,17 @@ def fixture(name: str) -> bytes:
     return (FIXTURES / name).read_bytes()
 
 
+class FakeEmoji:
+    url = "https://cdn.discordapp.com/emojis/1.png"
+
+
 class FakeBot:
+    """Has only the credit's emoji, as if its upload were the only one that worked."""
+
     loop: Any = None
 
-    def get_custom_emoji(self, name: str) -> None:
-        return None
+    def get_custom_emoji(self, name: str) -> FakeEmoji | None:
+        return FakeEmoji() if name == CREDIT_EMOJI else None
 
 
 def splatoon(schedules: str = "schedules.json") -> Splatoon3:
@@ -164,12 +173,6 @@ def test_noticed_events_keep_the_time_they_were_first_noticed() -> None:
     assert later.expires == datetime(2026, 11, 17, tzinfo=UTC)
 
 
-needs_resources = pytest.mark.skipif(
-    not exists("resources/images/splatoon3/favicon.png"),
-    reason="needs the private resources submodule, which CI doesn't check out",
-)
-
-
 class FakeResponse:
     def __init__(self, data: bytes) -> None:
         self.data = data
@@ -198,7 +201,6 @@ class FakeSession:
         return FakeResponse(self.png)
 
 
-@needs_resources
 async def test_renders_each_kind_of_update() -> None:
     import asyncio
 
@@ -211,7 +213,9 @@ async def test_renders_each_kind_of_update() -> None:
 
     rotation = await events["x:2026-11-16T08:00:00+00:00"].render()
     assert rotation.content == "A new X Battle rotation has started."
-    assert [name for name, _ in rotation.files] == ["favicon.png", "stages.png"]
+    # The credit's icon is an emoji, so the stages are the only file.
+    assert [name for name, _ in rotation.files] == ["stages.png"]
+    assert rotation.embed.footer.icon_url == FakeEmoji.url
 
     challenge = await events[
         "challenge:SpecialRush_UltraStamp:2026-11-19T02:00:00+00:00:announced"

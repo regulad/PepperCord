@@ -4,8 +4,6 @@ from functools import partial
 from io import BytesIO
 from logging import getLogger
 from operator import attrgetter
-from os import getcwd
-from os.path import join
 from random import choice
 from typing import (
     Literal,
@@ -16,7 +14,6 @@ from typing import (
     Sequence,
 )
 
-from aiofiles import open as aopen
 from aiohttp import ClientSession
 from aiosplatoon3ink import (
     Festivals,
@@ -81,6 +78,9 @@ logger = getLogger(__name__)
 
 # splatoon3.ink asks for a User-Agent that says who to contact: https://github.com/misenhower/splatoon3.ink/wiki/Data-Access
 USER_AGENT = "PepperCord/1.0 https://github.com/regulad/PepperCord @regulad#7959"
+
+# The bot's emoji of splatoon3.ink's favicon, from resources/emojis, which the credit under each embed shows.
+CREDIT_EMOJI = "splatoon3ink"
 
 SPLATFEST_UNSTARTED_COLOR: int = 0x666775
 REGULAR_BATTLE_COLOR: int = 0xCFF622
@@ -666,24 +666,19 @@ class Splatoon3(Cog):
     def splatfest_emoji(self) -> Emoji | None:
         return self.bot.get_custom_emoji("tricolor.png")
 
-    async def _favicon(self) -> tuple[str, bytes]:
-        async with aopen(
-            join(getcwd(), "resources", "images", "splatoon3", "favicon.png"), "rb"
-        ) as fp:
-            return "favicon.png", await fp.read()
-
-    @staticmethod
-    def _credit(embed: Embed) -> Embed:
+    def _credit(self, embed: Embed) -> Embed:
+        # splatoon3.ink's favicon is one of the bot's emojis, uploaded at startup, so no message has to attach it.
+        emoji = self.bot.get_custom_emoji(CREDIT_EMOJI)
         return embed.set_footer(
             text="Powered by https://splatoon3.ink/",
-            icon_url="attachment://favicon.png",
+            icon_url=emoji.url if emoji is not None else None,
         )
 
     async def vs_message(
         self, schedules: Schedules, mode: MODE_LITERAL, rotation: VsRotation | None
     ) -> tuple[Embed, list[tuple[str, bytes]]]:
         """A battle rotation's embed and files, or a note that the mode isn't being played."""
-        files = [await self._favicon()]
+        files: list[tuple[str, bytes]] = []
 
         color: int = MODE_COLORS[mode]
         if (
@@ -752,7 +747,7 @@ class Splatoon3(Cog):
         self, rotation: CoopSchedule, title: str
     ) -> tuple[Embed, list[tuple[str, bytes]]]:
         """A Salmon Run rotation's embed and files."""
-        files = [await self._favicon()]
+        files: list[tuple[str, bytes]] = []
         setting = rotation.setting
 
         embed = Embed(title=title, color=SALMON_RUN_COLOR)
@@ -796,7 +791,7 @@ class Splatoon3(Cog):
         to now rather than as dates.
         """
         assert self.cs is not None
-        files = [await self._favicon()]
+        files: list[tuple[str, bytes]] = []
 
         start_time: datetime = fest.start_time
         end_time: datetime = fest.end_time
@@ -941,7 +936,7 @@ class Splatoon3(Cog):
             .add_field(name="Slot", value=gear.kind.value)
             .set_image(url=gear.image.url)
         )
-        return embed, [await self._favicon()]
+        return embed, []
 
     async def brand_message(
         self, gesotown: Gesotown
@@ -964,9 +959,7 @@ class Splatoon3(Cog):
                 value=f"{sale.gear.primary_gear_power.name}, {sale.price:,} coins",
                 inline=False,
             )
-        return self._credit(embed.set_image(url=pickup.image.url)), [
-            await self._favicon()
-        ]
+        return self._credit(embed.set_image(url=pickup.image.url)), []
 
     async def send_schedule(
         self,
@@ -1040,7 +1033,7 @@ class Splatoon3(Cog):
                     description="There is no Splatfest currently running.",
                 )
             )
-            files = [await self._favicon()]
+            files: list[tuple[str, bytes]] = []
         else:
             embed, files = await self.splatfest_message(
                 nodes[index], current_fest if current else None, relative=current

@@ -6,10 +6,8 @@ from functools import partial
 from io import BytesIO
 from logging import getLogger
 from operator import attrgetter
-from os.path import exists, join
 from typing import Literal, cast
 
-from aiofiles import open as aopen
 from aiohttp import ClientSession
 from aiosplatoon2ink import (
     CoopSchedules,
@@ -60,8 +58,8 @@ logger = getLogger(__name__)
 # splatoon2.ink asks for a User-Agent that says who to contact: https://github.com/misenhower/splatoon2.ink/wiki/Data-access-policy
 USER_AGENT = "PepperCord/1.0 https://github.com/regulad/PepperCord @regulad#7959"
 
-# Splatoon 2's own favicon, if the resources have one. Without it, the credit has no icon.
-FAVICON = join("resources", "images", "splatoon2", "favicon.png")
+# The bot's emoji of splatoon2.ink's favicon, from resources/emojis, which the credit under each embed shows.
+CREDIT_EMOJI = "splatoon2ink"
 
 REGULAR_BATTLE_COLOR: int = 0x19D719
 RANKED_BATTLE_COLOR: int = 0xF54910
@@ -340,16 +338,13 @@ class Splatoon2(Cog):
 
     # Each message's embed and files, which the commands send and watches post.
 
-    async def _credit(self, embed: Embed) -> tuple[Embed, list[tuple[str, bytes]]]:
-        if not exists(FAVICON):
-            return embed.set_footer(text="Powered by https://splatoon2.ink/"), []
-        async with aopen(FAVICON, "rb") as fp:
-            favicon = await fp.read()
-        embed = embed.set_footer(
+    def _credit(self, embed: Embed) -> Embed:
+        # splatoon2.ink's favicon is one of the bot's emojis, uploaded at startup, so no message has to attach it.
+        emoji = self.bot.get_custom_emoji(CREDIT_EMOJI)
+        return embed.set_footer(
             text="Powered by https://splatoon2.ink/",
-            icon_url="attachment://favicon.png",
+            icon_url=emoji.url if emoji is not None else None,
         )
-        return embed, [("favicon.png", favicon)]
 
     async def vs_message(
         self, mode: MODE_LITERAL, rotation: Rotation | None
@@ -357,8 +352,11 @@ class Splatoon2(Cog):
         """A battle rotation's embed and files, or a note that there's none."""
         color = MODE_COLORS[mode]
         if rotation is None:
-            return await self._credit(
-                Embed(title=mode, color=color, description="No rotation is listed.")
+            return (
+                self._credit(
+                    Embed(title=mode, color=color, description="No rotation is listed.")
+                ),
+                [],
             )
 
         assert self.cs is not None
@@ -369,7 +367,7 @@ class Splatoon2(Cog):
         stages = await stack_images(
             self.cs, [stage.image.url for stage in rotation.stages]
         )
-        embed, files = await self._credit(
+        embed = self._credit(
             Embed(
                 title=f"{mode} {mode_emoji or ''}",
                 color=color,
@@ -381,7 +379,7 @@ class Splatoon2(Cog):
             .add_field(name="Stage 2", value=rotation.stage_b.name)
             .set_image(url="attachment://stages.png")
         )
-        return embed, [*files, ("stages.png", stages)]
+        return embed, [("stages.png", stages)]
 
     async def salmon_run_message(
         self, period: TimePeriod, detail: CoopScheduleDetail | None
@@ -396,7 +394,7 @@ class Splatoon2(Cog):
             embed.description = (
                 "Grizzco hasn't announced this rotation's stage and weapons yet."
             )
-            return await self._credit(embed)
+            return self._credit(embed), []
 
         assert self.cs is not None
         embed = embed.add_field(name="Stage", value=detail.stage.name).set_image(
@@ -415,7 +413,8 @@ class Splatoon2(Cog):
                 name=f"Weapon {index + 1}", value=name, inline=False
             )
 
-        embed, files = await self._credit(embed)
+        embed = self._credit(embed)
+        files: list[tuple[str, bytes]] = []
         if (weapons := await tile_four_images(self.cs, pictures)) is not None:
             embed = embed.set_thumbnail(url="attachment://weapons.png")
             files.append(("weapons.png", weapons))
@@ -472,7 +471,7 @@ class Splatoon2(Cog):
             embed = embed.add_field(
                 name=names.short(team), value="\n".join(lines), inline=True
             )
-        return await self._credit(embed)
+        return self._credit(embed), []
 
     async def gear_message(self) -> tuple[Embed, list[tuple[str, bytes]]]:
         """Everything on sale in SplatNet's shop."""
@@ -485,14 +484,14 @@ class Splatoon2(Cog):
                 f"Until {format_dt(merchandise.end_time, 'R')}.",
                 inline=False,
             )
-        return await self._credit(embed)
+        return self._credit(embed), []
 
     async def merchandise_message(
         self, merchandise: Merchandise
     ) -> tuple[Embed, list[tuple[str, bytes]]]:
         """One item on sale in SplatNet's shop."""
         gear = merchandise.gear
-        return await self._credit(
+        embed = (
             Embed(title=gear.name, color=SPLATNET_COLOR)
             .add_field(name="Brand", value=gear.brand.name)
             .add_field(name="Ability", value=merchandise.skill.name)
@@ -500,18 +499,20 @@ class Splatoon2(Cog):
             .add_field(name="On Sale Until", value=format_dt(merchandise.end_time, "R"))
             .set_image(url=gear.image.url)
         )
+        return self._credit(embed), []
 
     async def reward_gear_message(
         self, reward: RewardGear
     ) -> tuple[Embed, list[tuple[str, bytes]]]:
         """Salmon Run's reward gear."""
-        return await self._credit(
+        embed = (
             Embed(title="Salmon Run Gear", color=SALMON_RUN_COLOR)
             .add_field(name="Name", value=reward.gear.name)
             .add_field(name="Slot", value=reward.gear.kind.value.title())
             .add_field(name="Since", value=format_dt(reward.available_time, "D"))
             .set_image(url=reward.gear.image.url)
         )
+        return self._credit(embed), []
 
     async def send_schedule(
         self,

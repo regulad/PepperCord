@@ -23,7 +23,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any, Final, cast
 
 import pytz
-from aioespn import ESPNClient, Event, Scoreboard, State, Summary
+from aioespn import ESPNClient, Event, Scoreboard, Sport, State, Summary
 from aiohttp import ClientError
 from discord import (
     AllowedMentions,
@@ -45,6 +45,7 @@ from utils.sports import (
     CREDIT_EMOJI,
     Directory,
     GameUpdate,
+    called_back,
     credit,
     game_message,
     game_updates,
@@ -319,6 +320,12 @@ class LeagueWatcher:
         # so a finished game's summary is fetched again only when the scoreboard has moved on.
         self._summaries: dict[str, Summary] = {}
         self._summarized: dict[str, tuple[str, ...]] = {}
+        # For each game under way: each team's highest score so far, how many checks in a row it has been lower, every
+        # scoring play seen, and the scores found to have been taken back, as when a review disallows a goal.
+        self._highs: dict[str, dict[str, int]] = {}
+        self._lower: dict[tuple[str, str], int] = {}
+        self._scores: dict[str, dict[str, GameUpdate]] = {}
+        self._called_back: dict[str, list[GameUpdate]] = {}
         self._loop = tasks.loop(minutes=1)(self._tick)
 
     def start(self) -> None:
@@ -458,9 +465,19 @@ class LeagueWatcher:
             for event in by_id.values()
         }
 
+        for league, by_id in events.items():
+            for event in by_id.values():
+                updates[event.id] += self._taken_back(
+                    parse_key(league)[0], event, updates[event.id]
+                )
+
         current = {event_id for by_id in events.values() for event_id in by_id}
         self._summaries = {k: v for k, v in self._summaries.items() if k in current}
         self._summarized = {k: v for k, v in self._summarized.items() if k in current}
+        self._highs = {k: v for k, v in self._highs.items() if k in current}
+        self._lower = {k: v for k, v in self._lower.items() if k[0] in current}
+        self._scores = {k: v for k, v in self._scores.items() if k in current}
+        self._called_back = {k: v for k, v in self._called_back.items() if k in current}
 
         semaphore = Semaphore(SEND_CONCURRENCY)
 
@@ -480,6 +497,55 @@ class LeagueWatcher:
         async with TaskGroup() as group:
             for watch in watches:
                 group.create_task(serve(watch))
+
+    def _taken_back(
+        self, sport: Sport, event: Event, updates: list[GameUpdate]
+    ) -> list[GameUpdate]:
+        """The scores taken back in a game under way, as when a review disallows a goal.
+
+        ESPN's play-by-play drops such a goal without a word, so a team's score falling is what shows it. It has to stay
+        down for two checks in a row, so a blip in ESPN's scoreboard isn't taken for one. The update names the score
+        taken back where this bot has seen it: the latest of the team's scores that took it above where it is now.
+        """
+        scores = self._scores.setdefault(event.id, {})
+        for update in updates:
+            if update.team_score is not None:
+                scores[update.key] = update
+        competition = event.competition
+        if _live(event) and competition is not None:
+            highs = self._highs.setdefault(event.id, {})
+            for side in competition.competitors:
+                team = side.team.id if side.team is not None else side.id
+                try:
+                    score = int(side.score or 0)
+                except ValueError:
+                    continue
+                high = highs.setdefault(team, score)
+                if score >= high:
+                    highs[team] = score
+                    self._lower.pop((event.id, team), None)
+                    continue
+                lower = self._lower[(event.id, team)] = (
+                    self._lower.get((event.id, team), 0) + 1
+                )
+                if lower < 2:
+                    continue
+                goal = next(
+                    (
+                        update
+                        for update in reversed(scores.values())
+                        if update.team == team
+                        and update.team_score is not None
+                        and update.team_score > score
+                    ),
+                    None,
+                )
+                self._called_back.setdefault(event.id, []).append(
+                    called_back(sport, event, team, high, score, goal)
+                )
+                highs[team] = score
+                del self._lower[(event.id, team)]
+        return self._called_back.get(event.id, [])
 
     async def _serve(
         self,

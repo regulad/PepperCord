@@ -23,6 +23,8 @@ from discord import Embed
 from utils.commands import UserFacingError
 from utils.sports import (
     Directory,
+    GameUpdate,
+    called_back,
     game_embed,
     game_message,
     game_updates,
@@ -320,6 +322,28 @@ def test_basketball_technical_and_flagrant_fouls() -> None:
         misconduct[0].line
         == "RAP 70 – 60 CAP; 10:00 - 3rd\nAlperen Sengun technical foul"
     )
+
+
+def test_called_back() -> None:
+    game = with_status(
+        event("hockey-nhl", "MTL @ NYR"), "STATUS_IN_PROGRESS", State.IN, period=2
+    )
+    goal = GameUpdate(
+        key="play:1",
+        title="Goal: Montreal Canadiens",
+        description="Phillip Danault Goal (3)",
+    )
+    update = called_back(Sport.HOCKEY, game, "10", 1, 0, goal)
+    assert update.key == "called-back:10:1:0"
+    assert update.title == "Goal called back: Montreal Canadiens"
+    assert (
+        update.line
+        == "MTL 0 – 0 NYR; Goal called back: Montreal Canadiens\nCalled back: Phillip Danault Goal (3)"
+    )
+    # A score the bot never saw is still said to be taken back, without naming it.
+    unknown = called_back(Sport.FOOTBALL, game, "10", 7, 0, None)
+    assert unknown.title == "Score called back: Montreal Canadiens"
+    assert unknown.note == "Score called back"
 
 
 def test_baseball_scoring_plays_and_final() -> None:

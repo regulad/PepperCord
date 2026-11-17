@@ -12,7 +12,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 import pytest
-from aioespn import ESPNClient, Event, Scoreboard, State, Summary
+from aioespn import ESPNClient, Event, Play, Scoreboard, State, Summary
 from aioespn.scoreboard import Status, StatusType
 from aioespn.summary import SummaryHeader
 from discord import Embed, Forbidden, Guild, HTTPException, NotFound, TextChannel
@@ -465,6 +465,77 @@ async def test_fetches_a_live_games_summary_every_minute() -> None:
     assert [r for r in client.requests if r[0] == "summary"] == [
         ("summary", G_LEAGUE, game.id)
     ] * 2
+
+
+NHL = "hockey/nhl"
+
+
+def hockey(montreal: int, rangers: int = 0) -> Event:
+    """Montreal at the Rangers, under way, with this score."""
+    game = scoreboard("hockey-nhl").events[0]
+    status = Status(
+        period=2,
+        display_clock="12:00",
+        type=StatusType(
+            name="STATUS_IN_PROGRESS", state=State.IN, short_detail="12:00 - 2nd"
+        ),
+    )
+    scores = {"10": str(montreal), "13": str(rangers)}
+    competition = game.competitions[0]
+    competitors = tuple(
+        c.model_copy(update={"score": scores[c.id]}) for c in competition.competitors
+    )
+    competition = competition.model_copy(
+        update={"status": status, "competitors": competitors}
+    )
+    return game.model_copy(update={"status": status, "competitions": (competition,)})
+
+
+def goal_summary(event_id: str, *, goal: bool) -> Summary:
+    plays = (
+        Play.model_validate_json(
+            """{"id": "401892726000005550", "type": {"id": "505", "text": "Goal"},
+                "text": "Phillip Danault Goal (3) Tip-In, assists: Lane Hutson (16)", "awayScore": 1,
+                "homeScore": 0, "period": {"number": 2}, "clock": {"displayValue": "7:59"},
+                "scoringPlay": true, "scoreValue": 1, "team": {"id": "10"}}"""
+        ),
+    )
+    return Summary(header=SummaryHeader(id=event_id), plays=plays if goal else ())
+
+
+async def test_says_when_a_goal_is_called_back() -> None:
+    game = hockey(1)
+    watcher, bot, client, _ = setup(NHL, games=posted(game.id, NHL, 77, NOW, "start"))
+    client.boards[NHL] = Scoreboard(events=(game,))
+    client.summaries[game.id] = goal_summary(game.id, goal=True)
+    await watcher.dispatch(NOW)
+    thread = bot.threads[77]
+    assert thread.lines == ["MTL 1 – 0 NYR; 7:59 - 2nd"]
+
+    # A review takes the goal back: ESPN drops it from the play-by-play, and Montreal's score falls.
+    client.boards[NHL] = Scoreboard(events=(hockey(0),))
+    client.summaries[game.id] = goal_summary(game.id, goal=False)
+    await watcher.dispatch(NOW + timedelta(minutes=1))
+    assert (
+        len(thread.lines) == 1
+    )  # not until the score has stayed down for a second check
+    await watcher.dispatch(NOW + timedelta(minutes=2))
+    assert thread.titles[-1] == "Goal called back: Montreal Canadiens"
+    assert thread.lines[-1] == (
+        "MTL 0 – 0 NYR; 12:00 - 2nd\nCalled back: Phillip Danault Goal (3) Tip-In, assists: Lane Hutson (16)"
+    )
+    await watcher.dispatch(NOW + timedelta(minutes=3))
+    assert len(thread.lines) == 2
+
+
+async def test_takes_a_one_minute_blip_in_the_score_for_nothing() -> None:
+    game = hockey(1)
+    watcher, bot, client, _ = setup(NHL, games=posted(game.id, NHL, 77, NOW, "start"))
+    client.summaries[game.id] = goal_summary(game.id, goal=True)
+    for minute, montreal in enumerate((1, 0, 1, 1)):
+        client.boards[NHL] = Scoreboard(events=(hockey(montreal),))
+        await watcher.dispatch(NOW + timedelta(minutes=minute))
+    assert bot.threads[77].lines == ["MTL 1 – 0 NYR; 7:59 - 2nd"]
 
 
 async def test_posts_nothing_for_paused_watches_but_still_forgets() -> None:

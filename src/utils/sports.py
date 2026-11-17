@@ -299,6 +299,10 @@ class GameUpdate:
     """When in the game it happened as ESPN puts it in brief, such as "4:31 - 2nd", "End of 1st" or "Final"."""
     note: str | None = None
     """What happened, where the score doesn't say: a penalty, a foul, a red card or how a possession ended."""
+    team: str | None = None
+    """The ID of the team that scored, for a scoring play."""
+    team_score: int | None = None
+    """That team's score after the play, which tells which goal a score taken back down was."""
     situation: str | None = None
     """Who has the ball and where, in football, as the update is sent, such as "BAL ball, 1st & 10 at BAL 23"."""
     colour: int | None = None
@@ -487,19 +491,26 @@ def _play_update(
     key: str,
     score: str | None,
     note: str | None = None,
+    *,
+    scored: bool = True,
+    team_score: int | None = None,
 ) -> GameUpdate:
-    """An update for a play: a score, or with ``note`` saying what happened, a play that didn't score."""
+    """An update for a play: a score, or with ``note`` saying what happened and ``scored`` false, a play that didn't
+    score. ``team_score`` is the scoring team's score after the play, where the play doesn't give it.
+    """
     sides = _sides(competition)
     team = _competitor(competition, play.team.id if play.team is not None else None)
     kind = play.type.text if play.type is not None and play.type.text else "Score"
     kind = kind[0].upper() + kind[1:]
     if (
-        score is None
-        and sides is not None
+        sides is not None
         and play.away_score is not None
         and play.home_score is not None
     ):
-        score = _line(sides, play.away_score, play.home_score)
+        if score is None:
+            score = _line(sides, play.away_score, play.home_score)
+        if scored and team is not None and team_score is None:
+            team_score = play.away_score if team.id == sides[0].id else play.home_score
     return GameUpdate(
         key=key,
         title=f"{kind}: {team.display_name}" if team is not None else kind,
@@ -508,6 +519,8 @@ def _play_update(
         when=_when(sport, regulation, play),
         moment=_moment(sport, regulation, play),
         note=note,
+        team=team.id if scored and team is not None else None,
+        team_score=team_score if scored else None,
         colour=team_colour(team),
     )
 
@@ -654,7 +667,14 @@ def _plays(
             if sport is Sport.BASKETBALL:
                 note = play.text or (play.type.text if play.type else None)
             yield period or 0, _play_update(
-                sport, regulation, competition, play, f"play:{play.id}", None, note
+                sport,
+                regulation,
+                competition,
+                play,
+                f"play:{play.id}",
+                None,
+                note,
+                scored=note is None,
             )
     elif sport in DETAIL_SPORTS:
         sides = _sides(competition)
@@ -670,11 +690,13 @@ def _plays(
             if not (scoring or play.red_card or kind == "red card"):
                 continue
             score = note = None
+            tally = None
             team = play.team.id if play.team is not None else None
             # Soccer's details add up to the score, each goal counting for the team it was scored for.
             if sport is Sport.SOCCER and sides:
                 if scoring and team is not None and team in goals:
                     goals[team] += 1
+                    tally = goals[team]
                 ids = [c.team.id if c.team else c.id for c in sides]
                 score = _line(sides, goals[ids[0]], goals[ids[1]])
                 if not scoring:
@@ -684,7 +706,15 @@ def _plays(
             clock = play.clock.value if play.clock is not None else None
             period = 1 if clock is None or clock < HALF_SECONDS[sport] else 2
             yield period, _play_update(
-                sport, regulation, competition, play, _detail_key(play), score, note
+                sport,
+                regulation,
+                competition,
+                play,
+                _detail_key(play),
+                score,
+                note,
+                scored=scoring,
+                team_score=tally,
             )
 
 
@@ -990,6 +1020,46 @@ def game_updates(
         where = possession(competition)
         updates = [replace(update, situation=where) for update in updates]
     return updates
+
+
+GOAL_SPORTS: Final = frozenset(
+    {Sport.HOCKEY, Sport.SOCCER, Sport.FIELD_HOCKEY, Sport.LACROSSE, Sport.WATER_POLO}
+)
+"""Sports whose scores are goals."""
+
+
+def called_back(
+    sport: Sport,
+    event: Event,
+    team_id: str,
+    was: int,
+    now: int,
+    goal: GameUpdate | None,
+) -> GameUpdate:
+    """A score taken back, as when a review disallows a goal: the team's score fell from ``was`` to ``now``.
+
+    :param goal: The update for the score that was taken back, if it's known.
+    """
+    competition = event.competition
+    team = _competitor(competition, team_id) if competition is not None else None
+    noun = "Goal" if sport in GOAL_SPORTS else "Score"
+    title = (
+        f"{noun} called back: {team.display_name}" if team else f"{noun} called back"
+    )
+    status = event.current_status
+    return GameUpdate(
+        key=f"called-back:{team_id}:{was}:{now}",
+        title=title,
+        description=goal.description if goal is not None else None,
+        score=score_line(competition),
+        moment=status.type.short_detail if status is not None else None,
+        note=(
+            f"Called back: {goal.description}"
+            if goal is not None and goal.description
+            else f"{noun} called back"
+        ),
+        colour=team_colour(team),
+    )
 
 
 def joined_update(sport: Sport, event: Event) -> GameUpdate | None:
@@ -1337,11 +1407,13 @@ __all__ = [
     "CREDIT_EMOJI",
     "DETAIL_SPORTS",
     "ESPN_RED",
+    "GOAL_SPORTS",
     "FEATURED",
     "RESULT_SPORTS",
     "SPORT_NAMES",
     "SUMMARY_SPORTS",
     "Directory",
+    "called_back",
     "credit",
     "GameUpdate",
     "event_choice",

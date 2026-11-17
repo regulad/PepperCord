@@ -538,6 +538,25 @@ async def test_takes_a_one_minute_blip_in_the_score_for_nothing() -> None:
     assert bot.threads[77].lines == ["MTL 1 – 0 NYR; 7:59 - 2nd"]
 
 
+async def test_forgets_a_game_posted_before_it_had_a_date() -> None:
+    # A game with no teams yet, which ESPN dates 1993, as a watch could post before it knew better.
+    board = scoreboard("football-college-football-2026")
+    undecided = next(e for e in board.events if e.short_name == "TBD @ TBD")
+    league = "football/college-football"
+    watcher, bot, client, store = setup(
+        league, games=posted(undecided.id, league, 77, NOW, "start")
+    )
+    client.boards[league] = board
+    await watcher.dispatch(NOW)
+    assert undecided.id not in store.entries[CHANNEL]["games"]
+    # Nor is it posted again until ESPN gives it a date.
+    await watcher.dispatch(NOW + timedelta(minutes=1))
+    assert undecided.id not in store.entries[CHANNEL]["games"]
+    assert all(
+        "TBD" not in (embed.title or "") for _, embed, _ in bot.channels[CHANNEL].sent
+    )
+
+
 async def test_posts_nothing_for_paused_watches_but_still_forgets() -> None:
     games = posted("1", G_LEAGUE, 77, NOW - timedelta(days=30), "start")
     watcher, bot, client, store = setup(G_LEAGUE, games=games)

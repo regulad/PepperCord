@@ -1,6 +1,6 @@
 """What a watched game's thread is sent, and the sports commands' embeds, from ESPN's own responses."""
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -25,6 +25,7 @@ from utils.sports import (
     Directory,
     GameUpdate,
     called_back,
+    date_known,
     game_embed,
     game_message,
     game_updates,
@@ -35,6 +36,7 @@ from utils.sports import (
     ordinal,
     scoreboard_embed,
     standings_embed,
+    starts,
 )
 from utils.sports_watch import should_post
 
@@ -439,6 +441,33 @@ def test_golf() -> None:
     )
 
 
+def test_dates_espn_has_yet_to_set() -> None:
+    # ESPN's scoreboard for the year: tonight's game, a playoff game it gives no date, and a game with no teams yet.
+    tonight, playoff, undecided = (
+        event("football-college-football-2026", name)
+        for name in ("EMU @ WMU", "ALA VS IU", "TBD @ TBD")
+    )
+    assert date_known(tonight)
+    assert not date_known(playoff) and not date_known(undecided)
+    assert starts(undecided) == "To be announced"
+    embed = game_message(undecided, None)
+    assert embed.fields[0].value == "To be announced" and "1993" not in str(
+        embed.to_dict()
+    )
+    board = scoreboard("football-college-football-2026")
+    lines = (
+        scoreboard_embed(
+            Sport.FOOTBALL, board, None, "football/college-football"
+        ).description
+        or ""
+    ).splitlines()
+    assert lines[2] == "TBD @ TBD · date to be announced"
+    assert lines[0].startswith("EMU @ WMU · <t:")
+    # A watch posts neither, however long ago ESPN says they started.
+    assert should_post(tonight, tonight.date - timedelta(minutes=30))
+    assert not should_post(undecided, datetime(2026, 11, 17, tzinfo=UTC))
+
+
 def test_game_message_gives_away_nothing() -> None:
     finished = event("baseball-mlb", "MIL @ TB")
     embed = game_message(finished, None)
@@ -456,6 +485,9 @@ def test_posts_games_due_within_the_hour() -> None:
     assert not should_post(monday, monday.date - timedelta(hours=2))
     assert should_post(monday, monday.date - timedelta(minutes=59))
     assert should_post(monday, monday.date + timedelta(minutes=5))  # running late
+    assert not should_post(
+        monday, monday.date + timedelta(days=2)
+    )  # long since called off, whatever ESPN says
     assert should_post(
         with_status(monday, "STATUS_IN_PROGRESS", State.IN, period=1), monday.date
     )

@@ -7,6 +7,7 @@ Everything here works on aioespn's models and makes no requests: the cog decides
 import re
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, replace
+from datetime import UTC, datetime
 from typing import Final
 
 from aioespn import (
@@ -1094,6 +1095,29 @@ def joined_update(sport: Sport, event: Event) -> GameUpdate | None:
     )
 
 
+PLACEHOLDER_DATE: Final = datetime(1993, 1, 31, 23, 30, tzinfo=UTC)
+"""The date ESPN gives an event it has no date for yet, such as a conference championship whose teams are undecided."""
+
+
+def date_known(event: Event) -> bool:
+    """Whether ESPN knows when the event is: its date isn't ESPN's placeholder, nor more than a year before its season.
+
+    ESPN dates an event it has no date for yet as 31 January 1993, and some finished games too, when asked for a month's
+    or a year's scoreboard.
+    """
+    if event.date == PLACEHOLDER_DATE:
+        return False
+    season = event.season.year if event.season is not None else None
+    return season is None or event.date.year >= season - 1
+
+
+def starts(event: Event) -> str:
+    """When the event starts, as Discord shows a time in each reader's own time zone, or that it's yet to be set."""
+    if not date_known(event):
+        return "To be announced"
+    return f"{format_dt(event.date, 'F')} ({format_dt(event.date, 'R')})"
+
+
 def thread_name(event: Event) -> str:
     return truncate(event.short_name or event.name, 100)
 
@@ -1157,8 +1181,7 @@ def game_message(event: Event, league: League | None) -> Embed:
     notes = event.competition.notes if event.competition is not None else ()
     if note := next((n.headline for n in notes if n.headline), None):
         embed.description = note
-    starts = f"{format_dt(event.date, 'F')} ({format_dt(event.date, 'R')})"
-    embed.add_field(name="Starts", value=starts, inline=False)
+    embed.add_field(name="Starts", value=starts(event), inline=False)
     if event.end_date is not None and event.end_date.date() != event.date.date():
         embed.add_field(name="Ends", value=format_dt(event.end_date, "D"))
     if venue := _venue(event):
@@ -1186,7 +1209,7 @@ def _scoreboard_line(sport: Sport, event: Event) -> str:
         if status is not None and state is not State.PRE:
             line += f" · {status.type.short_detail or status.type.description}"
         else:
-            line += f" · {format_dt(event.date, 'f')}"
+            line += f" · {format_dt(event.date, 'f') if date_known(event) else 'date to be announced'}"
         if sport is Sport.GOLF and state is not State.PRE:
             leader = leaderboard(event.competition, 1)
             if leader:
@@ -1194,7 +1217,10 @@ def _scoreboard_line(sport: Sport, event: Event) -> str:
         return line
     away, home = sides
     if state is State.PRE:
-        return f"{_ranked(away)} @ {_ranked(home)} · {format_dt(event.date, 'f')}"
+        when = (
+            format_dt(event.date, "f") if date_known(event) else "date to be announced"
+        )
+        return f"{_ranked(away)} @ {_ranked(home)} · {when}"
     assert status is not None
     names = [_ranked(away), _ranked(home)]
     for index, side in enumerate(sides):
@@ -1263,7 +1289,7 @@ def game_embed(
     if status is None or status.state is State.PRE:
         embed.add_field(
             name="Starts",
-            value=f"{format_dt(event.date, 'F')} ({format_dt(event.date, 'R')})",
+            value=starts(event),
             inline=False,
         )
         if venue := _venue(event):
@@ -1425,6 +1451,7 @@ __all__ = [
     "SUMMARY_SPORTS",
     "Directory",
     "called_back",
+    "date_known",
     "credit",
     "GameUpdate",
     "event_choice",
@@ -1444,6 +1471,7 @@ __all__ = [
     "score_line",
     "scoreboard_embed",
     "standings_embed",
+    "starts",
     "team_colour",
     "thread_name",
     "truncate",

@@ -15,6 +15,7 @@ night's game. ESPN served them on 2026-11-16, or at the time given. Each path be
 | `scoreboard-football-nfl.json` | `site/v2/sports/football/nfl/scoreboard`, 20:18 UTC | Two finished games and Monday night's, before kickoff |
 | `scoreboard-football-nfl-live.json` | `site/v2/sports/football/nfl/scoreboard`, 2026-11-17 01:32 UTC | Monday night's game in its first quarter, with the down and distance; that game alone |
 | `summary-football-nfl-live.json` | `site/v2/sports/football/nfl/summary?event=401873065`, 2026-11-17 01:33 UTC | The same game's scoring play and first three drives, each drive with only its scoring plays and last play; nothing else of the summary |
+| `scoreboard-football-college-football-2026.json` | `site/v2/sports/football/college-football/scoreboard?dates=2026&limit=1000`, 2026-11-17 20:55 UTC | Three of the year's games: one that night, a playoff game from the 2025 season and an undecided one, the last two dated 1993 |
 | `scoreboard-hockey-nhl.json` | `site/v2/sports/hockey/nhl/scoreboard` | Two of the night's games, before puck drop |
 | `scoreboard-golf-pga.json` | `site/v2/sports/golf/pga/scoreboard`, 20:18 UTC | A final round under way: the top five |
 | `scoreboard-mma-ufc.json` | `site/v2/sports/mma/ufc/scoreboard?dates=202611` | A finished card and the next, three fights of each |

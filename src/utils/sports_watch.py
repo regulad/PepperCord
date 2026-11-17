@@ -46,6 +46,7 @@ from utils.sports import (
     Directory,
     GameUpdate,
     called_back,
+    date_known,
     credit,
     game_message,
     game_updates,
@@ -61,6 +62,9 @@ FIELD: Final = "sports_watches"
 
 PREGAME: Final = timedelta(hours=1)
 """How long before a game starts its message is posted."""
+
+LATE: Final = timedelta(hours=12)
+"""How late a game can be, as one held up by the weather is, and still be posted when it's yet to start."""
 
 FORGET_AFTER: Final = timedelta(hours=18)
 """How long after its message a game is kept once it's off its league's scoreboard."""
@@ -270,13 +274,20 @@ class LeagueWatchStore:
 
 
 def should_post(event: Event, now: datetime) -> bool:
-    """Whether a game a watch hasn't posted yet is due: it starts within the hour, or it's under way."""
+    """Whether a game a watch hasn't posted yet is due: it starts within the hour, or it's under way.
+
+    A game yet to start that ESPN has no date for, or that should have started more than :data:`LATE` ago, isn't.
+    """
     status = event.current_status
     if status is None:
         return False
     if status.state is State.IN:
         return True
-    return status.state is State.PRE and event.date - now <= PREGAME
+    return (
+        status.state is State.PRE
+        and date_known(event)
+        and -LATE <= event.date - now <= PREGAME
+    )
 
 
 def _live(event: Event) -> bool:
@@ -765,14 +776,14 @@ class LeagueWatcher:
         stale = []
         for event_id, game in watch.games.items():
             board = boards.get(game.league)
+            event = board.event(event_id) if board is not None else None
             age = now - game.posted
             if game.league not in watch.leagues or age > KEEP_AT_MOST:
                 stale.append(event_id)
-            elif (
-                board is not None
-                and board.event(event_id) is None
-                and age > FORGET_AFTER
-            ):
+            elif board is not None and event is None and age > FORGET_AFTER:
+                stale.append(event_id)
+            elif event is not None and not _live(event) and not date_known(event):
+                # Posted before it had a date, which ESPN gives it once it's set: it's posted again then.
                 stale.append(event_id)
         await self.store.forget(watch, stale)
 
@@ -782,6 +793,7 @@ __all__ = [
     "FIELD",
     "FORGET_AFTER",
     "KEEP_AT_MOST",
+    "LATE",
     "PREGAME",
     "LeagueWatch",
     "LeagueWatchStore",

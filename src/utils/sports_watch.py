@@ -316,7 +316,7 @@ class LeagueWatcher:
         self.directory = directory
         self.store = store if store is not None else LeagueWatchStore(bot)
         # Each game's latest summary, and the scoreboard's state of the game when its summary last caught up with it,
-        # so a summary is fetched again only when the game has moved on.
+        # so a finished game's summary is fetched again only when the scoreboard has moved on.
         self._summaries: dict[str, Summary] = {}
         self._summarized: dict[str, tuple[str, ...]] = {}
         self._loop = tasks.loop(minutes=1)(self._tick)
@@ -376,7 +376,9 @@ class LeagueWatcher:
 
     async def _summary(self, league: str, event: Event) -> Summary | None:
         state = self._state(event)
-        if self._summarized.get(event.id) == state:
+        # A game under way moves on without its scoreboard changing, as a penalty or a punt does, so its summary is
+        # fetched every minute. A finished game's is fetched until it has caught up with the scoreboard.
+        if not _live(event) and self._summarized.get(event.id) == state:
             return self._summaries.get(event.id)
         sport, slug = parse_key(league)
         try:
@@ -427,8 +429,8 @@ class LeagueWatcher:
             for event in board.events if board is not None else ():
                 events[league].setdefault(event.id, event)
 
-        # Football's, hockey's and baseball's scoring plays are only in each game's summary, which is fetched for games
-        # under way and for those a watch hasn't sent the end of.
+        # Football's, hockey's, baseball's and basketball's plays are only in each game's summary, which is fetched for
+        # games under way and for those a watch hasn't sent the end of.
         unfinished = {
             event_id
             for watch in active

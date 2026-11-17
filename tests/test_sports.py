@@ -4,9 +4,20 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
-from aioespn import Event, League, News, Scoreboard, Sport, Standings, State, Summary
+from aioespn import (
+    Event,
+    League,
+    News,
+    Play,
+    Scoreboard,
+    Sport,
+    Standings,
+    State,
+    Summary,
+)
 from aioespn.scoreboard import Situation, Status, StatusType
 from aioespn.sports import _LeaguesFeed
+from aioespn.summary import SummaryHeader
 from discord import Embed
 
 from utils.commands import UserFacingError
@@ -114,7 +125,7 @@ def test_suggests_featured_leagues_first() -> None:
 
 def test_basketball_game_under_way() -> None:
     game = event("basketball-nba-development-live", "RAP @ CAP")
-    assert not needs_summary(Sport.BASKETBALL, game)
+    assert needs_summary(Sport.BASKETBALL, game)  # for its technical and flagrant fouls
     updates = game_updates(Sport.BASKETBALL, "nba-development", game)
     # The 1st and 2nd quarters have ended, with their scores from each quarter's line score.
     assert [(u.key, u.title, u.score) for u in updates] == [
@@ -216,6 +227,99 @@ def test_football_says_where_the_ball_is() -> None:
     assert game_updates(Sport.FOOTBALL, "nfl", live)[0].line == "LAC 0 – 0 BAL; Kickoff"
     # Between plays ESPN can give no situation at all.
     assert game_updates(Sport.FOOTBALL, "nfl", game)[0].line == "LAC 0 – 0 BAL; Kickoff"
+
+
+def test_football_sends_each_possession_once() -> None:
+    game = scoreboard("football-nfl-live").events[0]
+    summary = Summary.model_validate_json(
+        (FIXTURES / "summary-football-nfl-live.json").read_bytes()
+    )
+    updates = game_updates(Sport.FOOTBALL, "nfl", game, summary)
+    # The punts are sent as they end; the touchdown drive is sent as its scoring play, which says how the drive went.
+    assert [u.key for u in updates] == [
+        "start",
+        "drive:4018730651",
+        "play:401873065309",
+        "drive:4018730653",
+    ]
+    assert [u.line for u in updates[1:]] == [
+        "LAC 0 – 0 BAL; 13:34 - 1st\nBAL: Punt (3 plays, 5 yards, 1:32)\nLAC ball, 1st & 10 at LAC 49",
+        "LAC 7 – 0 BAL; 10:39 - 1st\nLAC: Touchdown (6 plays, 63 yards, 2:49)\nLAC ball, 1st & 10 at LAC 49",
+        "LAC 7 – 0 BAL; 8:57 - 1st\nBAL: Punt (3 plays, 4 yards, 1:42)\nLAC ball, 1st & 10 at LAC 49",
+    ]
+    assert updates[1].title == "Punt: Baltimore Ravens"
+    # Before its summary is fetched, a game has no plays to send.
+    assert [u.key for u in game_updates(Sport.FOOTBALL, "nfl", game)] == ["start"]
+
+
+def play(data: str) -> Play:
+    return Play.model_validate_json(data)
+
+
+def test_hockey_penalties() -> None:
+    game = with_status(
+        event("hockey-nhl", "MTL @ NYR"), "STATUS_IN_PROGRESS", State.IN, period=1
+    )
+    # A penalty from this game's summary, as ESPN served it on 2026-11-17, without its coordinates and headshots.
+    tripping = play(
+        """{"id": "401892726000003490", "sequenceNumber": "95",
+            "type": {"id": "55", "text": "Tripping", "abbreviation": "Tripping", "penaltyMinutes": "2",
+                     "penaltyType": "Minor"},
+            "text": "Jacob Fowler Tripping against Gabe Perreault served by Cole Caufield",
+            "awayScore": 0, "homeScore": 0, "period": {"number": 1, "displayValue": "1st"},
+            "clock": {"displayValue": "18:36"}, "scoringPlay": false, "scoreValue": 0, "team": {"id": "10"}}"""
+    )
+    hit = play(
+        """{"id": "401892726000003480", "type": {"id": "503", "text": "Hit", "abbreviation": "hit"},
+            "text": "A hit", "awayScore": 0, "homeScore": 0, "period": {"number": 1}, "clock": {"displayValue": "19:01"},
+            "scoringPlay": false, "team": {"id": "10"}}"""
+    )
+    summary = Summary(header=SummaryHeader(id=game.id), plays=(hit, tripping))
+    updates = game_updates(Sport.HOCKEY, "nhl", game, summary)
+    assert [u.key for u in updates] == ["start", "play:401892726000003490"]
+    assert updates[1].title == "Tripping: Montreal Canadiens"
+    assert updates[1].line == (
+        "MTL 0 – 0 NYR; 18:36 - 1st\nJacob Fowler Tripping against Gabe Perreault served by Cole Caufield (2 min)"
+    )
+
+
+def test_basketball_technical_and_flagrant_fouls() -> None:
+    game = event("basketball-nba-development-live", "RAP @ CAP")
+
+    def foul(number: int, kind: str, text: str) -> Play:
+        return play(
+            f"""{{"id": "40191455900{number}", "type": {{"id": "{number}", "text": "{kind}"}}, "text": "{text}",
+                 "awayScore": 70, "homeScore": 60, "period": {{"number": 3}}, "clock": {{"displayValue": "10:00"}},
+                 "team": {{"id": "{game.competitions[0].competitors[0].id}"}}}}"""
+        )
+
+    plays = (
+        foul(1, "Shooting Foul", "A shooting foul"),
+        foul(2, "Technical Foul", "Alperen Sengun technical foul"),
+        foul(
+            3,
+            "Defensive 3-Seconds Technical",
+            "Jayson Tatum defensive 3-seconds (technical foul)",
+        ),
+        foul(4, "Free Throw - Technical", "Desmond Bane makes technical free throw"),
+        foul(5, "Flagrant Foul Type 1", "Some flagrant foul type 1"),
+        foul(6, "Personal Foul", "Someone personal foul, and is ejected"),
+    )
+    summary = Summary(header=SummaryHeader(id=game.id), plays=plays)
+    misconduct = [
+        u
+        for u in game_updates(Sport.BASKETBALL, "nba-development", game, summary)
+        if u.key.startswith("play:")
+    ]
+    assert [u.key for u in misconduct] == [
+        "play:401914559002",
+        "play:401914559005",
+        "play:401914559006",
+    ]
+    assert (
+        misconduct[0].line
+        == "RAP 70 – 60 CAP; 10:00 - 3rd\nAlperen Sengun technical foul"
+    )
 
 
 def test_baseball_scoring_plays_and_final() -> None:

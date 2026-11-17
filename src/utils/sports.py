@@ -24,6 +24,7 @@ from aioespn import (
     Summary,
 )
 from aioespn.scoreboard import Grouping
+from aioespn.summary import Drive
 from aioespn.standings import StandingsEntry
 from discord import Embed
 from discord.utils import format_dt
@@ -83,8 +84,11 @@ FEATURED: Final[tuple[str, ...]] = (
 )
 """The leagues suggested before anything is typed, and preferred when a name matches several."""
 
-SUMMARY_SPORTS: Final = frozenset({Sport.FOOTBALL, Sport.HOCKEY, Sport.BASEBALL})
-"""Sports whose scoring plays are only in a game's summary."""
+SUMMARY_SPORTS: Final = frozenset(
+    {Sport.FOOTBALL, Sport.HOCKEY, Sport.BASEBALL, Sport.BASKETBALL}
+)
+"""Sports whose threads need each game's summary: football's scores and possessions, hockey's goals and penalties,
+baseball's runs and basketball's technical and flagrant fouls are only there."""
 
 DETAIL_SPORTS: Final = frozenset({Sport.SOCCER, Sport.RUGBY, Sport.RUGBY_LEAGUE})
 """Sports whose scoreboards list each goal, try and card."""
@@ -293,6 +297,8 @@ class GameUpdate:
     """When in the game it happened, such as "2nd quarter, 4:31" or "24'"."""
     moment: str | None = None
     """When in the game it happened as ESPN puts it in brief, such as "4:31 - 2nd", "End of 1st" or "Final"."""
+    note: str | None = None
+    """What happened, where the score doesn't say: a penalty, a foul, a red card or how a possession ended."""
     situation: str | None = None
     """Who has the ball and where, in football, as the update is sent, such as "BAL ball, 1st & 10 at BAL 23"."""
     colour: int | None = None
@@ -303,6 +309,8 @@ class GameUpdate:
         else what happened."""
         if self.score is not None:
             line = f"{self.score}; {self.moment or self.title}"
+            if self.note is not None:
+                line += f"\n{self.note}"
         elif self.moment is not None:
             line = f"{self.title}; {self.moment}"
         elif self.description:
@@ -331,7 +339,7 @@ class GameUpdate:
 
 
 def needs_summary(sport: Sport, event: Event) -> bool:
-    """Whether the event's updates need its summary: football's, hockey's and baseball's scoring plays are only there."""
+    """Whether the event's updates need its summary, as football's, hockey's, baseball's and basketball's do."""
     status = event.current_status
     return (
         sport in SUMMARY_SPORTS and status is not None and status.state is not State.PRE
@@ -478,7 +486,9 @@ def _play_update(
     play: Play,
     key: str,
     score: str | None,
+    note: str | None = None,
 ) -> GameUpdate:
+    """An update for a play: a score, or with ``note`` saying what happened, a play that didn't score."""
     sides = _sides(competition)
     team = _competitor(competition, play.team.id if play.team is not None else None)
     kind = play.type.text if play.type is not None and play.type.text else "Score"
@@ -497,8 +507,116 @@ def _play_update(
         score=score,
         when=_when(sport, regulation, play),
         moment=_moment(sport, regulation, play),
+        note=note,
         colour=team_colour(team),
     )
+
+
+def _misconduct(play: Play) -> bool:
+    """Whether a basketball play is a technical or flagrant foul or an ejection, rather than a routine foul.
+
+    A defensive three-seconds violation is a technical too, but as routine as any foul, and isn't counted.
+    """
+    kind = (play.type.text or "").casefold() if play.type is not None else ""
+    if any(
+        routine in kind
+        for routine in ("free throw", "3-second", "three second", "delay")
+    ):
+        return False
+    return (
+        any(word in kind for word in ("technical", "flagrant", "eject"))
+        or "ejected" in (play.text or "").casefold()
+    )
+
+
+def _penalty(play: Play) -> str | None:
+    """A hockey penalty, as a note, such as "Jacob Fowler Tripping against Gabe Perreault (2 min)"."""
+    if play.type is None or not play.type.is_penalty:
+        return None
+    text = play.text or play.type.text or "Penalty"
+    return (
+        f"{text} ({play.type.penalty_minutes} min)"
+        if play.type.penalty_minutes
+        else text
+    )
+
+
+def _football(
+    competition: Competition, summary: Summary
+) -> Iterator[tuple[int, GameUpdate]]:
+    """Football's scoring plays and the end of each possession that didn't score, in order.
+
+    Each scoring play says how the possession it ended went, so each possession is sent once.
+    """
+    sides = _sides(competition)
+    regulation = REGULATION[Sport.FOOTBALL]
+    drives = summary.drives.previous if summary.drives is not None else ()
+    current = summary.drives.current if summary.drives is not None else None
+    # The drive under way is listed among the finished ones too, without a result.
+    by_id = {
+        drive.id: drive
+        for drive in (*drives, *((current,) if current else ()))
+        if drive.id
+    }
+    drive_of = {
+        play.id: drive for drive in by_id.values() for play in drive.plays if play.id
+    }
+
+    def note(drive: Drive, result: str) -> str:
+        team = _competitor(competition, drive.team.id if drive.team else None)
+        who = (
+            _abbreviation(team)
+            if team
+            else drive.team.abbreviation if drive.team else None
+        )
+        text = f"{who}: {result}" if who else result
+        return f"{text} ({drive.description})" if drive.description else text
+
+    ordered: list[tuple[int, int, GameUpdate]] = []
+    for play in summary.scoring_plays:
+        if play.id is None:
+            continue
+        drive = drive_of.get(play.id)
+        result = (drive.display_result or "Score") if drive else None
+        update = _play_update(
+            Sport.FOOTBALL,
+            regulation,
+            competition,
+            play,
+            f"play:{play.id}",
+            None,
+            note(drive, result) if drive and result else None,
+        )
+        period = play.period.number if play.period is not None else None
+        ordered.append((period or 0, int(play.id) if play.id.isdigit() else 0, update))
+
+    for drive in by_id.values():
+        result = drive.display_result or drive.result
+        if not result or drive.is_score or not drive.plays or drive.id is None:
+            continue
+        if result.casefold().startswith("end of"):
+            continue  # the end of the half or game says it
+        last = drive.plays[-1]
+        team = _competitor(competition, drive.team.id if drive.team else None)
+        score = None
+        if sides and last.away_score is not None and last.home_score is not None:
+            score = _line(sides, last.away_score, last.home_score)
+        update = GameUpdate(
+            key=f"drive:{drive.id}",
+            title=f"{result}: {team.display_name}" if team else result,
+            description=drive.description,
+            score=score,
+            when=_when(Sport.FOOTBALL, regulation, last),
+            moment=_moment(Sport.FOOTBALL, regulation, last),
+            note=note(drive, result),
+            colour=team_colour(team),
+        )
+        period = last.period.number if last.period is not None else None
+        order = int(last.id) if last.id and last.id.isdigit() else 0
+        ordered.append((period or 0, order, update))
+
+    for period, _, update in sorted(ordered, key=lambda item: item[:2]):
+        yield period, update
 
 
 def _detail_key(play: Play) -> str:
@@ -515,13 +633,28 @@ def _plays(
 ) -> Iterator[tuple[int, GameUpdate]]:
     """The game's scoring plays, and soccer's and rugby's red cards, each with the period it was in."""
     regulation = _regulation(sport, league, competition)
-    if sport in SUMMARY_SPORTS:
-        for play in summary.scoring_summary if summary is not None else ():
+    if sport is Sport.FOOTBALL:
+        if summary is not None:
+            yield from _football(competition, summary)
+    elif sport in SUMMARY_SPORTS:
+        if summary is None:
+            return
+        if sport is Sport.HOCKEY:
+            # Goals and penalties, in the order they happened.
+            plays = [p for p in summary.plays if p.is_scoring or _penalty(p)]
+        elif sport is Sport.BASKETBALL:
+            plays = [p for p in summary.plays if _misconduct(p)]
+        else:
+            plays = list(summary.scoring_summary)
+        for play in plays:
             if play.id is None:
                 continue
             period = play.period.number if play.period is not None else None
+            note = _penalty(play) if sport is Sport.HOCKEY else None
+            if sport is Sport.BASKETBALL:
+                note = play.text or (play.type.text if play.type else None)
             yield period or 0, _play_update(
-                sport, regulation, competition, play, f"play:{play.id}", None
+                sport, regulation, competition, play, f"play:{play.id}", None, note
             )
     elif sport in DETAIL_SPORTS:
         sides = _sides(competition)
@@ -536,23 +669,22 @@ def _plays(
                 scoring = kind in RUGBY_SCORES
             if not (scoring or play.red_card or kind == "red card"):
                 continue
-            score = None
+            score = note = None
             team = play.team.id if play.team is not None else None
             # Soccer's details add up to the score, each goal counting for the team it was scored for.
-            if (
-                sport is Sport.SOCCER
-                and scoring
-                and sides
-                and team is not None
-                and team in goals
-            ):
-                goals[team] += 1
+            if sport is Sport.SOCCER and sides:
+                if scoring and team is not None and team in goals:
+                    goals[team] += 1
                 ids = [c.team.id if c.team else c.id for c in sides]
                 score = _line(sides, goals[ids[0]], goals[ids[1]])
+                if not scoring:
+                    card = _competitor(competition, team)
+                    names = _describe(play)
+                    note = f"Red card: {names or ''}{f' ({_abbreviation(card)})' if card else ''}".strip()
             clock = play.clock.value if play.clock is not None else None
             period = 1 if clock is None or clock < HALF_SECONDS[sport] else 2
             yield period, _play_update(
-                sport, regulation, competition, play, _detail_key(play), score
+                sport, regulation, competition, play, _detail_key(play), score, note
             )
 
 

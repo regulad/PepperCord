@@ -14,6 +14,7 @@ from uuid import uuid4
 import pytest
 from aioespn import ESPNClient, Event, Scoreboard, State, Summary
 from aioespn.scoreboard import Status, StatusType
+from aioespn.summary import SummaryHeader
 from discord import Embed, Forbidden, Guild, HTTPException, NotFound, TextChannel
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
@@ -174,7 +175,8 @@ class FakeClient:
 
     async def summary(self, sport: str, slug: str, event_id: str) -> Summary:
         self.requests.append(("summary", f"{sport}/{slug}", event_id))
-        return self.summaries[event_id]
+        # A game without a set summary has one with no plays, as a game just begun does.
+        return self.summaries.get(event_id, Summary(header=SummaryHeader(id=event_id)))
 
 
 class FakeStore(LeagueWatchStore):
@@ -449,6 +451,20 @@ async def test_fetches_a_summary_only_when_the_game_moves_on() -> None:
         ("summary", MLB, game.id)
     ]
     assert len(bot.threads[77].sent) == 6
+
+
+async def test_fetches_a_live_games_summary_every_minute() -> None:
+    # A foul or a penalty doesn't change the scoreboard, so a game under way is read again each minute regardless.
+    game = live_game()
+    watcher, _, client, _ = setup(
+        G_LEAGUE, games=posted(game.id, G_LEAGUE, 77, NOW, "start")
+    )
+    client.boards[G_LEAGUE] = Scoreboard(events=(game,))
+    await watcher.dispatch(NOW)
+    await watcher.dispatch(NOW + timedelta(minutes=1))
+    assert [r for r in client.requests if r[0] == "summary"] == [
+        ("summary", G_LEAGUE, game.id)
+    ] * 2
 
 
 async def test_posts_nothing_for_paused_watches_but_still_forgets() -> None:

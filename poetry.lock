@@ -34,8 +34,8 @@ yarl = ">=1.9,<2"
 [package.source]
 type = "git"
 url = "https://github.com/regulad/aioespn.git"
-reference = "cf915a1d831878a07d72a90de2c646b8bd845d45"
-resolved_reference = "cf915a1d831878a07d72a90de2c646b8bd845d45"
+reference = "b80aa3b67a523c74c064c194422cb7a077ee9857"
+resolved_reference = "b80aa3b67a523c74c064c194422cb7a077ee9857"
 
 [[package]]
 name = "aiofiles"
@@ -4857,4 +4857,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.15.2"
-content-hash = "3d747f17380469d44a7e6dd37e27655ad32a26dec37bcb8dc64b0370574e8cbf"
+content-hash = "7f0f6810d4bdc1897b5c9813338546b7a78257aa5545304ce5bfd41bda93b09e"

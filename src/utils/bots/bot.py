@@ -1,5 +1,5 @@
 import logging
-from asyncio import Semaphore
+from asyncio import Semaphore, sleep, timeout
 from collections import deque
 from os import getcwd, listdir
 from os.path import isdir, join, splitext
@@ -17,7 +17,9 @@ from typing import (
 import discord
 import sentry_sdk
 from aiofiles import open as aopen
+from aiohttp import ClientError
 from discord import (
+    DiscordServerError,
     Interaction,
     Member,
     Emoji,
@@ -35,6 +37,11 @@ from .context import CustomContext
 logger: logging.Logger = logging.getLogger(__name__)
 
 ContextT = TypeVar("ContextT", bound="Context[Any]")
+
+# discord.py retries the gateway through network failures, but an error from a request in setup_hook ends bot.start, and
+# a stalled request first waits out aiohttp's five-minute default. These bound the emoji fetch instead.
+EMOJI_FETCH_TIMEOUT: float = 30
+EMOJI_FETCH_ATTEMPTS: int = 4
 
 
 # In the past, I used to maintain a version of the custom bot that used the AutoShardedMixin backend.
@@ -142,7 +149,10 @@ class CustomBot(Bot):
 
         Application emojis belong to the bot itself, so they work in every guild and DM without a server to host them.
         """
-        emojis = {emoji.name: emoji for emoji in await self.fetch_application_emojis()}
+        emojis = {
+            emoji.name: emoji
+            for emoji in await self._fetch_application_emojis_with_retries()
+        }
 
         emoji_directory = join(getcwd(), "resources", "emojis")
         if not isdir(emoji_directory):
@@ -161,7 +171,7 @@ class CustomBot(Bot):
                     emojis[name] = await self.create_application_emoji(
                         name=name, image=image
                     )
-                except discord.HTTPException:
+                except (discord.HTTPException, ClientError, TimeoutError):
                     # Emojis are decoration, so a failed upload shouldn't stop the bot from starting.
                     logger.exception(f"Failed to upload application emoji {name}.")
                 else:
@@ -169,6 +179,28 @@ class CustomBot(Bot):
 
         self._application_emojis = emojis
         logger.info(f"{len(emojis)} application emojis are available.")
+
+    async def _fetch_application_emojis_with_retries(self) -> list[Emoji]:
+        """
+        Fetch the application's emojis, trying again when the network or Discord fails.
+
+        Each attempt gets EMOJI_FETCH_TIMEOUT seconds. Once EMOJI_FETCH_ATTEMPTS have failed, the last error is raised,
+        which ends bot.start and the process, so the container restarts the bot.
+        """
+        attempt = 1
+        while True:
+            try:
+                async with timeout(EMOJI_FETCH_TIMEOUT):
+                    return await self.fetch_application_emojis()
+            except (ClientError, TimeoutError, DiscordServerError) as error:
+                if attempt >= EMOJI_FETCH_ATTEMPTS or self.is_closed():
+                    raise
+                delay = 2**attempt
+                logger.warning(
+                    f"Couldn't fetch the application emojis ({error!r}), so trying again in {delay} seconds."
+                )
+                await sleep(delay)
+                attempt += 1
 
     def get_custom_emoji(self, emoji_filename: str) -> Emoji | None:
         """Gets one of the bot's application emojis by its file name in resources/emojis, with or without the extension."""

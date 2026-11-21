@@ -9,7 +9,7 @@ import logging
 import os
 from asyncio import run, gather, AbstractEventLoop, get_event_loop
 import signal
-from typing import Any, Sequence
+from typing import Sequence
 
 from discord import Intents, Object, Game, Forbidden
 from dotenv import load_dotenv
@@ -33,8 +33,15 @@ logging.getLogger("pymongo").setLevel(logging.WARNING)
 logging.getLogger("PIL").setLevel(logging.WARNING)
 
 
-async def async_main(shutdown_event: asyncio.Event) -> None:
+async def async_main() -> None:
     event_loop: AbstractEventLoop = get_event_loop()
+
+    # Either signal shuts the bot down gracefully: SIGINT from a shell, SIGTERM from podman stopping the container.
+    # Handlers added through the loop wake it; one set with signal.signal isn't seen until the loop next wakes for
+    # something else, and podman kills the container ten seconds after SIGTERM.
+    shutdown_event = asyncio.Event()
+    for signum in (signal.SIGINT, signal.SIGTERM):
+        event_loop.add_signal_handler(signum, shutdown_event.set)
 
     if os.path.exists(".env"):
         load_dotenv()
@@ -149,13 +156,4 @@ async def async_main(shutdown_event: asyncio.Event) -> None:
 
 
 if __name__ == "__main__":
-    shutdown_event = asyncio.Event()
-
-    def do_term(signum: Any, frame: Any) -> None:
-        shutdown_event.set()
-
-    if os.path.exists("/.dockerenv"):
-        # We're in docker, so instead of SIGINT signalling a safe shutdown like in a shell we need to listen for SIGTERM.
-        signal.signal(signal.SIGTERM, do_term)
-    signal.signal(signal.SIGINT, do_term)
-    run(async_main(shutdown_event))
+    run(async_main())

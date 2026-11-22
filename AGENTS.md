@@ -21,12 +21,11 @@ Read this before changing anything here. PepperCord is a discord.py bot; Parker 
 - A hint lost that way, or an update cut off by a reboot, is picked up by the hosts' daily `podman-auto-update` run, so a bot can lag a deploy by up to a day. Parker chose to accept that on 2026-11-16; don't add longer retries or post-deploy verification to the pipeline for it.
 - Treat a reviewer's or subagent's findings as leads. Read the code and confirm each before changing anything.
 
-## Commit messages and comments
+## Commit messages
 
 - The subject says what changes in behaviour, in the imperative. The body says what was wrong and why, wrapped at 120 columns like the existing history.
 - When a commit fixes an issue already in Sentry, search Sentry first and add `Fixes PEPPERCORD-N` to the body; the release job then resolves it when the fix ships. The Sentry access agents have had so far is read-only, so it can't resolve issues through the API.
-- A commit an AI agent drafted ends with a `Co-Authored-By` trailer for its model, such as `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- A comment an AI agent posts on a GitHub issue or pull request ends with a rule and a footer naming its model: `\n\n---\n\n_Drafted by Claude Opus 5.5._`.
+- If a fix shipped without its `Fixes` line, list the issues and the release (its full SHA) for Parker to resolve by hand in Sentry (Resolve → In release).
 
 ## Checks
 

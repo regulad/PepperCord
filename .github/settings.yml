@@ -1,14 +1,32 @@
-# These settings are synced to GitHub by https://probot.github.io/apps/settings/
+# Repository configuration, managed by the Settings app
+# (https://github.com/repository-settings/app). The shared defaults come from
+# regulad/.github; this file sets only what is this repository's own.
+_extends: .github
 
 repository:
-  # See https://docs.github.com/en/rest/reference/repos#update-a-repository for all available settings.
-
-  # Either `true` to make the repository private, or `false` to make it public.
+  name: PepperCord
+  description: >-
+    Multi-Purpose Discord bot chock full of functions, including music, Minecraft, and heaps more
+  homepage: https://regulad.github.io/PepperCord/
   private: false
+  # Topics: comma-and-space separated string, NOT a YAML list.
+  topics: discord, discord-py, discord-bot, python, python3
+  default_branch: main
 
-  # Either `true` to allow auto-merge on pull requests, or `false` to disallow auto-merge.
   # workflows/dependabot-auto-merge.yml turns it on for Dependabot's grouped minor and patch updates.
   allow_auto_merge: true
+
+labels:
+  # Dependabot's ecosystem labels, on its pull requests.
+  - name: python
+    color: "2b67c6"
+    description: Pull requests that update Python code
+  - name: docker
+    color: "21ceff"
+    description: Pull requests that update Docker code
+  - name: docker_compose
+    color: "E5F2FC"
+    description: Pull requests that update docker_compose code
 
 branches:
   - name: main

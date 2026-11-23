@@ -31,3 +31,14 @@ repos:
     hooks:
       - id: poetry-check
   #    - id: poetry-lock  # broken on pre-commit.ci
+
+  # A TODO or FIXME names its GitHub issue, as TODO(#123). Markdown and this
+  # file use the words without being sentinels.
+  - repo: local
+    hooks:
+      - id: todo-needs-issue
+        name: TODO and FIXME name an issue, as TODO(#N)
+        language: pygrep
+        entry: '\b(TODO|FIXME)\b(?!\(#\d+\))'
+        exclude_types: [markdown]
+        exclude: '^\.pre-commit-config\.yaml$'

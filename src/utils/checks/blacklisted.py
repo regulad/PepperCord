@@ -20,10 +20,10 @@ async def is_blacklisted(ctx: Context[Any]) -> bool:
             ctx.guild is not None
             and bool(
                 await ctx["guild_document"].safe_get("blacklisted", False)
-            )  # TODO: NamedDict compliance
+            )  # TODO(#155): typed document fields
             or bool(
                 await ctx["author_document"].safe_get("blacklisted", False)
-            )  # TODO: NamedDict compliance
+            )  # TODO(#155): typed document fields
         )
     else:
         return False

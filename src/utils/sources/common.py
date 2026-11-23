@@ -18,8 +18,8 @@ YTDL_AUDIO_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
         "no_warnings": True,
         "default_search": "auto",
         "source_address": "0.0.0.0",
-        # bind to ipv4 since ipv6 addresses cause issues sometimes
-        # TODO: Why do we need to bind to ipv4 listener only?
+        # yt-dlp's --force-ipv4. Its maintainers list IPv6 among the causes of YouTube's HTTP 403s:
+        # https://github.com/yt-dlp/yt-dlp/issues/17103#issuecomment-4920973194
         "outtmpl_na_placeholder": "m4a",  # default to m4a if we have no idea what something is
     }
 )

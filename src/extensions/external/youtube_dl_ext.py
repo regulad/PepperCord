@@ -61,8 +61,7 @@ YTDL_DOWNLOAD_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
         "quiet": True,
         "no_warnings": True,
         "default_search": "auto",
-        "source_address": "0.0.0.0",  # bind to ipv4 since ipv6 addresses cause issues sometimes
-        # TODO: Why do we need to bind to ipv4 listener only?
+        "source_address": "0.0.0.0",  # yt-dlp's --force-ipv4: see utils/sources/common.py
         "outtmpl_na_placeholder": "mp4",  # default to mp4 if we have no idea what something is
     }
 )

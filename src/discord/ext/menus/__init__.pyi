@@ -66,7 +66,7 @@ _SkipIfCallback = Callable[[Any], bool]
 
 class Button[
     _BotT: commands.Bot, _ContextT: commands.Context[Any], _MenuT: Menu[Any, Any]
-]:  # TODO: _ContextT is really commands.Context[_BotT], _MenuT is really Menu[_BotT, _ContextT]
+]:  # _ContextT is really commands.Context[_BotT], _MenuT is really Menu[_BotT, _ContextT]
     emoji: discord.PartialEmoji
     position: Position
     lock: bool
@@ -103,7 +103,8 @@ def button[_F: Callable[..., Awaitable[Any]]](
     **kwargs: Any,
 ) -> Callable[[_F], _F]: ...
 
-# TODO: There is no way to make a typevar that is dependent on another typevar, unfortunately.
+# A type parameter's bound can't use another type parameter, so the bounds in this stub are looser than the real types:
+# https://typing.python.org/en/latest/spec/generics.html#type-variables-with-an-upper-bound
 class Menu[
     _BotT: commands.Bot, _ContextT: commands.Context[Any]
 ]:  # _ContextT's Any generic is really _BotT
@@ -173,13 +174,13 @@ class PageSource[_PageT, _MenuPagesT: MenuPages[Any, Any, Any]]:
         page: _PageT,
     ) -> Union[
         str, discord.Embed, Dict[str, Any]
-    ]: ...  # TODO: Dict[str, Any] is the kwargs to discord.abc.Messageable.send
+    ]: ...  # Dict[str, Any] is keyword arguments for both Messageable.send and Message.edit
 
 class MenuPages[
     _BotT: commands.Bot, _ContextT: commands.Context[Any], _Source: PageSource[Any, Any]
 ](
     Menu[_BotT, _ContextT]
-):  # TODO: _ContextT is really commands.Context[_BotT], _Source: PageSource[Any, Self]
+):  # _ContextT is really commands.Context[_BotT], _Source is really PageSource[Any, Self]
     current_page: int
 
     def __init__(self, source: _Source, **kwargs: Any) -> None: ...

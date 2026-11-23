@@ -80,7 +80,7 @@ class _DefaultSendHandler(SendHandler):
 
 
 class CustomContext(Context["CustomBot"]):
-    def __init__(self, **kwargs: Any):  # TODO: fix passthrough kwargs
+    def __init__(self, **kwargs: Any):  # TODO(#152): fix passthrough kwargs
         self._custom_state: Dict[str, Any] = {}
         self.send_handler: SendHandler = _DefaultSendHandler(self)
         # A NoOpSpan rather than a Transaction when tracing is off, so typed as their common base.
@@ -227,12 +227,12 @@ class CustomContext(Context["CustomBot"]):
 
     def send(
         self, *args: Any, **kwargs: Any
-    ) -> Coroutine[Any, Any, Message]:  # TODO: Fix passthrough kwargs
+    ) -> Coroutine[Any, Any, Message]:  # TODO(#152): Fix passthrough kwargs
         return self.send_handler.send(*args, **kwargs)
 
     def send_bare(
         self, *args: Any, **kwargs: Any
-    ) -> Coroutine[Any, Any, Message]:  # TODO: Fix passthrough kwargs
+    ) -> Coroutine[Any, Any, Message]:  # TODO(#152): Fix passthrough kwargs
         return super().send(*args, **kwargs)
 
 

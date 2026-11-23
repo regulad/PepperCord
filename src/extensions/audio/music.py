@@ -20,14 +20,14 @@ from utils.validators import str_is_url
 
 MS_TRACK_LENGTH_LIMIT = (
     datetime.timedelta(hours=1, minutes=30).total_seconds() * 1000
-)  # TODO: make more robust
+)  # TODO(#151): make more robust
 
 
 async def too_long_to_download_checker(ytdlinfo: YTDLInfo) -> bool:
     # True downloads the whole track before playing it. That's the default because the older stream-only player
     # sometimes dropped a stream a few minutes in. Tracks over MS_TRACK_LENGTH_LIMIT, and livestreams (which have no
     # duration and would never finish downloading), are streamed instead. That streaming path is untested: until
-    # 8a12308 this check never fired, so every track was downloaded. See TODO.md.
+    # 8a12308 this check never fired, so every track was downloaded. See #151.
     duration = ytdlinfo.get("duration")
     return duration is not None and duration * 1000 < MS_TRACK_LENGTH_LIMIT
 
@@ -80,7 +80,7 @@ class Music(Cog):
                 # Now, we only do it if there's an existing queue so the user immediately sees what they added.
                 await sleep(
                     0.050
-                )  # TODO: bodge # Sleep 50ms so the queue has some time to process what we just added to it
+                )  # TODO(#153): bodge # Sleep 50ms so the queue has some time to process what we just added to it
                 if not ctx.voice_client.queue.empty():
                     # The queue isn't empty, so we need to send the user some feedback about what they just queued
                     await AudioSourceMenu(

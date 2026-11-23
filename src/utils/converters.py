@@ -1,4 +1,4 @@
-def duration_to_str(seconds: int) -> str:  # TODO: Make this take a timedelta.
+def duration_to_str(seconds: int) -> str:  # TODO(#154): Make this take a timedelta.
     """Takes in a duration in seconds and returns a fancy string."""
 
     minutes, seconds = divmod(seconds, 60)

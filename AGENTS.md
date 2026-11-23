@@ -98,7 +98,7 @@ Pull requests (Dependabot's) must pass `lint`, `type`, `test`, `image (linux/amd
 
 ### Audio
 
-- Tracks up to 90 minutes download before they play, because the older stream-only player sometimes dropped streams a few minutes in. Longer tracks and livestreams stream, a path untested since 8a12308; `TODO.md` tracks it.
+- Tracks up to 90 minutes download before they play, because the older stream-only player sometimes dropped streams a few minutes in. Longer tracks and livestreams stream, a path untested since 8a12308; [#151](https://github.com/regulad/PepperCord/issues/151) tracks it.
 
 ### Shared code
 

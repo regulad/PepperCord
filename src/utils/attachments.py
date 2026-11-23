@@ -1,8 +1,11 @@
-from typing import Optional, Tuple, Union, TYPE_CHECKING, cast
+from typing import Final, Optional, Tuple, Union, TYPE_CHECKING, cast
 
 import discord
 
 from utils.bots.bot import CustomBot
+
+HISTORY_SEARCH_LIMIT: Final = 50
+"""How many of the channel's earlier messages find_url_recurse searches for media, when the message has none."""
 
 
 class NoMedia(Exception):
@@ -81,7 +84,7 @@ async def find_url_recurse(
         return await find_url(message, bot)
     except NoMedia:
         async for message in message.channel.history(
-            before=message.created_at, limit=50  # TODO: extract magic number
+            before=message.created_at, limit=HISTORY_SEARCH_LIMIT
         ):
             try:
                 return await find_url(message, bot)

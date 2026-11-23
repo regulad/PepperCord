@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Sequence
 from discord import Embed, Message, PCMVolumeTransformer, VoiceClient
 import discord
 from discord.app_commands import describe
@@ -91,13 +91,12 @@ class AudioSourceMenu(_AudioSourceMenu_Base):
         source: EnhancedSource,
         client: CustomVoiceClient,
         do_invoker_mention: bool = True,
-        **kwargs: Any,  # TODO: improve kwarg passthrough
     ) -> None:
         self.source: EnhancedSource = source
         self.client: CustomVoiceClient = client
         self._do_invoker_mention = do_invoker_mention
 
-        super().__init__(**kwargs)
+        super().__init__()
 
     async def send_initial_message(
         self, ctx: CustomContext, channel: discord.abc.Messageable

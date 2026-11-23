@@ -93,13 +93,11 @@ else:
 
 
 class ErrorMenu(_ErrorMenu_Base):
-    def __init__(
-        self, error: Exception, *, event_id: str | None = None, **kwargs: Any
-    ) -> None:  # TODO: better kwarg passthrough
+    def __init__(self, error: Exception, *, event_id: str | None = None) -> None:
         self.error = error
         self.event_id = event_id
 
-        super().__init__(**kwargs)
+        super().__init__()
 
     async def send_initial_message(
         self, ctx: CustomContext, channel: discord.abc.Messageable

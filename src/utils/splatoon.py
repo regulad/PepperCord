@@ -174,7 +174,6 @@ class ScheduleSelectionMenu(Select["ScheduleView"]):
         ctx: CustomContext,
         data: list[TimeSlotData],
         mode: str,
-        **attrs: Any,  # TODO: better passthrough kwargs
     ) -> None:
         self.cog = cog
         self.ctx: CustomContext = ctx
@@ -195,7 +194,6 @@ class ScheduleSelectionMenu(Select["ScheduleView"]):
             options=options,
             min_values=1,
             max_values=1,
-            **attrs,
         )
 
     async def callback(self, interaction: Interaction) -> None:
@@ -210,9 +208,7 @@ class ScheduleSelectionMenu(Select["ScheduleView"]):
 
 
 class ModeSelectionMenu(Select["ScheduleView"]):
-    def __init__(
-        self, cog: SplatoonCog, ctx: CustomContext, **attrs: Any
-    ) -> None:  # TODO: better kwarg passthrough
+    def __init__(self, cog: SplatoonCog, ctx: CustomContext) -> None:
         self.cog = cog
         self.ctx = ctx
 
@@ -225,7 +221,6 @@ class ModeSelectionMenu(Select["ScheduleView"]):
             options=options,
             min_values=1,
             max_values=1,
-            **attrs,
         )
 
     async def callback(self, interaction: Interaction) -> None:
@@ -243,7 +238,6 @@ class SplatfestSelectionMenu(Select["SplatfestView"]):
         ctx: CustomContext,
         data: list[SplatfestData],
         region: str,
-        **attrs: Any,  # TODO: Better kwarg passthrough
     ) -> None:
         self.cog = cog
         self.ctx: CustomContext = ctx
@@ -265,7 +259,6 @@ class SplatfestSelectionMenu(Select["SplatfestView"]):
             options=options,
             min_values=1,
             max_values=1,
-            **attrs,
         )
 
     async def callback(self, interaction: Interaction) -> None:
@@ -286,13 +279,12 @@ class ScheduleView(View):
         ctx: CustomContext,
         data: list[TimeSlotData],
         mode: str,
-        **attrs: Any,  # TODO: Better kwarg passthrough
     ) -> None:
         self.ctx: CustomContext = ctx
         self.data: list[TimeSlotData] = data
         self.game: str = mode
 
-        super().__init__(**attrs)
+        super().__init__()
 
         self.add_item(ScheduleSelectionMenu(cog, ctx, data, mode))
         self.add_item(ModeSelectionMenu(cog, ctx))
@@ -305,13 +297,12 @@ class SplatfestView(View):
         ctx: CustomContext,
         data: list[SplatfestData],
         region: str,
-        **attrs: Any,  # TODO: Better kwarg passthrough
     ) -> None:
         self.ctx: CustomContext = ctx
         self.data: list[SplatfestData] = data
         self.game: str = region
 
-        super().__init__(**attrs)
+        super().__init__()
 
         self.add_item(SplatfestSelectionMenu(cog, ctx, data, region))
 
@@ -333,7 +324,7 @@ async def stack_images(session: ClientSession, urls: Sequence[str]) -> bytes:
 async def tile_four_images(session: ClientSession, urls: Sequence[str]) -> bytes | None:
     """Download four images, such as Salmon Run's weapons, and tile them two by two. None unless there are four."""
     if len(urls) != 4:
-        return None  # TODO: Handle this case (probably for special weapons)
+        return None  # TODO(#156): Handle this case (probably for special weapons)
     pngs = await _download(session, urls)
     loop = get_running_loop()
     top: bytes = await loop.run_in_executor(None, hrz_concat_pngs, pngs[0], pngs[1])

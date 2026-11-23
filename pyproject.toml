@@ -46,7 +46,7 @@ tox-gh-actions = "^3.5.0"
 [tool.poetry.group.type.dependencies]
 mypy = "^2.4.1"
 types-aiofiles = "25.1.0.20261107"  # no semantic versioning
-types-python-dateutil = "2.9.0.20261104"
+types-python-dateutil = "2.9.0.20261116"
 types-pytz = "2026.6.0.20261031"
 
 [tool.mypy]

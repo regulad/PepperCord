@@ -54,7 +54,6 @@ from discord.utils import format_dt, MISSING
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.markdown_tools import bold
-from utils.misc import FrozenDict
 from utils.splatoon import (
     ScheduleView,
     SplatfestData,
@@ -110,7 +109,7 @@ MODES: tuple[MODE_LITERAL, ...] = (
     "Splatfest Battle (Open)",
     "Splatfest Battle (Pro)",
 )
-MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict(
+MODE_COLORS: frozendict[MODE_LITERAL, int] = frozendict(
     {
         "Regular Battle": REGULAR_BATTLE_COLOR,
         "Anarchy Battle (Series)": ANARCHY_BATTLE_COLOR,
@@ -122,7 +121,7 @@ MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict(
         "Splatfest Battle (Pro)": SPLATFEST_UNSTARTED_COLOR,  # special case
     }
 )
-MODE_EMOJI_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict(
+MODE_EMOJI_NAME: frozendict[MODE_LITERAL, str] = frozendict(
     {  # special because weird short names n crap
         "Regular Battle": "regular",
         "Anarchy Battle (Series)": "bankara",
@@ -135,7 +134,7 @@ MODE_EMOJI_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict(
     }
 )
 # The emojis are named after SplatNet's Japanese names for the rules.
-RULE_EMOJI_NAME: FrozenDict[VsRuleKey, str] = FrozenDict(
+RULE_EMOJI_NAME: frozendict[VsRuleKey, str] = frozendict(
     {
         VsRuleKey.TURF_WAR: "turfwar",
         VsRuleKey.SPLAT_ZONES: "area",
@@ -232,7 +231,7 @@ def salmon_run_rotations(
 
 
 # What a channel can watch, and what each topic posts. Discord shows these as the topic's choices.
-TOPICS: FrozenDict[str, str] = FrozenDict(
+TOPICS: frozendict[str, str] = frozendict(
     {
         "regular": "Each new Regular Battle rotation",
         "anarchy-series": "Each new Anarchy Battle (Series) rotation",
@@ -246,7 +245,7 @@ TOPICS: FrozenDict[str, str] = FrozenDict(
         "gear": "SplatNet's brand of the day, and each month's Salmon Run reward gear",
     }
 )
-TOPIC_MODES: FrozenDict[str, MODE_LITERAL] = FrozenDict(
+TOPIC_MODES: frozendict[str, MODE_LITERAL] = frozendict(
     {
         "regular": "Regular Battle",
         "anarchy-series": "Anarchy Battle (Series)",

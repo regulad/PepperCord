@@ -17,7 +17,6 @@ from discord.ext.commands import (
 
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
-from utils.misc import FrozenDict
 from utils.sources.common import YTDLOptionsType
 from utils.sources.ytdl import YTDLInfo
 from utils.validators import str_is_url
@@ -50,7 +49,7 @@ BEST_AUDIO = (
     "/worstaudio[ext=flac]"
 )
 
-YTDL_DOWNLOAD_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
+YTDL_DOWNLOAD_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = frozendict(
     {
         "format": BEST_VIDEO,  # favor MP4s
         "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",

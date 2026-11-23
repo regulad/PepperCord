@@ -1,14 +1,9 @@
 import os
 from typing import (
     Awaitable,
-    Generic,
-    Iterator,
-    Mapping,
-    Any,
     Callable,
     ParamSpec,
     TypeVar,
-    cast,
 )
 
 from discord import Status
@@ -67,35 +62,13 @@ def get_python_modules(basedir: str) -> list[str]:
     ]
 
 
-K = TypeVar("K")
-V = TypeVar("V")
-
-
-class FrozenDict(Mapping[K, V], Generic[K, V]):
-    __slots__ = ("_d",)
-
-    def __init__(
-        self, *args: Any, **kwargs: Any
-    ) -> None:  # TODO: fix bad passthrough typing
-        self._d = cast(Mapping[K, V], dict(*args, **kwargs))
-
-    def __iter__(self) -> Iterator[K]:
-        return iter(self._d)
-
-    def __len__(self) -> int:
-        return len(self._d)
-
-    def __getitem__(self, key: K) -> V:
-        return self._d[key]
-
-
 P = ParamSpec("P")
 R = TypeVar("R")
 
 
 def edit_with_files_send_wrapper(
     send: Callable[P, Awaitable[R]], *args: P.args, **kwargs: P.kwargs
-) -> Awaitable[R]:  # TODO: fix bad passthrough typing
+) -> Awaitable[R]:  # TODO(#152): fix bad passthrough typing
     if "files" in kwargs:
         if kwargs["files"] is not None:
             kwargs["attachments"] = kwargs["files"]
@@ -106,7 +79,6 @@ def edit_with_files_send_wrapper(
 
 
 __all__: list[str] = [
-    "FrozenDict",
     "is_module",
     "get_list_of_files_in_base",
     "get_python_modules",

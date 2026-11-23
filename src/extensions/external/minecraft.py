@@ -45,7 +45,6 @@ from mcstatus.responses import (
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.database import PCDocument
-from utils.misc import FrozenDict
 
 logger = getLogger(__name__)
 
@@ -75,7 +74,7 @@ _DISCORD_ANSI_COLOURS: dict[int, tuple[str, ...]] = {
     36: ("DARK_AQUA", "AQUA", "MATERIAL_DIAMOND"),
     37: ("GRAY", "DARK_GRAY", "MATERIAL_IRON", "MATERIAL_NETHERITE"),
 }
-_DISCORD_ANSI_COLOUR_BY_NAME: FrozenDict[str, int] = FrozenDict(
+_DISCORD_ANSI_COLOUR_BY_NAME: frozendict[str, int] = frozendict(
     {name: code for code, names in _DISCORD_ANSI_COLOURS.items() for name in names}
 )
 

@@ -2,8 +2,6 @@ import random
 from enum import Enum, auto
 from typing import Self, ValuesView, Optional, Mapping
 
-from utils import misc
-
 """
 Some notes on implementation:
 1. Nothing is ever mutable.
@@ -482,7 +480,7 @@ class AnimatronicDifficulty:
     def __init__(
         self,
         night: int = 7,
-        diffs: Mapping[Animatronic, int] = misc.FrozenDict(
+        diffs: Mapping[Animatronic, int] = frozendict(
             {
                 Animatronic.FOXY: Animatronic.FOXY.default_diff,
                 Animatronic.BONNIE: Animatronic.BONNIE.default_diff,
@@ -568,7 +566,7 @@ class LightState:
 class GameState:
     def __init__(
         self,
-        animatronic_positions: Mapping[Animatronic, Room] = misc.FrozenDict(
+        animatronic_positions: Mapping[Animatronic, Room] = frozendict(
             {
                 Animatronic.FOXY: Room.CAM_1_C,
                 Animatronic.BONNIE: Room.CAM_1_A,
@@ -792,7 +790,7 @@ class GameState:
                     )
 
         return self.__class__(
-            misc.FrozenDict(mutable_pos),
+            frozendict(mutable_pos),
             self.door_state,
             self.light_state,
             self.camera_state,

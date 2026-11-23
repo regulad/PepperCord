@@ -33,7 +33,6 @@ from discord.utils import MISSING, format_dt
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.markdown_tools import bold
-from utils.misc import FrozenDict
 from utils.splatoon import (
     ScheduleView,
     SplatfestData,
@@ -74,14 +73,14 @@ MODES: tuple[MODE_LITERAL, ...] = (
     "League Battle",
     "Salmon Run",
 )
-MODE_GAME_MODES: FrozenDict[MODE_LITERAL, GameMode] = FrozenDict(
+MODE_GAME_MODES: frozendict[MODE_LITERAL, GameMode] = frozendict(
     {
         "Regular Battle": GameMode.REGULAR,
         "Ranked Battle": GameMode.RANKED,
         "League Battle": GameMode.LEAGUE,
     }
 )
-MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict(
+MODE_COLORS: frozendict[MODE_LITERAL, int] = frozendict(
     {
         "Regular Battle": REGULAR_BATTLE_COLOR,
         "Ranked Battle": RANKED_BATTLE_COLOR,
@@ -90,7 +89,7 @@ MODE_COLORS: FrozenDict[MODE_LITERAL, int] = FrozenDict(
     }
 )
 # Splatoon 2 shares Splatoon 3's icons for its modes and rules: Ranked Battle became Anarchy Battle.
-MODE_EMOJI_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict(
+MODE_EMOJI_NAME: frozendict[MODE_LITERAL, str] = frozendict(
     {
         "Regular Battle": "regular",
         "Ranked Battle": "bankara",
@@ -98,7 +97,7 @@ MODE_EMOJI_NAME: FrozenDict[MODE_LITERAL, str] = FrozenDict(
         "Salmon Run": "coop",
     }
 )
-RULE_EMOJI_NAME: FrozenDict[Rule, str] = FrozenDict(
+RULE_EMOJI_NAME: frozendict[Rule, str] = frozendict(
     {
         Rule.TURF_WAR: "turfwar",
         Rule.SPLAT_ZONES: "area",
@@ -112,7 +111,7 @@ REGION_LITERAL = Literal["NA", "EU", "JP"]
 DEFAULT_REGION: REGION_LITERAL = "NA"
 
 # What a channel can watch, and what each topic posts. Splatoon 2's Splatfests are over, so there's nothing to watch.
-TOPICS: FrozenDict[str, str] = FrozenDict(
+TOPICS: frozendict[str, str] = frozendict(
     {
         "regular": "Each new Regular Battle rotation",
         "ranked": "Each new Ranked Battle rotation",
@@ -121,7 +120,7 @@ TOPICS: FrozenDict[str, str] = FrozenDict(
         "gear": "Each new item in SplatNet's shop, and each new Salmon Run reward gear",
     }
 )
-TOPIC_MODES: FrozenDict[str, MODE_LITERAL] = FrozenDict(
+TOPIC_MODES: frozendict[str, MODE_LITERAL] = frozendict(
     {
         "regular": "Regular Battle",
         "ranked": "Ranked Battle",

@@ -2,11 +2,10 @@ from typing import TypeVar
 from discord import AudioSource, abc, PCMVolumeTransformer
 
 from utils.audio import EnhancedSource
-from utils.misc import FrozenDict
 
-YTDLOptionsType = FrozenDict[str, str | bool]
+YTDLOptionsType = frozendict[str, str | bool]
 
-YTDL_AUDIO_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = FrozenDict(
+YTDL_AUDIO_FORMAT_INITIAL_OPTIONS: YTDLOptionsType = frozendict(
     {
         "format": "bestaudio/best",
         "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",

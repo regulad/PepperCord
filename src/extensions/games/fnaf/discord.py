@@ -25,7 +25,6 @@ from discord.ext.commands import (
 )
 
 from discord.ext.menus import ListPageSource, MenuPages
-from utils import misc
 from utils.bots.bot import CustomBot
 from utils.bots.context import CustomContext
 from utils.database import PCDocument
@@ -421,7 +420,7 @@ class FiveNightsAtFreddys(Cog):
                 foxy = Animatronic.FOXY.difficulty(night)
             difficulty: AnimatronicDifficulty = AnimatronicDifficulty(
                 night,
-                misc.FrozenDict(
+                frozendict(
                     {
                         Animatronic.FREDDY: freddy,
                         Animatronic.BONNIE: bonnie,

@@ -3,10 +3,13 @@
 # database images, lives in regulad/homelab, which keeps those current.
 #
 # Each ecosystem gets one PR a week grouping its minor and patch updates. workflows/dependabot-auto-merge.yml has GitHub
-# merge those once CI passes, except the GitHub Actions group, and a merge to main deploys. The GitHub Actions group,
-# major updates, discord.py, and the dependencies installed from git wait for a person.
+# merge every minor and patch update once CI passes, security updates included, and a merge to main deploys. GitHub
+# Actions updates, major updates, and any PR that touches a dependency the python group's exclude-patterns names
+# (discord.py and the dependencies installed from git) wait for a person: the workflow reads those names from here. So
+# do pre-commit hook updates, whose projects promise no SemVer, except a PR that updates Black's hook alone: Black keeps
+# formatting stable within a calendar year, and its year's first release comes as a major, which waits.
 #
-# The cooldown holds each release back until it is a week old, so nothing ships while it's days old.
+# The cooldown holds each release back until it is two weeks old, so nothing ships while it's days old.
 version: 2
 
 updates:
@@ -19,7 +22,7 @@ updates:
       time: "05:00"
       timezone: "America/New_York"
     cooldown:
-      default-days: 7
+      default-days: 14
     groups:
       python:
         update-types: ["minor", "patch"]
@@ -42,7 +45,7 @@ updates:
       time: "05:00"
       timezone: "America/New_York"
     cooldown:
-      default-days: 7
+      default-days: 14
     groups:
       docker:
         update-types: ["minor", "patch"]
@@ -55,7 +58,7 @@ updates:
       time: "05:00"
       timezone: "America/New_York"
     cooldown:
-      default-days: 7
+      default-days: 14
     groups:
       actions:
         update-types: ["minor", "patch"]
@@ -69,7 +72,7 @@ updates:
       time: "05:00"
       timezone: "America/New_York"
     cooldown:
-      default-days: 7
+      default-days: 14
     groups:
       pre-commit:
         update-types: ["minor", "patch"]

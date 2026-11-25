@@ -108,7 +108,7 @@ Pull requests (Dependabot's) must pass `lint`, `type`, `test`, `image (linux/amd
 
 - Poetry is pinned in pyproject's dev group (`poetry = "2.5.1"`); the `Dockerfile` and CI install that version.
 - discord.py is pinned exactly because PepperCord uses its internals, and git dependencies are pinned to commits. Dependabot's automatic groups exclude all of them.
-- Dependabot runs weekly with a 7-day cooldown, one grouped pull request per ecosystem for minor and patch updates. `dependabot-auto-merge.yml` turns on GitHub's auto-merge for those with `DEPENDABOT_MERGE_TOKEN` (a PAT, so the merge's push triggers a deploy), except the GitHub Actions group, which Parker updates by hand. Major updates wait for a person.
+- `dependabot-auto-merge.yml` turns on GitHub's auto-merge for every minor and patch update, security updates included, with `DEPENDABOT_MERGE_TOKEN` (a PAT, so the merge's push triggers a deploy). GitHub Actions updates, which Parker updates by hand, pre-commit hook updates other than a PR that updates Black's hook alone, and any PR that touches discord.py or a git dependency wait for a person, as do major updates. Dependabot runs weekly, with a two-week cooldown.
 - After adding or removing a dependency, `poetry lock` and check that only the intended packages changed in `poetry.lock`.
 
 ## Ask Parker first

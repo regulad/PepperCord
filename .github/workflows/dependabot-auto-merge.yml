@@ -1,11 +1,26 @@
 name: Dependabot auto-merge
 
-# Turns on GitHub's auto-merge for Dependabot's grouped PRs, which hold only minor and patch updates (see
-# dependabot.yml). GitHub then merges each one once CI's required checks pass (.github/settings.yml), and the merge's
-# push to main runs docker-publish.yml like any other: it builds, deploys, and creates the Sentry release.
+# Turns on GitHub's auto-merge for Dependabot's minor and patch updates, security updates included. GitHub then merges
+# each one once CI's required checks pass (.github/settings.yml), and the merge's push to main runs docker-publish.yml
+# like any other: it builds, deploys, and creates the Sentry release.
 #
-# Major updates, discord.py, and the git dependencies come as PRs of their own and wait for a person, and so does the
-# grouped GitHub Actions PR: workflow changes get a review.
+# An update merges whether it is grouped or not, and whatever its group is called: GitHub's grouped security updates
+# come as a group named for the ecosystem (npm_and_yarn, say), not one from dependabot.yml. These wait for a person:
+# - major updates;
+# - GitHub Actions updates, matched by ecosystem rather than by group so that a security update to an action waits too,
+#   since workflow changes get a review;
+# - pre-commit hook updates, since none of the hook projects promises SemVer, so a minor or patch release may still
+#   change what a hook does. Black is the exception: its stability policy keeps formatting unchanged within a calendar
+#   year, and only a year's first release may change it, which Dependabot reads as a major (YY.M.N) and holds anyway.
+#   So a PR whose only dependency is Black's hook merges; one that also bumps another hook waits;
+# - any update that touches a dependency some group in dependabot.yml excludes by name: today the python group's
+#   exclude-patterns, discord.py and the dependencies installed from git. The whole PR waits, so a grouped security
+#   update that also bumps discord.py holds the other fixes in it until a person merges it.
+#
+# The held names are read from dependabot.yml on the PR's base rather than repeated here. Dependabot matches group
+# patterns after normalizing names, so the match below compares names lowercased, with each run of "-", "_" and "." as
+# one "-" (PEP 503's rule: Dependabot names discord.py "discord-py"), and reads "*" in a pattern as any run of
+# characters.
 #
 # Auto-merge is turned on with the DEPENDABOT_MERGE_TOKEN secret, not GITHUB_TOKEN. GitHub credits the merge to whoever
 # turned auto-merge on, and starts no workflows for a push credited to GITHUB_TOKEN, so docker-publish.yml would never
@@ -24,12 +39,49 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       - id: metadata
-        uses: dependabot/fetch-metadata@v3
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      - id: held
+        name: Find dependencies that wait for a person
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          UPDATED: ${{ steps.metadata.outputs.updated-dependencies-json }}
+        run: |
+          names=$(
+            gh api -H 'Accept: application/vnd.github.raw' "repos/$GITHUB_REPOSITORY/contents/.github/dependabot.yml?ref=$BASE_SHA" \
+              | yq -o=json \
+              | jq -r --argjson updated "$UPDATED" '
+                  def norm: ascii_downcase | gsub("[-_.]+"; "-");
+                  [.updates[].groups // {} | .[] | .["exclude-patterns"] // [] | .[] | "^" + (norm | gsub("\\*"; ".*")) + "$"] as $held
+                  | [$updated[].dependencyName | select(norm as $name | any($held[]; . as $re | $name | test($re)))]
+                  | join(", ")'
+          )
+          echo "Held: ${names:-none}"
+          echo "names=$names" >> "$GITHUB_OUTPUT"
+      # gh pr merge --auto merges at once when the branch requires no checks, so a lost branch protection would turn
+      # this into merging every update unchecked. Refuse instead. The branch endpoint shows the required checks to the
+      # workflow's own token.
+      - name: Refuse unless the branch requires checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          required=$(gh api "repos/${GITHUB_REPOSITORY}/branches/${BASE}" --jq '.protection.required_status_checks.contexts | length')
+          if [ "${required}" -eq 0 ]; then
+            echo "::error::${BASE} requires no status checks, so auto-merge would merge this pull request unchecked. Restore the protection .github/settings.yml declares."
+            exit 1
+          fi
+      # fetch-metadata names the ecosystem as Dependabot's branch does (dependabot/<ecosystem>/...): github_actions,
+      # pre_commit. It names a pre-commit hook by its repo URL as .pre-commit-config.yaml writes it, and joins several
+      # names with ", ", so the comparison below matches a PR that updates Black alone.
       - name: Merge once CI passes
         if: >-
-          steps.metadata.outputs.dependency-group != ''
-          && steps.metadata.outputs.dependency-group != 'actions'
-          && steps.metadata.outputs.update-type != 'version-update:semver-major'
+          steps.metadata.outputs.update-type != 'version-update:semver-major'
+          && steps.metadata.outputs.package-ecosystem != 'github_actions'
+          && (steps.metadata.outputs.package-ecosystem != 'pre_commit'
+              || steps.metadata.outputs.dependency-names == 'https://github.com/psf/black')
+          && steps.held.outputs.names == ''
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}

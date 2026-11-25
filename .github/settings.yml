@@ -13,7 +13,7 @@ repository:
   topics: discord, discord-py, discord-bot, python, python3
   default_branch: main
 
-  # workflows/dependabot-auto-merge.yml turns it on for Dependabot's grouped minor and patch updates.
+  # workflows/dependabot-auto-merge.yml turns it on for Dependabot's minor and patch updates, security updates included.
   allow_auto_merge: true
 
 labels:
@@ -34,7 +34,7 @@ branches:
     # Branch Protection settings. Set to null to disable
     protection:
       # Required. Require at least one approving review on a pull request, before merging. Set to null to disable.
-      # Off: Dependabot's grouped updates merge on CI alone.
+      # Off: Dependabot's minor and patch updates, security updates included, merge on CI alone.
       required_pull_request_reviews: null
       # Required. Require status checks to pass before merging. Set to null to disable
       required_status_checks:

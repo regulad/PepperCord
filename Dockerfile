@@ -18,7 +18,7 @@ ARG DEBIAN_RELEASE=trixie
 # uv only installs the interpreter; it ships in neither later stage. Each uv release pins the python-build-standalone
 # builds it downloads, and their checksums, so this tag pins the interpreter's patch release and build too. Dependabot
 # bumps it, and Python patch releases (and the OpenSSL and SQLite built into the interpreter) arrive with those bumps.
-FROM ghcr.io/astral-sh/uv:0.13.8 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.10 AS uv
 
 # yt-dlp runs deno for YouTube's JavaScript challenges.
 FROM docker.io/denoland/deno:bin-2.9.8 AS deno

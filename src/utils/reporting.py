@@ -47,9 +47,11 @@ def init_sentry(config: Mapping[str, str], *, debug: bool) -> None:
         environment="development" if debug else "production",
         traces_sampler=traces_sampler,
         enable_logs=True,
+        # Stack frames' local variables would carry what users typed (a search, a message, a server address).
+        include_local_variables=False,
         # Events carry the user's ID and the guild's ID, set explicitly by CustomContext. Nothing else that identifies a
         # person is collected: with neither data_collection nor the deprecated send_default_pii set, the SDK collects no
-        # personal data automatically.
+        # personal data automatically, and frames carry no local variables (PRIVACY.md).
     )
     logger.info(f"Reporting to Sentry, tracing {traces_sample_rate:.0%} of commands.")
 

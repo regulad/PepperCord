@@ -19,6 +19,10 @@ from utils.version import get_version
 
 WHOIS_CM_NAME: str = "Get User Information"
 
+# PepperCord's privacy policy and terms of service, as the repository's main branch holds them.
+PRIVACY_POLICY_URL: str = "https://github.com/regulad/PepperCord/blob/main/PRIVACY.md"
+TERMS_OF_SERVICE_URL: str = "https://github.com/regulad/PepperCord/blob/main/TOS.md"
+
 
 @context_menu(name=WHOIS_CM_NAME)
 async def whois_cm(interaction: Interaction[CustomBot], user: Member | User) -> None:
@@ -178,14 +182,11 @@ class Info(commands.Cog):
             try:
                 peppercord_version, peppercord_commit = get_version()
 
-                base = ctx.bot.config.get(
-                    "PEPPERCORD_WEB", "https://regulad.github.io/PepperCord"
-                )
                 embed = discord.Embed(
                     colour=discord.Colour.orange(),
                     title=f"Hi, I'm {cast(ClientUser, ctx.bot.user).name}! Nice to meet you!",
                     description=f"**Important Links**: "
-                    f"[Website]({base}) | [Donate]({base}/donate) | [Discord]({base}/discord)"
+                    f"[Privacy Policy]({PRIVACY_POLICY_URL}) | [Terms of Service]({TERMS_OF_SERVICE_URL})"
                     f"\n**{'Owner' if ctx.bot.owner_id is not None else 'Owners'}**: "
                     f"{
                             str(ctx.bot.owner_id)

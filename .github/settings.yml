@@ -7,7 +7,7 @@ repository:
   name: PepperCord
   description: >-
     Multi-Purpose Discord bot chock full of functions, including music, Minecraft, and heaps more
-  homepage: https://regulad.github.io/PepperCord/
+  homepage: ""
   private: false
   # Topics: comma-and-space separated string, NOT a YAML list.
   topics: discord, discord-py, discord-bot, python, python3
